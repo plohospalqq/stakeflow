@@ -1,0 +1,1659 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Stakeflow API",
+    "summary": "Norwegian Continental Shelf production, attributed to the companies that own it.",
+    "description": "Source: Sodir (Norwegian Offshore Directorate), Norwegian Licence for Open Government Data (NLOD). Volumes are monthly Sm\u00b3 oil equivalent unless the field name says otherwise. Equinor figures cover the Norwegian shelf only. Not investment advice.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meta/freshness": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Freshness",
+        "operationId": "freshness_meta_freshness_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Freshness"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies": {
+      "get": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "List Companies",
+        "operationId": "list_companies_companies_get",
+        "parameters": [
+          {
+            "name": "focus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only the focus companies",
+              "default": false,
+              "title": "Focus"
+            },
+            "description": "Only the focus companies"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Name contains",
+              "title": "Q"
+            },
+            "description": "Name contains"
+          },
+          {
+            "name": "producing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only companies producing now",
+              "default": true,
+              "title": "Producing"
+            },
+            "description": "Only companies producing now"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CompanySummary"
+                  },
+                  "title": "Response List Companies Companies Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{company_id}": {
+      "get": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "Get Company",
+        "operationId": "get_company_companies__company_id__get",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{company_id}/production": {
+      "get": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "Company Production",
+        "operationId": "company_production_companies__company_id__production_get",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "First month (default: 36 months back)",
+              "title": "Start"
+            },
+            "description": "First month (default: 36 months back)"
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Last month (default: newest in data)",
+              "title": "End"
+            },
+            "description": "Last month (default: newest in data)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MonthlyPoint"
+                  },
+                  "title": "Response Company Production Companies  Company Id  Production Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{company_id}/fields": {
+      "get": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "Company Fields",
+        "description": "Net-to-company production per field and month (for the stacked chart).",
+        "operationId": "company_fields_companies__company_id__fields_get",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "First month (default: 36 months back)",
+              "title": "Start"
+            },
+            "description": "First month (default: 36 months back)"
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Last month (default: newest in data)",
+              "title": "End"
+            },
+            "description": "Last month (default: newest in data)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldMonthlyForCompany"
+                  },
+                  "title": "Response Company Fields Companies  Company Id  Fields Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{company_id}/quarters": {
+      "get": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "Company Quarters",
+        "description": "Quarterly Sodir-attributed production next to what the company reported.",
+        "operationId": "company_quarters_companies__company_id__quarters_get",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "First quarter start",
+              "title": "Since"
+            },
+            "description": "First quarter start"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuarterReconciliation"
+                  },
+                  "title": "Response Company Quarters Companies  Company Id  Quarters Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fields": {
+      "get": {
+        "tags": [
+          "fields"
+        ],
+        "summary": "List Fields",
+        "operationId": "list_fields_fields_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "Producing",
+                    "Shut down",
+                    "Approved for production"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Company id currently holding a share",
+              "title": "Owner"
+            },
+            "description": "Company id currently holding a share"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldSummary"
+                  },
+                  "title": "Response List Fields Fields Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fields/geojson": {
+      "get": {
+        "tags": [
+          "fields"
+        ],
+        "summary": "Fields Geojson",
+        "description": "Field outlines for the map, simplified to keep the payload small.",
+        "operationId": "fields_geojson_fields_geojson_get",
+        "parameters": [
+          {
+            "name": "tolerance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 0.05,
+              "minimum": 0,
+              "description": "Simplify, degrees",
+              "default": 0.002,
+              "title": "Tolerance"
+            },
+            "description": "Simplify, degrees"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureCollection"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fields/{field_id}": {
+      "get": {
+        "tags": [
+          "fields"
+        ],
+        "summary": "Get Field",
+        "operationId": "get_field_fields__field_id__get",
+        "parameters": [
+          {
+            "name": "field_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Field Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fields/{field_id}/production": {
+      "get": {
+        "tags": [
+          "fields"
+        ],
+        "summary": "Field Production",
+        "operationId": "field_production_fields__field_id__production_get",
+        "parameters": [
+          {
+            "name": "field_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Field Id"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "First month (default: 36 months back)",
+              "title": "Start"
+            },
+            "description": "First month (default: 36 months back)"
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Last month (default: newest in data)",
+              "title": "End"
+            },
+            "description": "Last month (default: newest in data)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MonthlyPoint"
+                  },
+                  "title": "Response Field Production Fields  Field Id  Production Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fields/{field_id}/ownership": {
+      "get": {
+        "tags": [
+          "fields"
+        ],
+        "summary": "Field Ownership",
+        "description": "Every ownership period (SCD Type 2). validTo is exclusive; null means still valid.",
+        "operationId": "field_ownership_fields__field_id__ownership_get",
+        "parameters": [
+          {
+            "name": "field_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Field Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OwnershipPeriod"
+                  },
+                  "title": "Response Field Ownership Fields  Field Id  Ownership Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CompanyDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "isFocus": {
+            "type": "boolean",
+            "title": "Isfocus"
+          },
+          "scopeNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scopenote"
+          },
+          "producingFieldCount": {
+            "type": "integer",
+            "title": "Producingfieldcount"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LatestSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "legalEntities": {
+            "items": {
+              "$ref": "#/components/schemas/LegalEntity"
+            },
+            "type": "array",
+            "title": "Legalentities"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "isFocus",
+          "scopeNote",
+          "producingFieldCount",
+          "latest",
+          "legalEntities"
+        ],
+        "title": "CompanyDetail"
+      },
+      "CompanySummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "isFocus": {
+            "type": "boolean",
+            "title": "Isfocus"
+          },
+          "scopeNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scopenote"
+          },
+          "producingFieldCount": {
+            "type": "integer",
+            "title": "Producingfieldcount"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LatestSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "isFocus",
+          "scopeNote",
+          "producingFieldCount",
+          "latest"
+        ],
+        "title": "CompanySummary"
+      },
+      "FeatureCollection": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "FeatureCollection",
+            "title": "Type",
+            "default": "FeatureCollection"
+          },
+          "features": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "features"
+        ],
+        "title": "FeatureCollection"
+      },
+      "FieldDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "hcType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hctype"
+          },
+          "mainArea": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mainarea"
+          },
+          "operator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OperatorRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LatestSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "discoveryYear": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discoveryyear"
+          },
+          "areaKm2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Areakm2"
+          },
+          "firstProductionMonth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firstproductionmonth"
+          },
+          "lastProductionMonth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastproductionmonth"
+          },
+          "factpageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Factpageurl"
+          },
+          "currentOwners": {
+            "items": {
+              "$ref": "#/components/schemas/Owner"
+            },
+            "type": "array",
+            "title": "Currentowners"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "hcType",
+          "mainArea",
+          "operator",
+          "lon",
+          "lat",
+          "latest",
+          "discoveryYear",
+          "areaKm2",
+          "firstProductionMonth",
+          "lastProductionMonth",
+          "factpageUrl",
+          "currentOwners"
+        ],
+        "title": "FieldDetail"
+      },
+      "FieldMonthlyForCompany": {
+        "properties": {
+          "fieldId": {
+            "type": "integer",
+            "title": "Fieldid"
+          },
+          "fieldName": {
+            "type": "string",
+            "title": "Fieldname"
+          },
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "sharePct": {
+            "type": "number",
+            "title": "Sharepct"
+          },
+          "oeSm3": {
+            "type": "number",
+            "title": "Oesm3"
+          },
+          "boePerDay": {
+            "type": "number",
+            "title": "Boeperday"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fieldId",
+          "fieldName",
+          "month",
+          "sharePct",
+          "oeSm3",
+          "boePerDay"
+        ],
+        "title": "FieldMonthlyForCompany"
+      },
+      "FieldSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "hcType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hctype"
+          },
+          "mainArea": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mainarea"
+          },
+          "operator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OperatorRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LatestSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "hcType",
+          "mainArea",
+          "operator",
+          "lon",
+          "lat",
+          "latest"
+        ],
+        "title": "FieldSummary"
+      },
+      "Freshness": {
+        "properties": {
+          "latestMonth": {
+            "type": "string",
+            "format": "date",
+            "title": "Latestmonth"
+          },
+          "lastRefreshAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastrefreshat"
+          },
+          "source": {
+            "type": "string",
+            "const": "Sodir",
+            "title": "Source",
+            "default": "Sodir"
+          },
+          "licence": {
+            "type": "string",
+            "title": "Licence",
+            "default": "Norwegian Licence for Open Government Data (NLOD)"
+          },
+          "recentPublicationLags": {
+            "items": {
+              "$ref": "#/components/schemas/PublicationLag"
+            },
+            "type": "array",
+            "title": "Recentpublicationlags"
+          }
+        },
+        "type": "object",
+        "required": [
+          "latestMonth",
+          "lastRefreshAt",
+          "recentPublicationLags"
+        ],
+        "title": "Freshness"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LatestSummary": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "boePerDay": {
+            "type": "number",
+            "title": "Boeperday"
+          },
+          "oeSm3": {
+            "type": "number",
+            "title": "Oesm3"
+          },
+          "prevMonthBoePerDay": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prevmonthboeperday"
+          },
+          "yearAgoBoePerDay": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yearagoboeperday"
+          },
+          "oilShare": {
+            "type": "number",
+            "title": "Oilshare"
+          },
+          "gasShare": {
+            "type": "number",
+            "title": "Gasshare"
+          },
+          "nglCondensateShare": {
+            "type": "number",
+            "title": "Nglcondensateshare"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "boePerDay",
+          "oeSm3",
+          "prevMonthBoePerDay",
+          "yearAgoBoePerDay",
+          "oilShare",
+          "gasShare",
+          "nglCondensateShare"
+        ],
+        "title": "LatestSummary"
+      },
+      "LegalEntity": {
+        "properties": {
+          "companyId": {
+            "type": "integer",
+            "title": "Companyid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "nationCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nationcode"
+          },
+          "factpageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Factpageurl"
+          }
+        },
+        "type": "object",
+        "required": [
+          "companyId",
+          "name",
+          "nationCode",
+          "factpageUrl"
+        ],
+        "title": "LegalEntity"
+      },
+      "MonthlyPoint": {
+        "properties": {
+          "oilSm3": {
+            "type": "number",
+            "title": "Oilsm3"
+          },
+          "gasSm3": {
+            "type": "number",
+            "title": "Gassm3"
+          },
+          "gasOeSm3": {
+            "type": "number",
+            "title": "Gasoesm3"
+          },
+          "nglSm3": {
+            "type": "number",
+            "title": "Nglsm3"
+          },
+          "condensateSm3": {
+            "type": "number",
+            "title": "Condensatesm3"
+          },
+          "oeSm3": {
+            "type": "number",
+            "title": "Oesm3"
+          },
+          "boePerDay": {
+            "type": "number",
+            "title": "Boeperday"
+          },
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "daysInMonth": {
+            "type": "integer",
+            "title": "Daysinmonth"
+          }
+        },
+        "type": "object",
+        "required": [
+          "oilSm3",
+          "gasSm3",
+          "gasOeSm3",
+          "nglSm3",
+          "condensateSm3",
+          "oeSm3",
+          "boePerDay",
+          "month",
+          "daysInMonth"
+        ],
+        "title": "MonthlyPoint"
+      },
+      "OperatorRef": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "OperatorRef"
+      },
+      "Owner": {
+        "properties": {
+          "companyId": {
+            "type": "integer",
+            "title": "Companyid"
+          },
+          "companyName": {
+            "type": "string",
+            "title": "Companyname"
+          },
+          "groupId": {
+            "type": "string",
+            "title": "Groupid"
+          },
+          "groupName": {
+            "type": "string",
+            "title": "Groupname"
+          },
+          "sharePct": {
+            "type": "number",
+            "title": "Sharepct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "companyId",
+          "companyName",
+          "groupId",
+          "groupName",
+          "sharePct"
+        ],
+        "title": "Owner"
+      },
+      "OwnershipPeriod": {
+        "properties": {
+          "companyId": {
+            "type": "integer",
+            "title": "Companyid"
+          },
+          "companyName": {
+            "type": "string",
+            "title": "Companyname"
+          },
+          "groupId": {
+            "type": "string",
+            "title": "Groupid"
+          },
+          "groupName": {
+            "type": "string",
+            "title": "Groupname"
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date",
+            "title": "Validfrom"
+          },
+          "validTo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validto"
+          },
+          "sharePct": {
+            "type": "number",
+            "title": "Sharepct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "companyId",
+          "companyName",
+          "groupId",
+          "groupName",
+          "validFrom",
+          "validTo",
+          "sharePct"
+        ],
+        "title": "OwnershipPeriod"
+      },
+      "PublicationLag": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "lagDaysMin": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lagdaysmin"
+          },
+          "lagDaysMax": {
+            "type": "integer",
+            "title": "Lagdaysmax"
+          },
+          "isMeasured": {
+            "type": "boolean",
+            "title": "Ismeasured"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "lagDaysMin",
+          "lagDaysMax",
+          "isMeasured"
+        ],
+        "title": "PublicationLag"
+      },
+      "QuarterReconciliation": {
+        "properties": {
+          "quarterStart": {
+            "type": "string",
+            "format": "date",
+            "title": "Quarterstart"
+          },
+          "monthsInData": {
+            "type": "integer",
+            "title": "Monthsindata"
+          },
+          "isComplete": {
+            "type": "boolean",
+            "title": "Iscomplete"
+          },
+          "attributedKboeD": {
+            "type": "number",
+            "title": "Attributedkboed"
+          },
+          "reportedKboeD": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reportedkboed"
+          },
+          "errorPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errorpct"
+          },
+          "reportedOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reportedon"
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourceurl"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quarterStart",
+          "monthsInData",
+          "isComplete",
+          "attributedKboeD",
+          "reportedKboeD",
+          "errorPct",
+          "reportedOn",
+          "sourceUrl"
+        ],
+        "title": "QuarterReconciliation"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

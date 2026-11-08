@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help env up down reset psql logs ingest refresh dbt test lint
+.PHONY: help env up down reset psql logs ingest refresh dbt openapi test lint
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -30,6 +30,10 @@ ingest: ## Without Dagster: download all Sodir layers into the raw schema (or: m
 
 dbt: ## Without Dagster: dbt build (models + tests) against the local database
 	cd pipeline && uv run --env-file ../.env dbt build --project-dir dbt --profiles-dir dbt
+
+openapi: ## Write the API contract to api/openapi.json (frontend types are generated from it)
+	cd api && POSTGRES_HOST=x POSTGRES_PORT=1 POSTGRES_USER=x POSTGRES_PASSWORD=x POSTGRES_DB=x \
+		uv run python -c "import json; from stakeflow_api.main import app; print(json.dumps(app.openapi(), indent=2))" > openapi.json
 
 test: ## Run pipeline + API tests (DB tests skip if the database is down)
 	cd pipeline && uv run --env-file ../.env pytest -q
