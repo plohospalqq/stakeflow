@@ -263,3 +263,9 @@
 .maplibregl-ctrl-attrib a {
   color: var(--mu) !important;
 }
+
+/* Map legend ramp: same Lab interpolation as the circle colours where supported. */
+.oil-gas-ramp {
+  background: linear-gradient(90deg, var(--oil), var(--gas));
+  background: linear-gradient(in lab 90deg, var(--oil), var(--gas));
+}

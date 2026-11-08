@@ -9,6 +9,12 @@ vi.mock('@/components/charts/EChart', () => ({
     createElement('div', { role: 'img', 'aria-label': ariaLabel }),
 }));
 
+// jsdom has no WebGL. The map page is tested through its list and side panel, which are
+// the keyboard and screen-reader way in anyway.
+vi.mock('@/pages/map/FieldMapCanvas', () => ({
+  FieldMapCanvas: () => createElement('div', { 'data-testid': 'map-canvas' }),
+}));
+
 // Node 25+ ships an experimental global `localStorage` that is undefined without
 // --localstorage-file and shadows jsdom's. Give tests a plain in-memory Storage instead.
 if (typeof window.localStorage === 'undefined') {

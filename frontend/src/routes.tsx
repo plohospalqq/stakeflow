@@ -8,6 +8,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 const Overview = lazy(() => import('@/pages/Overview'));
 const FieldsIndex = lazy(() => import('@/pages/FieldsIndex'));
 const FieldDetail = lazy(() => import('@/pages/FieldDetail'));
+const FieldMap = lazy(() => import('@/pages/FieldMap'));
 const CompanyDetail = lazy(() => import('@/pages/CompanyDetail'));
 const TrackRecord = lazy(() => import('@/pages/TrackRecord'));
 const DevComponents = lazy(() => import('@/pages/DevComponents'));
@@ -17,7 +18,7 @@ export const routes: RouteObject[] = [
     element: <AppShell />,
     children: [
       { index: true, element: <Overview /> },
-      { path: 'map', element: <Placeholder label="Field map" title="Where the production is" /> },
+      { path: 'map', element: <FieldMap /> },
       { path: 'fields', element: <FieldsIndex /> },
       { path: 'fields/:id', element: <FieldDetail /> },
       { path: 'companies', element: <Navigate to="/companies/aker-bp" replace /> },
