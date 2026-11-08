@@ -1,0 +1,98 @@
+version: 2
+
+models:
+  - name: dim_company_group
+    description: >
+      What the API and UI call a "company": curated groups (Equinor, Aker BP, Vår Energi, ...)
+      plus one group per remaining legal entity. Equinor's display_name always says "(NCS only)".
+    columns:
+      - name: group_id
+        tests: [unique, not_null]
+      - name: display_name
+        tests: [not_null]
+
+  - name: dim_company
+    description: Legal entities from Sodir, each mapped to a group.
+    columns:
+      - name: company_id
+        tests: [unique, not_null]
+      - name: group_id
+        tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_company_group'), field: group_id}
+
+  - name: dim_field
+    description: Fields with status, operator, production span and geometry (MultiPolygon, EPSG:4326).
+    columns:
+      - name: field_id
+        tests: [unique, not_null]
+      - name: operator_group_id
+        tests:
+          - relationships:
+              arguments: {to: ref('dim_company_group'), field: group_id}
+
+  - name: fct_field_ownership
+    description: SCD Type 2 ownership per field and company. valid_to exclusive; 9999-12-31 = current.
+    tests:
+      - no_overlapping_intervals:
+          arguments: {partition_by: [field_id, company_id]}
+    columns:
+      - name: ownership_id
+        tests: [unique, not_null]
+      - name: field_id
+        tests:
+          - relationships:
+              arguments: {to: ref('dim_field'), field: field_id}
+      - name: company_id
+        tests:
+          - relationships:
+              arguments: {to: ref('dim_company'), field: company_id}
+
+  - name: fct_field_production_monthly
+    description: >
+      Net production per field and month. Volumes in Sm³ (gas as Sm³ gas, gas_oe_sm3 in o.e.).
+      ownership_coverage_pct < 100 marks the few early months with no ownership record.
+    tests:
+      - unique_combination:
+          arguments: {columns: [field_id, month]}
+    columns:
+      - name: field_id
+        tests:
+          - relationships:
+              arguments: {to: ref('dim_field'), field: field_id}
+      - name: ownership_coverage_pct
+        tests:
+          - dbt_expression_between:
+              arguments: {min: 0, max: 100.01}
+
+  - name: fct_company_field_production_monthly
+    description: Field volume × day-weighted company share, per company, field and month.
+    tests:
+      - unique_combination:
+          arguments: {columns: [company_id, field_id, month]}
+
+  - name: fct_group_production_monthly
+    description: Monthly production per company group.
+    tests:
+      - unique_combination:
+          arguments: {columns: [group_id, month]}
+    columns:
+      - name: group_id
+        tests:
+          - relationships:
+              arguments: {to: ref('dim_company_group'), field: group_id}
+
+  - name: fct_publication_lag
+    description: Days between month end and the first snapshot containing that month (bounded by the previous snapshot).
+    columns:
+      - name: month
+        tests: [unique, not_null]
+
+  - name: fct_quarterly_reconciliation
+    description: >
+      Quarterly attributed production per group vs the company's reported figure. error_pct is
+      only meaningful when is_complete (all three months are in Sodir's data).
+    tests:
+      - unique_combination:
+          arguments: {columns: [group_id, quarter_start]}

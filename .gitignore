@@ -37,6 +37,7 @@ __pycache__/
 pipeline/dbt/target/
 pipeline/dbt/dbt_packages/
 pipeline/dbt/logs/
+pipeline/dbt/.user.yml
 
 # Dagster local state
 .dagster_home/
@@ -50,3 +51,5 @@ data/
 *.csv
 *.parquet
 !pipeline/tests/fixtures/**
+# dbt seeds are small curated reference data, not raw data
+!pipeline/dbt/seeds/*.csv

@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help env up down reset psql logs ingest refresh test lint
+.PHONY: help env up down reset psql logs ingest refresh dbt test lint
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -27,6 +27,9 @@ refresh: ## Queue a full refresh (all Sodir layers + dbt) in the running Dagster
 
 ingest: ## Without Dagster: download all Sodir layers into the raw schema (or: make ingest LAYERS="field profiles")
 	cd pipeline && uv run --env-file ../.env stakeflow-ingest $(LAYERS)
+
+dbt: ## Without Dagster: dbt build (models + tests) against the local database
+	cd pipeline && uv run --env-file ../.env dbt build --project-dir dbt --profiles-dir dbt
 
 test: ## Run pipeline tests (DB tests skip if the database is down)
 	cd pipeline && uv run --env-file ../.env pytest -q

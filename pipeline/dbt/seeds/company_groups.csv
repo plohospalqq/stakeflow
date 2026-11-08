@@ -1,0 +1,7 @@
+group_id,display_name,is_focus,scope_note
+equinor,Equinor (NCS only),true,"Norwegian shelf only. Excludes Equinor's international, trading and renewables business; never compare with group totals."
+aker-bp,Aker BP,true,"Includes predecessor Det norske oljeselskap and ABP Norway AS (ex-Lundin assets from 2022-06-30)."
+var-energi,Vår Energi,true,"From 2018-12-10 (Eni Norge + Point Resources). Re-check scope if the BlueNord combination closes."
+petoro,Petoro (SDFI),false,"The Norwegian state's direct financial interest, managed by Petoro since 2001."
+lundin,Lundin,false,"Lundin's Norwegian entities until the Aker BP merger on 2022-06-30."
+norsk-hydro,Norsk Hydro,false,"Hydro's oil and gas until the 2007 merger into StatoilHydro (now Equinor)."

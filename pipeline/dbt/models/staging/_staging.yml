@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: stg_sodir__companies
+    description: Latest Sodir company snapshot, typed.
+    columns:
+      - name: company_id
+        tests: [unique, not_null]
+  - name: stg_sodir__fields
+    description: Latest field snapshot. Geometry repaired with ST_MakeValid and cast to MultiPolygon, EPSG:4326.
+    columns:
+      - name: field_id
+        tests: [unique, not_null]
+      - name: status
+        tests:
+          - accepted_values:
+              arguments: {values: ["Producing", "Shut down", "Approved for production"]}
+  - name: stg_sodir__field_licensees
+    description: Field ownership periods. valid_to is exclusive (Sodir's inclusive "to" + 1 day).
+    tests:
+      - no_overlapping_intervals:
+          arguments: {partition_by: [field_id, company_id]}
+    columns:
+      - name: share_pct
+        tests:
+          - not_null
+          - dbt_expression_between:
+              arguments: {min: 0, max: 100}
+  - name: stg_sodir__production_monthly
+    description: Monthly net (saleable) production per field in Sm³.
+    tests:
+      - unique_combination:
+          arguments: {columns: [field_id, month]}
+  - name: stg_sodir__ingestion_runs
+  - name: stg_sodir__production_snapshots

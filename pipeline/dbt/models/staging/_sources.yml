@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: Sodir DataService snapshots written by the Dagster raw assets (append-only).
+    tables:
+      - name: ingestion_runs
+        description: One row per layer download; finished_at is set only for complete snapshots.
+      - name: sodir_company
+      - name: sodir_field
+      - name: sodir_field_activity_status_hst
+      - name: sodir_field_licensee_hst
+      - name: sodir_field_operator_hst
+      - name: sodir_profiles
+      - name: sodir_licence
+      - name: sodir_licence_licensee_hst

@@ -23,6 +23,7 @@ make psql    # SQL shell
 make down    # stop (keeps data)
 make reset   # stop and delete the DB volume
 make ingest  # without Dagster: download Sodir layers into raw.* (LAYERS="field profiles" for a subset)
+make dbt     # without Dagster: dbt build (models + tests)
 make test    # pytest (DB tests skip when the database is down)
 make lint    # ruff check + format check
 ```

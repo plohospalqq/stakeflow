@@ -1,0 +1,41 @@
+version: 2
+
+seeds:
+  - name: company_groups
+    description: >
+      Curated corporate groups. Sodir's own cmpGroup is inconsistent, so economic groups are
+      maintained here. Companies not listed get a group of their own.
+    config:
+      column_types: {group_id: text, display_name: text, is_focus: boolean, scope_note: text}
+    columns:
+      - name: group_id
+        tests: [unique, not_null]
+  - name: company_group_members
+    description: >
+      Legal entity → group. Static on purpose: M&A on the shelf moves shares to new legal
+      entities (Lundin Energy Norway → ABP Norway on 2022-06-30), so a static map keeps history
+      right without back-dating a merger.
+    config:
+      column_types: {company_id: integer, group_id: text, note: text}
+    columns:
+      - name: company_id
+        tests: [unique, not_null]
+      - name: group_id
+        tests:
+          - relationships:
+              arguments: {to: ref('company_groups'), field: group_id}
+  - name: reported_quarterly_production
+    description: >
+      Production the companies themselves reported (kboe/d, quarterly average), copied by hand
+      from public trading updates with the source link. Ground truth for reconciliation and,
+      later, for scoring forecasts. Append rows; never edit old ones.
+    config:
+      column_types: {group_id: text, quarter_start: date, reported_kboe_d: numeric, published_on: date, document: text, source_url: text}
+    tests:
+      - unique_combination:
+          arguments: {columns: [group_id, quarter_start]}
+    columns:
+      - name: group_id
+        tests:
+          - relationships:
+              arguments: {to: ref('company_groups'), field: group_id}
