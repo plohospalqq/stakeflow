@@ -38,6 +38,14 @@ More commands get added here as each phase step lands.
   endpoints. Tests use recorded fixtures, never the live network.
 - Production uses **net (saleable)** volumes. Ownership attribution uses
   `field_licensee_hst` (field level, unitised), day-weighted within a month.
+- **Equinor is labelled "Equinor (NCS only)"** in every company-level number, API response and
+  UI. Never compare its attributed production with Equinor group totals (international,
+  trading and renewables are out of scope). Same rule for any company that stops being
+  NCS-only (watch Vår Energi + BlueNord).
+- **No stock price prediction.** Share prices may be shown for context at most. Core outputs:
+  production, revenue estimate, forecast accuracy.
+- Nowcast scope is set by `docs/nowcast-feasibility.md` (companies publish production at
+  T+12/14, Sodir field data lands at T+40–69).
 - Never commit secrets, `.env`, or raw data files.
 - Commits: small, Conventional Commits, English, no AI attribution trailers.
 - Ask before adding a new dependency.

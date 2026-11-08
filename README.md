@@ -7,6 +7,13 @@ companies that own each field, over time.
 > **Status:** Phase 1 in progress. See [`docs/phase-1-plan.md`](docs/phase-1-plan.md).
 > Sections below describe the target design; anything not built yet is marked *planned*.
 
+## Scope
+
+- **In scope:** NCS production per field and per company, revenue estimates, forecast accuracy.
+- **NCS only:** company figures cover the Norwegian shelf only. Equinor is shown as
+  "Equinor (NCS only)" and is never compared with its group totals.
+- **Not in scope:** stock price prediction. Share prices may appear for context only.
+
 ## Architecture
 
 ```mermaid

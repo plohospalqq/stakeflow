@@ -169,9 +169,9 @@ Layers in Postgres:
 
 Key formulas:
 
-- `oe_sm3 = oil + condensate + ngl × k_ngl + gas / 1000`. `k_ngl` is not confirmed yet
-  (NGL is given in Sm³ here, and Sodir's 1.9 factor is per tonne). We take it from Sodir's
-  definition and the dbt test against `prfPrdOeNetMillSm3` proves it is right
+- `oe_sm3 = oil + condensate + ngl + gas / 1000`. Checked on real data (Johan Sverdrup,
+  June 2022): 1.633746 oil + 0.059457 gas (bill Sm³ → mill Sm³ o.e.) + 0.034995 NGL + 0
+  condensate = 1.728198, exactly Sodir's `prfPrdOeNetMillSm3`. The dbt test keeps checking it
 - `boe_per_day = oe_sm3 × 6.2898 / days_in_month`
 - `effective_share = Σ(share × days_valid_in_month) / days_in_month`
 - attributed volume = field volume × effective share
@@ -206,3 +206,15 @@ dbt tests (plus the usual unique / not_null / relationships):
 3. Production volumes: **net (saleable)**
 4. PostGIS and Recharts approved
 5. Toolchain via Homebrew, Docker Desktop
+
+## 6. Constraints added 2026-11-08
+
+1. **Equinor = "Equinor (NCS only)"** everywhere a company-level number appears. Implemented as
+   a `display_name` column on `dim_company_group`, filled from a small dbt seed of label
+   overrides, so the API and UI never build the label themselves. A dbt test fails if an
+   Equinor group row lacks the "(NCS only)" suffix.
+2. **No stock price prediction.** Share prices may be shown for context only.
+3. **Nowcast feasibility** is in `docs/nowcast-feasibility.md`. Short version: companies publish
+   production at T+12/14 and Sodir field data lands at T+40–69, so the nowcast is reframed as a
+   forecast made at quarter end and scored against the trading update. Proposed additions to
+   Phase 1: a daily "new month?" sensor in step 2 and `fct_publication_lag` in step 4.
