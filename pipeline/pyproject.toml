@@ -15,7 +15,7 @@ dependencies = [
     "pydantic>=2.14.3",
     # SQLAlchemy 2.1 defaults postgresql:// to psycopg 3, which breaks dagster-postgres
     # (`NOTIFY run_events, $1`). Remove the pin once dagster-postgres supports it.
-    "sqlalchemy>=2.0,<2.1",
+    "sqlalchemy>=2.0,<2.2",
 ]
 
 [project.scripts]
