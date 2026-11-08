@@ -17,8 +17,8 @@ export interface DeltaBadgeProps {
 type Tone = 'good' | 'bad' | 'flat';
 
 const TONE_CLASS: Record<Tone, string> = {
-  good: 'text-up bg-[color-mix(in_srgb,var(--up)_14%,transparent)]',
-  bad: 'text-down bg-[color-mix(in_srgb,var(--dn)_14%,transparent)]',
+  good: 'text-up-ink bg-[color-mix(in_srgb,var(--up)_14%,transparent)]',
+  bad: 'text-down-ink bg-[color-mix(in_srgb,var(--dn)_14%,transparent)]',
   flat: 'text-muted bg-surface2',
 };
 

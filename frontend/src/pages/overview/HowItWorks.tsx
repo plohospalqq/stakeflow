@@ -16,8 +16,8 @@ export function HowItWorks() {
         </h2>
         <p className="m-0 text-[13px] text-muted">
           Every month the Norwegian Offshore Directorate publishes how much each field produced. We
-          split each field by who owns it, add it up per company, and forecast the quarter before
-          the company&apos;s trading update.
+          split each field by who owns it, add it up per company, and freeze a forecast of each
+          quarter at quarter end, scored against the company&apos;s trading update.
         </p>
       </div>
       <ol className="m-0 grid min-w-0 flex-[2_1_520px] list-none grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5 p-0">

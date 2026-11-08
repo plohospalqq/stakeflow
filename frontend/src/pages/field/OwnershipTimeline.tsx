@@ -134,9 +134,10 @@ export function OwnershipTimeline({
                     key={row.groupId}
                     className="flex flex-col gap-1 nav:flex-row nav:items-center nav:gap-3"
                   >
+                    {/* Wraps instead of truncating: company names (e.g. "Equinor (NCS only)")
+                        must always be readable in full, and a title tooltip fails on touch. */}
                     <span
-                      className={`w-full flex-none truncate text-[13px] nav:w-[140px] ${focus ? 'font-semibold' : ''}`}
-                      title={row.name}
+                      className={`w-full flex-none break-words text-[13px] leading-tight nav:w-[140px] ${focus ? 'font-semibold' : ''}`}
                     >
                       {row.name}
                     </span>

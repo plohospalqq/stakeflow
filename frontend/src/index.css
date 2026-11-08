@@ -30,6 +30,10 @@
     --f4: #707d8f;
     --f5: #535e6e;
     --f6: #3b4451;
+    /* Text on a tinted pill (deltas, errors, severity). Same as the base in dark mode. */
+    --up-ink: #5cbf93;
+    --dn-ink: #ee7b71;
+    --warn-ink: #e5b54a;
     color-scheme: dark;
   }
 
@@ -56,6 +60,10 @@
     --f4: #7f8b9b;
     --f5: #a3adba;
     --f6: #c6cdd6;
+    /* Darker in light mode: the base colours drop below 4.5:1 on their own 8-14% tint. */
+    --up-ink: #14623f;
+    --dn-ink: #9e3128;
+    --warn-ink: #704c00;
     color-scheme: light;
   }
 
@@ -223,6 +231,17 @@
   }
   .input::placeholder {
     color: var(--mu);
+  }
+
+  /* Below the sidebar breakpoint the app is used by touch: 44px targets (spec). */
+  @media (max-width: 1023.98px) {
+    .btn {
+      min-height: 44px;
+    }
+    .ibtn {
+      width: 44px;
+      height: 44px;
+    }
   }
 
   .sr-only-focusable:not(:focus) {

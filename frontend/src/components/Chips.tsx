@@ -7,12 +7,12 @@ const SEVERITY: Record<Severity, { label: string; className: string }> = {
   high: {
     label: 'High',
     className:
-      'text-down border-[color-mix(in_srgb,var(--dn)_40%,transparent)] bg-[color-mix(in_srgb,var(--dn)_8%,transparent)]',
+      'text-down-ink border-[color-mix(in_srgb,var(--dn)_40%,transparent)] bg-[color-mix(in_srgb,var(--dn)_8%,transparent)]',
   },
   medium: {
     label: 'Medium',
     className:
-      'text-warn border-[color-mix(in_srgb,var(--warn)_40%,transparent)] bg-[color-mix(in_srgb,var(--warn)_8%,transparent)]',
+      'text-warn-ink border-[color-mix(in_srgb,var(--warn)_40%,transparent)] bg-[color-mix(in_srgb,var(--warn)_8%,transparent)]',
   },
   low: { label: 'Low', className: '' },
 };
@@ -68,9 +68,9 @@ export function Chip({ children, className }: { children: ReactNode; className?:
 }
 
 const ERROR_TONE: Record<ErrorTone, string> = {
-  good: 'text-up bg-[color-mix(in_srgb,var(--up)_12%,transparent)]',
-  fair: 'text-warn bg-[color-mix(in_srgb,var(--warn)_12%,transparent)]',
-  poor: 'text-down bg-[color-mix(in_srgb,var(--dn)_12%,transparent)]',
+  good: 'text-up-ink bg-[color-mix(in_srgb,var(--up)_12%,transparent)]',
+  fair: 'text-warn-ink bg-[color-mix(in_srgb,var(--warn)_12%,transparent)]',
+  poor: 'text-down-ink bg-[color-mix(in_srgb,var(--dn)_12%,transparent)]',
 };
 
 /**
