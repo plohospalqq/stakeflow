@@ -96,3 +96,9 @@ models:
     tests:
       - unique_combination:
           arguments: {columns: [group_id, quarter_start]}
+
+  - name: meta_data_freshness
+    description: Single row with the newest production month and the last successful Sodir download.
+    columns:
+      - name: latest_month
+        tests: [not_null]

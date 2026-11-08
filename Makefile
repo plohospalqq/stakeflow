@@ -7,7 +7,7 @@ help: ## List available commands
 env: ## Create .env from .env.example (with a random DB password) if missing
 	@test -f .env || sed "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$$(openssl rand -hex 16)/" .env.example > .env
 
-up: env ## Build and start all services (Dagster UI: http://localhost:3000)
+up: env ## Build and start everything (Dagster :3000, API :8000/docs)
 	docker compose up -d --build --wait
 
 down: ## Stop all services (data is kept)
@@ -31,8 +31,10 @@ ingest: ## Without Dagster: download all Sodir layers into the raw schema (or: m
 dbt: ## Without Dagster: dbt build (models + tests) against the local database
 	cd pipeline && uv run --env-file ../.env dbt build --project-dir dbt --profiles-dir dbt
 
-test: ## Run pipeline tests (DB tests skip if the database is down)
+test: ## Run pipeline + API tests (DB tests skip if the database is down)
 	cd pipeline && uv run --env-file ../.env pytest -q
+	cd api && uv run --env-file ../.env pytest -q
 
-lint: ## Ruff lint + format check
+lint: ## Ruff lint + format check (pipeline, api)
 	cd pipeline && uv run ruff check . && uv run ruff format --check .
+	cd api && uv run ruff check . && uv run ruff format --check .
