@@ -209,11 +209,15 @@ function FocusShareCard({ field }: { field: Field }) {
       ) : (
         <ul className="m-0 flex list-none flex-col gap-1 p-0">
           {owners.map((o) => (
-            <li key={o.id} className="flex items-baseline justify-between gap-2 text-[13px]">
-              <Link to={`/companies/${o.id}`} className="link truncate">
+            <li
+              key={o.id}
+              className="flex flex-wrap items-baseline justify-between gap-x-2 text-[13px]"
+            >
+              {/* Wrap, never truncate: "(NCS only)" in Equinor's name is a scope rule, not decoration */}
+              <Link to={`/companies/${o.id}`} className="link min-w-0">
                 {o.name}
               </Link>
-              <span className="flex items-baseline gap-1.5">
+              <span className="flex flex-none items-baseline gap-1.5">
                 <span className="num text-[16px] font-semibold">
                   {units.format((total * o.share) / 100)}
                 </span>

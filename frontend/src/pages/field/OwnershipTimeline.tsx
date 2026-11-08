@@ -135,7 +135,7 @@ export function OwnershipTimeline({
                     className="flex flex-col gap-1 nav:flex-row nav:items-center nav:gap-3"
                   >
                     <span
-                      className={`w-[140px] flex-none truncate text-[13px] ${focus ? 'font-semibold' : ''}`}
+                      className={`w-full flex-none truncate text-[13px] nav:w-[140px] ${focus ? 'font-semibold' : ''}`}
                       title={row.name}
                     >
                       {row.name}
