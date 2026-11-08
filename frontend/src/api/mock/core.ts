@@ -184,7 +184,7 @@ function toSummary(seed: SeedField): FieldSummary {
     name: titleCaseName(seed.name),
     status: seed.status,
     hcType: seed.hcType,
-    mainArea: seed.mainArea,
+    mainArea: titleCaseName(seed.mainArea),
     operator: { id: seed.operatorId, name: groupName(seed.operatorId) },
     lon: seed.lon,
     lat: seed.lat,

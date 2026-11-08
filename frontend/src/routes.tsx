@@ -5,19 +5,19 @@ import { AppShell } from '@/components/layout/AppShell';
 import Placeholder from '@/pages/Placeholder';
 
 const NotFound = lazy(() => import('@/pages/NotFound'));
+const Overview = lazy(() => import('@/pages/Overview'));
+const FieldsIndex = lazy(() => import('@/pages/FieldsIndex'));
+const FieldDetail = lazy(() => import('@/pages/FieldDetail'));
 const DevComponents = lazy(() => import('@/pages/DevComponents'));
 
 export const routes: RouteObject[] = [
   {
     element: <AppShell />,
     children: [
-      {
-        index: true,
-        element: <Placeholder label="Overview" title="Who produces what on the Norwegian shelf" />,
-      },
+      { index: true, element: <Overview /> },
       { path: 'map', element: <Placeholder label="Field map" title="Where the production is" /> },
-      { path: 'fields', element: <Placeholder label="Fields" title="Every field on the shelf" /> },
-      { path: 'fields/:id', element: <Placeholder label="Fields" title="Field detail" /> },
+      { path: 'fields', element: <FieldsIndex /> },
+      { path: 'fields/:id', element: <FieldDetail /> },
       { path: 'companies', element: <Navigate to="/companies/aker-bp" replace /> },
       { path: 'companies/:id', element: <Placeholder label="Companies" title="Company detail" /> },
       {

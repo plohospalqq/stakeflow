@@ -112,7 +112,8 @@ export function mapField(f: Schemas['FieldSummary']): FieldSummary {
     name: titleCaseName(f.name),
     status: f.status,
     hcType: f.hcType,
-    mainArea: f.mainArea,
+    // Sodir writes 'North sea'; the sea names are proper nouns.
+    mainArea: f.mainArea ? titleCaseName(f.mainArea) : null,
     operator: f.operator,
     lon: f.lon,
     lat: f.lat,
