@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python · ${{ matrix.project }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [pipeline, api]
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: ${{ matrix.project }}/uv.lock
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      # Database-backed tests skip here; the warehouse job runs them on a real Postgres
+      - run: uv run pytest -q
+
+  warehouse:
+    name: Warehouse · dbt + API on a Sodir snapshot
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: stakeflow
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci -d stakeflow"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      # Throwaway CI database, not a secret
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ci
+      POSTGRES_PASSWORD: ci
+      POSTGRES_DB: stakeflow
+      PGPASSWORD: ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/uv.lock"
+      - name: Create schemas
+        run: psql -h localhost -U ci -d stakeflow -v ON_ERROR_STOP=1 -f infra/postgres/init/01-schemas.sql
+      - name: Load the offline Sodir snapshot (no network)
+        working-directory: pipeline
+        run: |
+          uv sync --frozen
+          uv run stakeflow-load-snapshot tests/fixtures/ci_snapshot
+      - name: dbt build (models + 68 data tests)
+        working-directory: pipeline
+        run: uv run dbt build --project-dir dbt --profiles-dir dbt
+      - name: Pipeline tests with database
+        working-directory: pipeline
+        run: uv run pytest -q
+      - name: API tests on the built marts
+        working-directory: api
+        run: |
+          uv sync --frozen
+          uv run pytest -q
+      - name: OpenAPI contract is up to date
+        run: |
+          make openapi
+          git diff --exit-code api/openapi.json
+
+  frontend:
+    name: Frontend · types, lint, test, build
+    runs-on: ubuntu-latest
+    # Skips cleanly until the frontend exists in the branch
+    if: hashFiles('frontend/package.json') != ''
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Generated API types match api/openapi.json
+        run: |
+          pnpm gen:api
+          git diff --exit-code src/api
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test
+        env:
+          VITE_USE_MOCKS: "true"
+      - run: pnpm build
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: cp .env.example .env
+      - run: docker compose build
