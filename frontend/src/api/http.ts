@@ -4,6 +4,7 @@
  * wire formats.
  */
 import { titleCaseName } from '@/lib/format';
+import { safeExternalUrl } from '@/lib/safeUrl';
 import type { components } from './schema.gen';
 import type {
   Company,
@@ -88,7 +89,7 @@ export function mapCompanyDetail(c: Schemas['CompanyDetail']): CompanyDetail {
       companyId: e.companyId,
       name: e.name,
       nationCode: e.nationCode,
-      factpageUrl: e.factpageUrl,
+      factpageUrl: safeExternalUrl(e.factpageUrl),
     })),
   };
 }
@@ -128,7 +129,7 @@ export function mapFieldDetail(f: Schemas['FieldDetail']): FieldDetail {
     areaKm2: f.areaKm2,
     firstProductionMonth: f.firstProductionMonth,
     lastProductionMonth: f.lastProductionMonth,
-    factpageUrl: f.factpageUrl,
+    factpageUrl: safeExternalUrl(f.factpageUrl),
     currentOwners: f.currentOwners.map((o) => ({ ...o })),
   };
 }
@@ -142,7 +143,7 @@ export function mapQuarter(q: Schemas['QuarterReconciliation']): ReportedQuarter
     reportedKboed: q.reportedKboeD,
     errorPct: q.errorPct,
     reportedOn: q.reportedOn,
-    sourceUrl: q.sourceUrl,
+    sourceUrl: safeExternalUrl(q.sourceUrl),
   };
 }
 

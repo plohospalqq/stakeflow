@@ -7,5 +7,6 @@ select
     -- Sodir's own grouping is inconsistent (typos, trailing spaces); kept for reference only.
     -- Real grouping comes from the company_group_members seed.
     trim(a->>'cmpGroup') as sodir_group_label,
-    a->>'cmpFactPageUrl' as factpage_url
+    -- Third-party URL: keep it only if it points where we expect (rendered as a link in the UI)
+    case when a->>'cmpFactPageUrl' ~ '^https://factpages\.sodir\.no/' then a->>'cmpFactPageUrl' end as factpage_url
 from {{ latest_snapshot('company') }} as s

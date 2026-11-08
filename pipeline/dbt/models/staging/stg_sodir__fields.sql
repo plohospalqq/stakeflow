@@ -19,6 +19,7 @@ select
     (a->>'fldDiscoveryYear')::int as discovery_year,
     a->>'fldMainSupplyBase' as main_supply_base,
     (a->>'cmpNpdidCompany')::int as operator_company_id,
-    a->>'fldFactPageUrl' as factpage_url,
+    -- Third-party URL: keep it only if it points where we expect (rendered as a link in the UI)
+    case when a->>'fldFactPageUrl' ~ '^https://factpages\.sodir\.no/' then a->>'fldFactPageUrl' end as factpage_url,
     geom
 from source
