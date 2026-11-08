@@ -67,3 +67,10 @@ def test_geojson_has_geometry_and_properties(client):
     feature = collection["features"][0]
     assert feature["geometry"]["type"] in {"Polygon", "MultiPolygon"}
     assert {"id", "name", "status", "boePerDay"} <= feature["properties"].keys()
+
+
+def test_search_is_literal_not_a_like_pattern(client):
+    # "%" and "_" are LIKE wildcards; a name search must treat them as plain characters
+    assert client.get("/companies", params={"q": "%", "producing": "false"}).json() == []
+    assert client.get("/fields", params={"q": "_"}).json() == []
+    assert client.get("/fields", params={"q": "SVERDRUP"}).json()[0]["name"] == "JOHAN SVERDRUP"

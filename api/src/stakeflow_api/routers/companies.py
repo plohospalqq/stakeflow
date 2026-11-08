@@ -62,7 +62,7 @@ def list_companies(
         f"""
         select * from ({COMPANY_SQL}) as c
         where (not %(focus)s or c.is_focus)
-          and (%(q)s::text is null or c.name ilike '%%' || %(q)s || '%%')
+          and (%(q)s::text is null or strpos(lower(c.name), lower(%(q)s)) > 0)
           and (not %(producing)s or c.latest_boe_per_day > 0)
         order by c.latest_boe_per_day desc nulls last, c.name
         limit %(limit)s

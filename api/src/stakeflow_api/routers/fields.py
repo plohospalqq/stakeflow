@@ -73,7 +73,7 @@ def list_fields(
         f"""
         select * from ({FIELD_SQL}) as f
         where (%(status)s::text is null or f.status = %(status)s)
-          and (%(q)s::text is null or f.name ilike '%%' || %(q)s || '%%')
+          and (%(q)s::text is null or strpos(lower(f.name), lower(%(q)s)) > 0)
           and (%(owner)s::text is null or f.id in (
                 select field_id from marts.fct_field_ownership
                 where is_current and group_id = %(owner)s))
