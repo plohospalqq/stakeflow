@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import type { AnomalyStatus, Severity } from '@/api/types';
+import { formatPct } from '@/lib/format';
+import { errorTone, type ErrorTone } from '@/lib/trackRecord';
 
 const SEVERITY: Record<Severity, { label: string; className: string }> = {
   high: {
@@ -63,4 +65,24 @@ export function FieldStatusChip({ status }: { status: string }) {
 
 export function Chip({ children, className }: { children: ReactNode; className?: string }) {
   return <span className={`chip ${className ?? ''}`}>{children}</span>;
+}
+
+const ERROR_TONE: Record<ErrorTone, string> = {
+  good: 'text-up bg-[color-mix(in_srgb,var(--up)_12%,transparent)]',
+  fair: 'text-warn bg-[color-mix(in_srgb,var(--warn)_12%,transparent)]',
+  poor: 'text-down bg-[color-mix(in_srgb,var(--dn)_12%,transparent)]',
+};
+
+/**
+ * A signed forecast error or data gap in percent. Colour follows the size of the miss
+ * (green under 2%, amber 2–4%, red above), the number itself carries the direction.
+ */
+export function ErrorChip({ value, digits = 1 }: { value: number; digits?: number }) {
+  return (
+    <span
+      className={`num inline-flex rounded-full px-[7px] py-0.5 text-[12px] font-semibold ${ERROR_TONE[errorTone(value)]}`}
+    >
+      {formatPct(value, digits, true)}
+    </span>
+  );
 }

@@ -98,8 +98,10 @@ function predictionLog(): Prediction[] {
         reportedOn: reportDate(companyId, quarterStart),
         expectedReportOn: reportDate(companyId, quarterStart),
         predicted,
-        lo: Math.round(predicted * 0.97 * 10) / 10,
-        hi: Math.round(predicted * 1.03 * 10) / 10,
+        // ±1.2% is roughly the 80% band of the sample errors above, so about 8 in 10
+        // actuals land inside, as an honest range should.
+        lo: Math.round(predicted * 0.988 * 10) / 10,
+        hi: Math.round(predicted * 1.012 * 10) / 10,
         actual,
         baseline: actuals[i - 1] ?? actual,
         status: 'resolved',

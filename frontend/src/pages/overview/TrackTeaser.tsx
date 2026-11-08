@@ -3,20 +3,18 @@ import { useCompanyQuarters, usePredictionLog } from '@/api/hooks';
 import { Icon } from '@/components/Icon';
 import { SampleBadge } from '@/components/SampleBadge';
 import { formatPct, formatQuarter } from '@/lib/format';
-import { modelStats } from '@/lib/trackRecord';
+import { modelStats, reconciledQuarters, reconciliationSummary } from '@/lib/trackRecord';
 
 export function TrackTeaser() {
   const log = usePredictionLog();
   const aker = useCompanyQuarters('aker-bp');
   const var_ = useCompanyQuarters('var-energi');
   const stats = log.data ? modelStats(log.data) : null;
-  const reconciled = [...(aker.data ?? []), ...(var_.data ?? [])].filter(
-    (q) => q.errorPct !== null,
-  );
-  const reconError =
-    reconciled.length > 0
-      ? reconciled.reduce((s, q) => s + Math.abs(q.errorPct ?? 0), 0) / reconciled.length
-      : null;
+  // Same rule as the track-record page: provisional quarters are not averaged in.
+  const recon = reconciliationSummary([
+    ...reconciledQuarters('aker-bp', aker.data ?? []),
+    ...reconciledQuarters('var-energi', var_.data ?? []),
+  ]);
 
   return (
     <section
@@ -39,10 +37,10 @@ export function TrackTeaser() {
       <div className="flex flex-wrap gap-7">
         <div>
           <div className="num text-[20px] font-semibold">
-            {reconError !== null ? formatPct(reconError, 1) : '–'}
+            {recon.meanAbsGap !== null ? formatPct(recon.meanAbsGap, 1) : '–'}
           </div>
           <div className="lbl">
-            Sodir vs reported, {reconciled.length} quarter{reconciled.length === 1 ? '' : 's'}
+            Sodir vs reported, {recon.complete} quarter{recon.complete === 1 ? '' : 's'}
           </div>
         </div>
         <div>

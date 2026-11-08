@@ -87,7 +87,9 @@ export function DataTable<T>({
 
   return (
     <div
-      className="overflow-x-auto"
+      // relative: makes this the containing block of sr-only (absolute) text in cells,
+      // otherwise that text escapes the scroll clip and widens the whole page.
+      className="relative overflow-x-auto"
       style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}
       // Scrollable regions must be reachable by keyboard.
       tabIndex={maxHeight ? 0 : undefined}

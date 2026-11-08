@@ -2,7 +2,7 @@
  * TanStack Query hooks: the only way components read data. Query keys live here so cache
  * sharing is deliberate (the overview and company page reuse the same company queries).
  */
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { addMonths } from '@/lib/dates';
 import { core, extras } from './index';
 import { isNotFound } from './http';
@@ -18,6 +18,7 @@ export const queryKeys = {
     ['company', id, 'fields', range ?? {}] as const,
   companyQuarters: (id: string) => ['company', id, 'quarters'] as const,
   fields: (status?: FieldStatus) => ['fields', { status }] as const,
+  fieldsOwnedBy: (owner: string) => ['fields', { owner }] as const,
   field: (id: number) => ['field', id] as const,
   fieldProduction: (id: number, range?: MonthRange) =>
     ['field', id, 'production', range ?? {}] as const,
@@ -79,8 +80,28 @@ export function useCompanyQuarters(id: string) {
   });
 }
 
+/** Reconciliation for several companies at once (track record), sharing the per-company cache. */
+export function useCompaniesQuarters(ids: string[]) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: queryKeys.companyQuarters(id),
+      queryFn: () => core.companyQuarters(id),
+      retry: retryUnlessNotFound,
+    })),
+  });
+}
+
 export function useFields(status?: FieldStatus) {
   return useQuery({ queryKey: queryKeys.fields(status), queryFn: () => core.fields({ status }) });
+}
+
+/** Fields a company holds a share in today (for the map's owner highlight). */
+export function useFieldsOwnedBy(owner: string | null) {
+  return useQuery({
+    queryKey: queryKeys.fieldsOwnedBy(owner ?? ''),
+    queryFn: () => core.fields({ owner: owner ?? undefined }),
+    enabled: Boolean(owner),
+  });
 }
 
 export function useField(id: number) {

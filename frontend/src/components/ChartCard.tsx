@@ -147,7 +147,8 @@ export function ChartCard({
       </div>
       <div className="min-w-0 flex-1">{body}</div>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line px-4 pb-3 pt-2.5 text-[12px] text-muted">
-        <Legend items={legend} />
+        {/* A chart with its own legend inside the body (e.g. a value list) passes [] here. */}
+        {legend.length > 0 ? <Legend items={legend} /> : <span aria-hidden="true" />}
         <span className="flex flex-wrap items-center gap-3">
           {table && state === 'ready' ? (
             <button
