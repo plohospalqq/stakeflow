@@ -54,7 +54,8 @@ services:
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: "5432"
-      CORS_ORIGINS: http://localhost:5173,http://localhost:8080
+      # Only the Vite dev server needs CORS; in Docker the UI reaches the API through nginx
+      CORS_ORIGINS: http://localhost:5173
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -63,6 +64,21 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  frontend:
+    build: frontend
+    image: stakeflow-frontend
+    ports:
+      - "127.0.0.1:3002:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
       interval: 10s
       timeout: 5s
       retries: 6
