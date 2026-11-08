@@ -1,0 +1,21 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "id": 580,
+            "geometry": null,
+            "properties": {
+                "OBJECTID": 580,
+                "fldNpdidField": 43520,
+                "cmpNpdidCompany": 2144081,
+                "fldName": "TOR",
+                "cmpLongName": "ConocoPhillips Norge",
+                "fldOperatorTo": 1049068800000,
+                "fldOperatorFrom": 1035331200000,
+                "fldOperatorDateUpdated": 1771545600000,
+                "fldOperatorHstGUID": "AA8BB9E6-7DAB-4B04-A0CC-123E104496CD"
+            }
+        }
+    ]
+}

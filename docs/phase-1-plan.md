@@ -52,7 +52,10 @@ How we query it:
    the later Aker BP / Vår Energi nowcast.
 7. **SDFI / Petoro**: the state's direct financial interest is a share like any other
    (`fldSdfiShare`). Shares per field per day should add up to 100% (we test that).
-8. **Sodir revises history.** If we keep every raw snapshot, we can later answer
+8. **Some field polygons are invalid** (found in step 1): 10 of 142 have self-intersecting
+   rings after reprojection to WGS84. Staging repairs them with `ST_MakeValid`, and a dbt test
+   checks that every geometry in marts is valid.
+9. **Sodir revises history.** If we keep every raw snapshot, we can later answer
    "what did we know on date X?" That is needed so the nowcast backtest does not cheat.
 
 ## 2. Repository structure

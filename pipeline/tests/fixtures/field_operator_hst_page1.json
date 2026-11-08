@@ -1,0 +1,41 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "id": 1,
+            "geometry": null,
+            "properties": {
+                "OBJECTID": 1,
+                "fldNpdidField": 104718,
+                "cmpNpdidCompany": 4511658,
+                "fldName": "SYGNA",
+                "cmpLongName": "StatoilHydro Petroleum AS",
+                "fldOperatorTo": 1256947200000,
+                "fldOperatorFrom": 1230768000000,
+                "fldOperatorDateUpdated": 1771545600000,
+                "fldOperatorHstGUID": "00748425-1EEB-42A4-8960-97F0A8A0747E"
+            }
+        },
+        {
+            "type": "Feature",
+            "id": 2,
+            "geometry": null,
+            "properties": {
+                "OBJECTID": 2,
+                "fldNpdidField": 43751,
+                "cmpNpdidCompany": 32011216,
+                "fldName": "NJORD",
+                "cmpLongName": "Equinor Energy AS",
+                "fldOperatorTo": null,
+                "fldOperatorFrom": 1526428800000,
+                "fldOperatorDateUpdated": 1771545600000,
+                "fldOperatorHstGUID": "00BFFDA0-C318-4364-86DD-0790C1DB73A4"
+            }
+        }
+    ],
+    "exceededTransferLimit": true,
+    "properties": {
+        "exceededTransferLimit": true
+    }
+}

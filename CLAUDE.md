@@ -21,6 +21,9 @@ make up      # start Postgres (PostGIS) and wait until healthy
 make psql    # SQL shell
 make down    # stop (keeps data)
 make reset   # stop and delete the DB volume
+make ingest  # download Sodir layers into raw.* (LAYERS="field profiles" for a subset)
+make test    # pytest (DB tests skip when the database is down)
+make lint    # ruff check + format check
 ```
 
 More commands get added here as each phase step lands.

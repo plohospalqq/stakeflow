@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help env up down reset psql logs
+.PHONY: help env up down reset psql logs ingest test lint
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -21,3 +21,12 @@ psql: ## Open a psql shell in the database
 
 logs: ## Follow service logs
 	docker compose logs -f
+
+ingest: ## Download all Sodir layers into the raw schema (or: make ingest LAYERS="field profiles")
+	cd pipeline && uv run --env-file ../.env stakeflow-ingest $(LAYERS)
+
+test: ## Run pipeline tests (DB tests skip if the database is down)
+	cd pipeline && uv run --env-file ../.env pytest -q
+
+lint: ## Ruff lint + format check
+	cd pipeline && uv run ruff check . && uv run ruff format --check .
