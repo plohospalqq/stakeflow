@@ -24,7 +24,7 @@ flowchart LR
 Requirements: Docker, `make`.
 
 ```bash
-cp .env.example .env   # or: make env
+make env               # .env with a random DB password
 make up                # Postgres + PostGIS
 make psql              # check it works
 ```
