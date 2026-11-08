@@ -101,4 +101,6 @@ def write_snapshot(
             " WHERE run_id = %s",
             (row_count, run_id),
         )
+        # Fresh statistics so the first dbt run after a load gets sane query plans
+        conn.execute(sql.SQL("ANALYZE {table}").format(table=raw_table(layer)))
     return RunResult(run_id=run_id, layer=layer.name, row_count=row_count)

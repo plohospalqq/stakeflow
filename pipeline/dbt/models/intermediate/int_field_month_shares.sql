@@ -1,3 +1,6 @@
+-- A table, not a view: two marts read it and it is the heaviest join in the project
+{{ config(materialized='table') }}
+
 -- Day-weighted ownership share per (field, company, month).
 -- A company holding 20% for 29 of 30 days gets 19.3333% of that month's volume.
 with months as (
