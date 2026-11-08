@@ -1,6 +1,6 @@
 # Phase 1 plan: data sources, structure, data model, build steps
 
-Status: **approved** (2026-11-08)
+Status: **Phase 1 complete** (2026-11-08). All 10 steps built, tested end to end and in CI.
 
 ## 1. Sodir data sources (checked live on 2026-11-08)
 
