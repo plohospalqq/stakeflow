@@ -4,7 +4,7 @@
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB)
 ![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6)
 ![dbt tests](https://img.shields.io/badge/dbt%20tests-68-FF694B)
-[![Data: NLOD](https://img.shields.io/badge/data-NLOD%20%28Sodir%29-2E7D32)](https://data.norge.no/nlod/en/2.0)
+[![Sodir data: NLOD](https://img.shields.io/badge/Sodir%20data-NLOD-2E7D32)](https://data.norge.no/nlod/en/2.0)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 **Who produces what on the Norwegian shelf.** Stakeflow takes the monthly field production that
