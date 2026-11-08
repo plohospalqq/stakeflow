@@ -39,6 +39,19 @@ class CountResponse(BaseModel):
     count: int
 
 
+class _PeriodAttributes(BaseModel):
+    prfYear: int
+    prfMonth: int
+
+
+class _PeriodFeature(BaseModel):
+    attributes: _PeriodAttributes
+
+
+class LatestPeriodResponse(BaseModel):
+    features: list[_PeriodFeature]
+
+
 def make_http_client(base_url: str, timeout_s: float = 60.0) -> httpx.Client:
     return httpx.Client(base_url=base_url, timeout=timeout_s, follow_redirects=True)
 
@@ -50,6 +63,25 @@ class SodirClient:
     def count(self, layer: Layer) -> int:
         data = self._query(layer, {"where": "1=1", "returnCountOnly": "true", "f": "json"})
         return CountResponse.model_validate(data).count
+
+    def latest_production_month(self, profiles: Layer) -> str:
+        """Newest month with monthly production, as 'YYYY-MM'. One tiny request.
+
+        Used by the sensor to detect new data without downloading anything.
+        """
+        params: dict[str, str | int] = {
+            "where": "prfPeriod='month'",
+            "outFields": "prfYear,prfMonth",
+            "orderByFields": "prfYear DESC,prfMonth DESC",
+            "resultRecordCount": 1,
+            "returnGeometry": "false",
+            "f": "json",
+        }
+        response = LatestPeriodResponse.model_validate(self._query(profiles, params))
+        if not response.features:
+            raise SodirError("profiles: no monthly rows")
+        period = response.features[0].attributes
+        return f"{period.prfYear:04d}-{period.prfMonth:02d}"
 
     def iter_pages(self, layer: Layer) -> Iterator[list[Feature]]:
         offset = 0

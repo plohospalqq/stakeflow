@@ -17,11 +17,12 @@ production data from Sodir, attributed to the companies that own the fields.
 
 ```bash
 make help    # list all commands
-make up      # start Postgres (PostGIS) and wait until healthy
+make up      # build + start Postgres and Dagster (UI: http://localhost:3000)
+make refresh # queue a full refresh job in the running Dagster
 make psql    # SQL shell
 make down    # stop (keeps data)
 make reset   # stop and delete the DB volume
-make ingest  # download Sodir layers into raw.* (LAYERS="field profiles" for a subset)
+make ingest  # without Dagster: download Sodir layers into raw.* (LAYERS="field profiles" for a subset)
 make test    # pytest (DB tests skip when the database is down)
 make lint    # ruff check + format check
 ```

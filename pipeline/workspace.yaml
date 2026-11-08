@@ -1,0 +1,5 @@
+load_from:
+  - python_module:
+      module_name: stakeflow_pipeline.definitions
+      location_name: stakeflow
+      working_directory: /app

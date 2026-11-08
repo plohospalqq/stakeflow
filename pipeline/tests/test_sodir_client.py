@@ -75,3 +75,15 @@ def test_empty_page_that_promises_more_raises_instead_of_looping_forever():
     body = {"type": "FeatureCollection", "features": [], "exceededTransferLimit": True}
     with pytest.raises(SodirError, match="empty page"):
         list(client_with(lambda _: httpx.Response(200, json=body)).iter_pages(LAYER))
+
+
+def test_latest_production_month_is_zero_padded():
+    body = {"features": [{"attributes": {"prfYear": 2026, "prfMonth": 8}}]}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["where"] == "prfPeriod='month'"
+        assert request.url.params["resultRecordCount"] == "1"
+        return httpx.Response(200, json=body)
+
+    profiles = LAYERS_BY_NAME["profiles"]
+    assert client_with(handler).latest_production_month(profiles) == "2026-08"

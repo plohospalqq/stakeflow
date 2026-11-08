@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help env up down reset psql logs ingest test lint
+.PHONY: help env up down reset psql logs ingest refresh test lint
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -7,8 +7,8 @@ help: ## List available commands
 env: ## Create .env from .env.example (with a random DB password) if missing
 	@test -f .env || sed "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$$(openssl rand -hex 16)/" .env.example > .env
 
-up: env ## Start all services and wait until healthy
-	docker compose up -d --wait
+up: env ## Build and start all services (Dagster UI: http://localhost:3000)
+	docker compose up -d --build --wait
 
 down: ## Stop all services (data is kept)
 	docker compose down
@@ -22,7 +22,10 @@ psql: ## Open a psql shell in the database
 logs: ## Follow service logs
 	docker compose logs -f
 
-ingest: ## Download all Sodir layers into the raw schema (or: make ingest LAYERS="field profiles")
+refresh: ## Queue a full refresh (all Sodir layers + dbt) in the running Dagster
+	docker compose exec dagster-daemon dagster job launch -j sodir_refresh -w /opt/dagster/home/workspace.yaml
+
+ingest: ## Without Dagster: download all Sodir layers into the raw schema (or: make ingest LAYERS="field profiles")
 	cd pipeline && uv run --env-file ../.env stakeflow-ingest $(LAYERS)
 
 test: ## Run pipeline tests (DB tests skip if the database is down)

@@ -1,5 +1,19 @@
 name: stakeflow
 
+x-pipeline: &pipeline
+  build: pipeline
+  image: stakeflow-pipeline
+  env_file: .env
+  environment:
+    # Inside the compose network the database is `db:5432`, not localhost:5433
+    POSTGRES_HOST: db
+    POSTGRES_PORT: "5432"
+    DAGSTER_PG_DB: dagster
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: unless-stopped
+
 services:
   db:
     build: infra/postgres
@@ -16,6 +30,22 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  dagster-webserver:
+    <<: *pipeline
+    command: dagster-webserver -h 0.0.0.0 -p 3000 -w /opt/dagster/home/workspace.yaml
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/server_info')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  dagster-daemon:
+    <<: *pipeline
+    # Runs schedules, sensors and queued runs
+    command: dagster-daemon run -w /opt/dagster/home/workspace.yaml
 
 volumes:
   pgdata:
