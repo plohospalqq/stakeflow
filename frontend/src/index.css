@@ -1,0 +1,256 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens. The theme is a class on <html>, set before first paint in index.html. */
+@layer base {
+  .t-dark {
+    --bg: #0a0c0f;
+    --sf: #111419;
+    --sf2: #171b21;
+    --sf3: #1f242c;
+    --bd: #232932;
+    --bd2: #2f3641;
+    --tx: #e7e9ec;
+    --mu: #9aa3b0;
+    --fa: #5f6875;
+    --oil: #e8a33d;
+    --gas: #4a95e6;
+    --cnd: #b8a2f4;
+    --up: #5cbf93;
+    --dn: #ee7b71;
+    --warn: #e5b54a;
+    --fc: #d5dae1;
+    --f1: #e3e8ee;
+    --f2: #b9c3cf;
+    --f3: #93a0b0;
+    --f4: #707d8f;
+    --f5: #535e6e;
+    --f6: #3b4451;
+    color-scheme: dark;
+  }
+
+  .t-light {
+    --bg: #f5f6f8;
+    --sf: #ffffff;
+    --sf2: #f0f2f5;
+    --sf3: #e6e9ee;
+    --bd: #e0e4ea;
+    --bd2: #cbd2db;
+    --tx: #13161b;
+    --mu: #566070;
+    --fa: #a0a8b3;
+    --oil: #b4690c;
+    --gas: #1f6bc1;
+    --cnd: #7255d2;
+    --up: #1b7e54;
+    --dn: #c0443a;
+    --warn: #946500;
+    --fc: #2e3540;
+    --f1: #1f2630;
+    --f2: #3d4756;
+    --f3: #5d697a;
+    --f4: #7f8b9b;
+    --f5: #a3adba;
+    --f6: #c6cdd6;
+    color-scheme: light;
+  }
+
+  html {
+    background: var(--bg);
+    color: var(--tx);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--tx);
+    font-family: theme('fontFamily.sans');
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  /* One focus style for everything: visible on both themes, never removed. */
+  :focus-visible {
+    outline: 2px solid var(--gas);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .card {
+    background: var(--sf);
+    border: 1px solid var(--bd);
+    border-radius: 12px;
+  }
+
+  /* Every number: mono with tabular figures so columns line up and values never jump. */
+  .num {
+    font-family: theme('fontFamily.mono');
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lbl {
+    font-size: 12px;
+    color: var(--mu);
+  }
+
+  .cap {
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--mu);
+    font-weight: 600;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 9px;
+    border: 1px solid var(--bd2);
+    background: var(--sf);
+    color: var(--tx);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn:hover {
+    background: var(--sf2);
+  }
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .ibtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--bd);
+    background: var(--sf);
+    color: var(--tx);
+    cursor: pointer;
+    flex: none;
+  }
+  .ibtn:hover {
+    background: var(--sf2);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--bd);
+    color: var(--mu);
+    white-space: nowrap;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+    flex: none;
+  }
+
+  .link {
+    color: var(--tx);
+    text-decoration: none;
+  }
+  .link:hover {
+    color: var(--mu);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--sf2), var(--sf3), var(--sf2));
+    background-size: 200% 100%;
+    border-radius: 6px;
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+
+  .input {
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--bd2);
+    background: var(--sf);
+    color: var(--tx);
+    font-size: 14px;
+  }
+  .input::placeholder {
+    color: var(--mu);
+  }
+
+  .sr-only-focusable:not(:focus) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* MapLibre controls follow the theme instead of their white default. */
+.maplibregl-ctrl-group {
+  background: var(--sf) !important;
+  border: 1px solid var(--bd);
+}
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--bd) !important;
+}
+.t-dark .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+.maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--sf) 85%, transparent) !important;
+  color: var(--mu);
+  font-size: 11px;
+}
+.maplibregl-ctrl-attrib a {
+  color: var(--mu) !important;
+}
