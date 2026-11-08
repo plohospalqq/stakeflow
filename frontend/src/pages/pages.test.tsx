@@ -131,7 +131,7 @@ describe('Anomalies', () => {
 describe('Ask', () => {
   it('answers an example, switches to the table with the arrow keys and shows the SQL', async () => {
     renderWithProviders(<div />, { routes, route: '/ask' });
-    const answer = await screen.findByRole('article', { name: /grew the most/i });
+    const answer = await screen.findByRole('article', { name: /changed the most/i });
     const chartTab = await within(answer).findByRole('tab', { name: 'Chart' });
     expect(chartTab).toHaveAttribute('aria-selected', 'true');
     chartTab.focus();
@@ -140,7 +140,9 @@ describe('Ask', () => {
     expect(within(answer).getByRole('table')).toBeInTheDocument();
 
     await userEvent.click(within(answer).getByRole('button', { name: /generated sql/i }));
-    expect(within(answer).getByText(/marts\.fct_company_production_monthly/)).toBeInTheDocument();
+    expect(
+      within(answer).getByText(/marts\.fct_company_field_production_monthly/),
+    ).toBeInTheDocument();
   });
 
   it('is honest about questions the preview cannot answer', async () => {

@@ -29,7 +29,12 @@ export function Sidebar({ openAnomalies, status }: SidebarProps) {
             <Icon name={item.icon} />
             {item.label}
             {item.badge === 'anomalies' && openAnomalies ? (
-              <span className="chip num ml-auto px-1.5" aria-label={`${openAnomalies} open`}>
+              // Anomalies are sample data for now; the badge must not pass for a live alert count
+              <span
+                className="chip num ml-auto border-dashed px-1.5"
+                aria-label={`${openAnomalies} open, sample data`}
+                title="Open anomalies (sample data)"
+              >
                 {openAnomalies}
               </span>
             ) : null}

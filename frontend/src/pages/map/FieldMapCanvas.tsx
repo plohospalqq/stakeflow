@@ -1,4 +1,5 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
+import type { Map as MapInstance } from 'maplibre-gl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Map, {
   Layer,
@@ -80,6 +81,20 @@ function byOwnership(highlight: number[] | null, on: number, off: number): Expre
 function readId(e: MapLayerMouseEvent): number | null {
   const id: unknown = e.features?.[0]?.properties?.id;
   return typeof id === 'number' ? id : null;
+}
+
+/**
+ * The OpenFreeMap styles reference sprite icons (e.g. "circle-11") their sprite does not ship.
+ * A transparent stand-in keeps the console clean without changing the map. Hooked on the first
+ * `styledata` event: after the map exists, before any symbol asks for an icon.
+ */
+const patchedMaps = new WeakSet<MapInstance>();
+function fillMissingSprites(m: MapInstance): void {
+  if (patchedMaps.has(m)) return;
+  patchedMaps.add(m);
+  m.on('styleimagemissing', ({ id }: { id: string }) => {
+    if (!m.hasImage(id)) m.addImage(id, { width: 1, height: 1, data: new Uint8Array(4) });
+  });
 }
 
 export function FieldMapCanvas({
@@ -229,6 +244,7 @@ export function FieldMapCanvas({
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
       onClick={click}
+      onStyleData={(e) => fillMissingSprites(e.target)}
     >
       <NavigationControl position="top-right" showCompass={false} />
       {/* Always mounted (empty until loaded) so the outlines stay below the circles. */}
