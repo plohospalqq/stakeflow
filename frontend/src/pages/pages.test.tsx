@@ -108,3 +108,49 @@ describe('Field map', () => {
     expect(within(list).getByRole('button', { name: /^Johan Sverdrup/ })).toBeInTheDocument();
   });
 });
+
+describe('Anomalies', () => {
+  it('filters by status and lets a reader mark one explained in this tab', async () => {
+    renderWithProviders(<div />, { routes, route: '/anomalies' });
+    const feed = await screen.findByRole('region', { name: 'Anomaly feed' });
+    await within(feed).findByRole('heading', { name: 'Goliat' });
+    const filter = screen.getByRole('group', { name: 'Filter by status' });
+    await userEvent.click(within(filter).getByRole('button', { name: /^New/ }));
+    expect(within(feed).getAllByRole('heading', { level: 3 })).toHaveLength(1);
+
+    await userEvent.click(within(feed).getByRole('button', { name: 'Mark explained' }));
+    expect(within(feed).queryByRole('heading', { name: 'Goliat' })).toBeNull();
+    await userEvent.click(within(filter).getByRole('button', { name: /^All/ }));
+    // Two were explained already; Goliat is the third.
+    const settled = within(feed).getAllByRole('button', { name: 'Marked explained' });
+    expect(settled).toHaveLength(3);
+    settled.forEach((b) => expect(b).toBeDisabled());
+  });
+});
+
+describe('Ask', () => {
+  it('answers an example, switches to the table with the arrow keys and shows the SQL', async () => {
+    renderWithProviders(<div />, { routes, route: '/ask' });
+    const answer = await screen.findByRole('article', { name: /grew the most/i });
+    const chartTab = await within(answer).findByRole('tab', { name: 'Chart' });
+    expect(chartTab).toHaveAttribute('aria-selected', 'true');
+    chartTab.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(within(answer).getByRole('tab', { name: 'Table' })).toHaveFocus();
+    expect(within(answer).getByRole('table')).toBeInTheDocument();
+
+    await userEvent.click(within(answer).getByRole('button', { name: /generated sql/i }));
+    expect(within(answer).getByText(/marts\.fct_company_production_monthly/)).toBeInTheDocument();
+  });
+
+  it('is honest about questions the preview cannot answer', async () => {
+    renderWithProviders(<div />, { routes, route: '/ask' });
+    await userEvent.type(
+      await screen.findByLabelText('Your question'),
+      'What will Brent cost?{Enter}',
+    );
+    const answer = await screen.findByRole('article', { name: /brent/i });
+    expect(within(answer).getByText(/only answers a few example questions/i)).toBeInTheDocument();
+    expect(within(answer).queryByRole('tablist')).toBeNull();
+  });
+});
