@@ -1,5 +1,6 @@
 import { Suspense, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router';
+import { useAnomalies, useFreshness } from '@/api/hooks';
 import { useUnitUrlSync } from '@/hooks/useUnitUrlSync';
 import { BottomTabs } from './BottomTabs';
 import { DataStatusCard } from './DataStatus';
@@ -28,12 +29,22 @@ function useScrollToTopOnPathChange(): void {
 export function AppShell() {
   useUnitUrlSync();
   useScrollToTopOnPathChange();
+  const freshness = useFreshness();
+  const anomalies = useAnomalies();
+  const openAnomalies = anomalies.data?.filter(
+    (a) => a.status === 'new' || a.status === 'investigating',
+  ).length;
   return (
     <div className="flex min-h-screen bg-bg text-ink">
       <a href="#main" className="btn sr-only-focusable fixed left-2 top-2 z-50">
         Skip to content
       </a>
-      <Sidebar status={<DataStatusCard latestMonth={undefined} />} />
+      <Sidebar
+        openAnomalies={openAnomalies}
+        status={
+          <DataStatusCard latestMonth={freshness.data?.latestMonth} error={freshness.isError} />
+        }
+      />
       <div className="flex min-w-0 flex-1 flex-col pb-[76px] nav:pb-0">
         <Suspense fallback={<PageFallback />}>
           <Outlet />

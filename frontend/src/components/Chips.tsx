@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react';
-
-export type Severity = 'high' | 'medium' | 'low';
-export type AnomalyStatus = 'new' | 'investigating' | 'explained' | 'resolved';
+import type { AnomalyStatus, Severity } from '@/api/types';
 
 const SEVERITY: Record<Severity, { label: string; className: string }> = {
   high: {

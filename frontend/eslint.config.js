@@ -32,8 +32,16 @@ export default tseslint.config(
       '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
       '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
     },
+  },
+  {
+    // Mocks implement the async API interface; most answers are computed synchronously.
+    files: ['src/api/mock/**'],
+    rules: { '@typescript-eslint/require-await': 'off' },
   },
   {
     // Test helpers are never hot-reloaded.
