@@ -1,6 +1,13 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach } from 'vitest';
+import { createElement } from 'react';
+import { afterEach, vi } from 'vitest';
+
+// ECharts needs a real canvas; tests check the accessible summary instead of pixels.
+vi.mock('@/components/charts/EChart', () => ({
+  EChart: ({ ariaLabel }: { ariaLabel: string }) =>
+    createElement('div', { role: 'img', 'aria-label': ariaLabel }),
+}));
 
 // Node 25+ ships an experimental global `localStorage` that is undefined without
 // --localstorage-file and shadows jsdom's. Give tests a plain in-memory Storage instead.

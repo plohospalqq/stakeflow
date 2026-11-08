@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import Placeholder from '@/pages/Placeholder';
 
 const NotFound = lazy(() => import('@/pages/NotFound'));
+const DevComponents = lazy(() => import('@/pages/DevComponents'));
 
 export const routes: RouteObject[] = [
   {
@@ -30,6 +31,7 @@ export const routes: RouteObject[] = [
       ...(FEATURE_ASK
         ? [{ path: 'ask', element: <Placeholder label="Ask the data" title="Ask the data" /> }]
         : []),
+      { path: 'dev/components', element: <DevComponents /> },
       { path: '*', element: <NotFound /> },
     ],
   },
