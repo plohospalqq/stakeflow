@@ -1,17 +1,26 @@
 version: 2
+# Wait 14 days before proposing a new release: fresh versions are where supply-chain
+# compromises and regressions usually surface first
 updates:
   - package-ecosystem: github-actions
     directory: "/"
     schedule: {interval: monthly}
+    cooldown: {default-days: 14}
   - package-ecosystem: uv
     directories: ["/pipeline", "/api"]
     schedule: {interval: monthly}
+    cooldown: {default-days: 14}
+    ignore:
+      # 2.1 breaks dagster-postgres (see the pin in pipeline/pyproject.toml)
+      - dependency-name: sqlalchemy
+        versions: [">=2.1"]
     groups:
       python: {patterns: ["*"]}
     open-pull-requests-limit: 3
   - package-ecosystem: npm
     directory: "/frontend"
     schedule: {interval: monthly}
+    cooldown: {default-days: 14}
     groups:
       frontend: {patterns: ["*"]}
     open-pull-requests-limit: 3
