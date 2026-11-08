@@ -36,7 +36,7 @@ openapi: ## Write the API contract to api/openapi.json (frontend types are gener
 		uv run python -c "import json; from stakeflow_api.main import app; print(json.dumps(app.openapi(), indent=2))" > openapi.json
 
 web: ## Frontend dev server with hot reload on :5173 (needs the API from make up)
-	cd frontend && pnpm install && pnpm dev
+	cd frontend && pnpm install && VITE_FEATURE_ASK=true pnpm dev
 
 test: ## Run pipeline, API and frontend tests (DB tests skip if the database is down)
 	cd pipeline && uv run --env-file ../.env pytest -q
