@@ -1,7 +1,9 @@
 """Dagster entry point: everything the webserver and daemon load."""
 
 from dagster import Definitions, EnvVar
+from dagster_dbt import DbtCliResource
 
+from stakeflow_pipeline.assets.dbt import dbt_project, stakeflow_dbt_assets
 from stakeflow_pipeline.assets.raw import raw_assets, raw_checks
 from stakeflow_pipeline.resources import PostgresResource, SodirResource
 from stakeflow_pipeline.sensors import (
@@ -11,12 +13,13 @@ from stakeflow_pipeline.sensors import (
 )
 
 defs = Definitions(
-    assets=raw_assets,
+    assets=[*raw_assets, stakeflow_dbt_assets],
     asset_checks=raw_checks,
     jobs=[refresh_job],
     sensors=[sodir_new_month_sensor],
     schedules=[monthly_fallback_schedule],
     resources={
+        "dbt": DbtCliResource(project_dir=dbt_project),
         "sodir": SodirResource(base_url=EnvVar("SODIR_BASE_URL")),
         "postgres": PostgresResource(
             host=EnvVar("POSTGRES_HOST"),

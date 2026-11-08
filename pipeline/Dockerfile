@@ -17,4 +17,9 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY src ./src
 RUN uv sync --frozen --no-dev
 
+# dagster-dbt loads dbt's manifest at import; parse needs no database, only profile values
+COPY dbt ./dbt
+RUN POSTGRES_HOST=db POSTGRES_PORT=5432 POSTGRES_USER=x POSTGRES_PASSWORD=x POSTGRES_DB=x \
+    dbt parse --project-dir dbt --profiles-dir dbt --quiet
+
 COPY dagster.yaml workspace.yaml $DAGSTER_HOME/
