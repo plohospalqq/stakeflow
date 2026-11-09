@@ -326,10 +326,19 @@ def test_reference_results_still_match_their_snapshots(owner_conn):
     [latest] = owner_conn.execute("select latest_month from marts.meta_data_freshness").fetchone()
     if str(latest) != ASK["data_as_of"]:
         pytest.skip(f"data moved on to {latest}; refresh with --snapshot")
+    # Snapshots are taken on the full Sodir history. CI's offline fixture keeps only 2022+ and
+    # simplified polygons, so the comparison only means something on a full load.
+    [first] = owner_conn.execute(
+        "select min(month) from marts.fct_field_production_monthly"
+    ).fetchone()
+    if first is None or first.year > 1975:
+        pytest.skip(f"partial history from {first} (CI fixture); snapshots need the full load")
     context = runner._context(runner.conninfo_from_env())
     read_only = "-c default_transaction_read_only=on"
     executor = ReadOnlyExecutor(runner.make_conninfo(runner.conninfo_from_env(), options=read_only))
+    drifted = []
     for item in ANSWERABLE:
         columns, rows = runner._reference(item, context.catalog, executor)
-        snapshot = item["snapshot"]["rows"]
-        assert result_matches({"mode": "rows"}, columns, snapshot, rows) is None, item["id"]
+        if result_matches({"mode": "rows"}, columns, item["snapshot"]["rows"], rows) is not None:
+            drifted.append(item["id"])
+    assert drifted == [], f"reference results changed; refresh with --snapshot: {drifted}"
