@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from stakeflow_api.caching import not_modified
 from stakeflow_api.db import make_pool
 from stakeflow_api.routers import companies, fields, meta, summary
 
@@ -34,6 +35,9 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+# Registered before CORS so CORS stays the outer layer and also decorates the 304s
+app.middleware("http")(not_modified)
 
 app.add_middleware(
     CORSMiddleware,

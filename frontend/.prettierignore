@@ -3,3 +3,5 @@ dist
 coverage
 pnpm-lock.yaml
 docs/screenshots
+# Static demo snapshot, written by api/scripts/export_static.py
+public/data

@@ -8,6 +8,9 @@ import { defineConfig } from 'vite';
 const apiTarget = process.env.STAKEFLOW_API_URL ?? 'http://localhost:8000';
 
 export default defineConfig({
+  // GitHub Pages serves the static demo from /<repo>/ (pnpm build:pages); everything else
+  // from the root. The router and the static data URLs follow it via import.meta.env.BASE_URL.
+  base: process.env.STAKEFLOW_BASE_PATH ?? '/',
   plugins: [react()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },

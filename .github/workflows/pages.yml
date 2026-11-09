@@ -1,0 +1,138 @@
+name: Pages
+
+# Public demo: the web app on a static snapshot of the API, plus the dbt docs under /dbt/.
+# Built from live Sodir data in a throwaway PostGIS; no backend runs after the build.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "api/**"
+      - "pipeline/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; a newer run queues instead of cancelling a deploy in flight
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the demo from live Sodir data
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: stakeflow
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci -d stakeflow"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      # Throwaway build database, not a secret
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ci
+      POSTGRES_PASSWORD: ci
+      POSTGRES_DB: stakeflow
+      PGPASSWORD: ci
+      SODIR_BASE_URL: https://factmaps.sodir.no/api/rest/services/DataService/Data/FeatureServer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/uv.lock"
+
+      - name: Create schemas
+        run: psql -h localhost -U ci -d stakeflow -v ON_ERROR_STOP=1 -f infra/postgres/init/01-schemas.sql
+
+      - name: Load Sodir (live API, or the offline CI snapshot if Sodir is unreachable)
+        id: sodir
+        working-directory: pipeline
+        run: |
+          uv sync --frozen
+          if timeout 15m uv run stakeflow-ingest; then
+            echo "source=live" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning title=Sodir unreachable::Demo built from the offline CI snapshot (history from 2022)"
+            uv run stakeflow-load-snapshot tests/fixtures/ci_snapshot
+            echo "source=ci-fixture" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: dbt build (models + data tests)
+        working-directory: pipeline
+        run: uv run dbt build --project-dir dbt --profiles-dir dbt
+
+      - name: dbt docs as one static page
+        working-directory: pipeline
+        env:
+          # Otherwise the docs page sends page-view tracking to dbt Labs from every visitor
+          DBT_SEND_ANONYMOUS_USAGE_STATS: "false"
+        run: uv run dbt docs generate --project-dir dbt --profiles-dir dbt --static
+
+      - name: Start the API
+        working-directory: api
+        run: |
+          uv sync --frozen
+          nohup uv run uvicorn stakeflow_api.main:app --port 8000 > "$RUNNER_TEMP/api.log" 2>&1 &
+          for _ in $(seq 30); do
+            curl -sf http://localhost:8000/health && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/api.log"
+          exit 1
+
+      - name: Export the API responses as static files
+        working-directory: api
+        env:
+          SNAPSHOT_SOURCE: ${{ steps.sodir.outputs.source }}
+        run: uv run python scripts/export_static.py ../frontend/public/data --source "$SNAPSHOT_SOURCE"
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Build the static site
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          # Project pages live under /<repo>/
+          STAKEFLOW_BASE_PATH="/${GITHUB_REPOSITORY#*/}/" pnpm build:pages
+
+      - name: Add the dbt docs under /dbt/
+        run: |
+          mkdir -p frontend/dist/dbt
+          cp pipeline/dbt/target/static_index.html frontend/dist/dbt/index.html
+          du -sh frontend/dist frontend/dist/data frontend/dist/dbt
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: frontend/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

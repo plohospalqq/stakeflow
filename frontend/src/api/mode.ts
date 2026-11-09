@@ -1,9 +1,30 @@
 /**
- * Where numbers come from. Default: the live API for everything it serves, and the
- * deterministic mock layer for what the backend does not have yet. VITE_USE_MOCKS=true
- * mocks everything (tests, CI, demos without a backend).
+ * Where numbers come from (VITE_DATA_SOURCE):
+ * - `api` (default): the live API for everything it serves, the deterministic mock layer for
+ *   what the backend does not have yet.
+ * - `static`: the same real numbers, read from JSON files the exporter wrote from the API at
+ *   build time. This is the GitHub Pages demo: no backend, data frozen at the snapshot.
+ * - `mocks`: the mock layer for everything (tests, CI, demos without data).
+ *   VITE_USE_MOCKS=true is the older spelling and still wins.
  */
-export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
+export type DataSource = 'api' | 'static' | 'mocks';
+
+export function parseDataSource(env: {
+  VITE_DATA_SOURCE?: string;
+  VITE_USE_MOCKS?: string;
+}): DataSource {
+  if (env.VITE_USE_MOCKS === 'true') return 'mocks';
+  if (env.VITE_DATA_SOURCE === 'static' || env.VITE_DATA_SOURCE === 'mocks') {
+    return env.VITE_DATA_SOURCE;
+  }
+  return 'api';
+}
+
+export const DATA_SOURCE: DataSource = parseDataSource(import.meta.env);
+
+export const USE_MOCKS = DATA_SOURCE === 'mocks';
+
+export const IS_STATIC_DEMO = DATA_SOURCE === 'static';
 
 export const FEATURE_ASK = import.meta.env.VITE_FEATURE_ASK === 'true';
 
