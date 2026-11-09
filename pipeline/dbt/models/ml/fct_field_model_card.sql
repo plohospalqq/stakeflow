@@ -1,0 +1,25 @@
+-- Newest forecast run: how each field was modelled and how well that worked in its backtest
+select
+    c.field_id,
+    c.status,
+    c.method,
+    c.qi_sm3_per_day,
+    c.b,
+    c.di_nominal_per_year,
+    c.first_year_decline_pct,
+    c.fit_start,
+    c.fit_end,
+    c.fit_months,
+    c.fit_rmse_log,
+    c.seasonal_swing_pct,
+    c.backtest_months,
+    c.backtest_mape_pct,
+    c.backtest_bias_pct,
+    c.naive_mape_pct,
+    c.naive_bias_pct,
+    c.backtest_coverage_pct,
+    c.model_version,
+    c.run_id,
+    c.run_at,
+    c.data_through
+from {{ source('ml', 'field_model_card_latest') }} as c

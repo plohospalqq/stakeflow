@@ -21,6 +21,12 @@ models:
     marts:
       +schema: marts
       +materialized: table
+    # API-facing views of the forecast run's output (ml schema). Built after the run, so they
+    # are tagged: `dbt build --exclude tag:ml`, forecast, then `dbt build --select tag:ml`
+    ml:
+      +schema: marts
+      +materialized: table
+      +tags: [ml]
 
 seeds:
   stakeflow:
