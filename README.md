@@ -21,8 +21,9 @@ The demo is a static snapshot of the real API, rebuilt from live Sodir data on e
 needs no backend. Run the full stack locally for live data (see Quick start).
 
 Built end to end as a data / ML engineering portfolio project: ingestion, orchestration, a tested
-dbt warehouse, a typed API and a web app. The later phases (forecasts, nowcasts, anomaly
-detection, a text-to-SQL agent) are designed in from the start and already have a UI preview.
+dbt warehouse, a typed API and a web app, plus field forecasts, quarterly nowcasts with a public
+prediction log, anomaly detection, a share-price scenario model and a text-to-SQL agent, all
+served by the API and shown in the app.
 
 ## Results so far
 
@@ -49,12 +50,13 @@ Sodir API, and by a dbt test for every field and month).
 | | |
 |---|---|
 | **Company detail.** Net production by field with day-weighted ownership, Sodir vs reported by quarter, a revenue estimate with the formula visible. ![Company](frontend/docs/screenshots/company-aker-bp-dark.png) | **Field detail.** History by product, the full ownership timeline (e.g. Lundin → Aker BP, 30 Jun 2022), facts and a CSV export. ![Field](frontend/docs/screenshots/field-johan-sverdrup-dark.png) |
-| **Field map.** Every field on MapLibre: size = production, colour = oil vs gas, highlight a company's fields, keyboard-accessible list. ![Map](frontend/docs/screenshots/map-dark.png) | **Track record.** The real Sodir-vs-reported comparison today, and the scoring frame (frozen at quarter end, baseline, public hash) the forecasts will use. ![Track record](frontend/docs/screenshots/track-record-light.png) |
+| **Field map.** Every field on MapLibre: size = production, colour = oil vs gas, highlight a company's fields, keyboard-accessible list. ![Map](frontend/docs/screenshots/map-dark.png) | **Track record.** The Sodir-vs-reported comparison, and every quarterly nowcast scored against the company's report and a simple guess, live predictions and backtests kept apart. ![Track record](frontend/docs/screenshots/track-record-light.png) |
 
 Dark and light themes, boe/d or Sm³ o.e., and a phone layout with a bottom tab bar
-([all screenshots](frontend/docs/screenshots/)). Forecasts, nowcasts, anomalies, prices and Ask
-answers are a preview: every element showing them carries a **Sample data** badge
-([details](frontend/README.md#real-data-and-sample-data)).
+([all screenshots](frontend/docs/screenshots/)). With the local stack every number is live. The
+public demo carries the real forecasts, nowcasts, prediction log, anomalies and prices; share
+prices and the scenario model (Euronext data, which may not be redistributed) and Ask stay
+badged **Sample data** there ([details](frontend/README.md#real-data-and-sample-data)).
 
 ## Ask the data (Claude)
 
@@ -71,7 +73,8 @@ Sverdrup stops for two months?") into scenario parameters. Guardrails, in layers
 
 An eval set (39 questions incl. refusals and a prompt injection, 11 scenario cases) scores result
 equivalence and safety: `make eval` with `ANTHROPIC_API_KEY` set. Without a key both endpoints
-answer 503 and the UI keeps its preview.
+answer 503: Ask then answers with prepared examples and says why, and the scenario explorer says
+AI is not configured and points to its sliders and presets.
 
 ## Scope
 
@@ -241,7 +244,7 @@ Frontend details: [`frontend/README.md`](frontend/README.md).
 | Dagster | Code location loads; dbt models sit downstream of the raw assets; row-drop and freshness checks |
 | dbt (68 tests) | o.e. matches Sodir for every field-month; attributed volumes sum back to field volumes; shares cover 100% while a field is owned; no overlapping ownership intervals; valid geometries; "Equinor (NCS only)" label; keys and relationships |
 | API | Products add up to o.e.; boe/d formula; 404/422 on bad input; literal (non-wildcard) search; reconciliation; ownership history; GeoJSON |
-| Frontend (109 tests) | Unit maths (boe/d, Sm³), components, every route rendering on mocked data, URL safety, Ask answers never dead-end and only use real tables |
+| Frontend (227 tests) | Unit maths (boe/d, Sm³), components, every route rendering on mocked data, the live-API mappers on real response shapes, which data is sample in which mode, URL safety, Ask answers never dead-end and only use real tables |
 | Live demo | `pages.yml` builds the warehouse from live Sodir data (offline snapshot as fallback), runs every dbt test, exports the API's responses and deploys the app plus dbt docs to GitHub Pages |
 | CI | All of the above on every push: lint and tests per project; the warehouse job builds the full dbt project from a 385 KiB offline Sodir snapshot in a PostGIS service; OpenAPI and generated TypeScript types must match; Docker images build |
 

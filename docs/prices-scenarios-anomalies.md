@@ -134,13 +134,13 @@ longer share history is imported.
 
 | Endpoint | Returns | Frontend type |
 |---|---|---|
-| `GET /prices?series=&start=&end=` | `PriceSeries[]`: id, name, unit, frequency, source, sourceUrl, licence, attribution, points `{date, value}`. Default: last 365 days | `PriceSeries` (id also `eurusd`, `usdnok`) |
-| `GET /prices/latest` | newest spot values: `brentUsdPerBbl`, `ttfEurPerMwh`, `eurUsd`, `usdNok` with their dates, `kind: "spot"`, `asOf`. 503 before any load | `ForwardPrices` (same field names; no `quarterStart`, these are spot) |
-| `GET /companies/{id}/share-price?start=&end=` | ticker, ISIN, exchange, currency, provenance note, points `{date, close, volume}`; empty when nothing was imported. 404 unknown or unlisted company | new |
-| `GET /companies/{id}/scenario?brent_change_pct=&ttf_change_pct=&production_change_pct=&eurusd_change_pct=&horizon_months=` | `changePct`, `price`, `band80`, `path`, `contributions`, `varianceFromCoefficients`, `model` (coefficients with SEs, R², window, n, backtest with note), `caveats`, `notice`. 422 outside the contract or unknown parameter, 404 unknown/unlisted company, 503 (with the reason) without a model | new |
-| `GET /scenarios/presets` | `{id, name, description, params}`, params in contract form | new |
+| `GET /prices?series=&start=&end=` | `PriceSeries[]`: id, name, unit, frequency, source, sourceUrl, licence, attribution, points `{date, value}`. Default: last 365 days | `PriceSeries` (Brent and TTF only) |
+| `GET /prices/latest` | newest spot values: `brentUsdPerBbl`, `ttfEurPerMwh`, `eurUsd`, `usdNok` with their dates, `kind: "spot"`, `asOf`. 503 before any load | `LatestPrices` |
+| `GET /companies/{id}/share-price?start=&end=` | ticker, ISIN, exchange, currency, provenance note, points `{date, close, volume}`; empty when nothing was imported. 404 unknown or unlisted company | `SharePriceSeries` |
+| `GET /companies/{id}/scenario?brent_change_pct=&ttf_change_pct=&production_change_pct=&eurusd_change_pct=&horizon_months=` | `changePct`, `price`, `band80`, `path`, `contributions`, `varianceFromCoefficients`, `model` (coefficients with SEs, R², window, n, backtest with note), `caveats`, `notice`. 422 outside the contract or unknown parameter, 404 unknown/unlisted company, 503 (with the reason) without a model | `ScenarioResult` with its `ScenarioModel` |
+| `GET /scenarios/presets` | `{id, name, description, params}`, params in contract form | `ScenarioPreset` |
 | `GET /anomalies?severity=&field_id=&company=&since=&limit=` | latest run, newest and largest first | `Anomaly` (exact field names) |
-| `GET /anomalies/run` | run time, model version, window, counts, method text, parameters. 503 before any run | new |
+| `GET /anomalies/run` | run time, model version, window, counts, method text, parameters. 503 before any run | not used yet |
 
 The scenario contract (shared with the free-text parser) is used with the same snake_case
 names everywhere: query string, `scenario` echo in the response, and preset `params`:
@@ -151,15 +151,22 @@ names everywhere: query string, `scenario` echo in the response, and preset `par
 
 Ranges: Brent and TTF −90..+300, production −100..+100, EUR/USD −50..+100, horizon 1..24.
 
-### Differences from the frontend types
+### How the frontend maps them
 
-- `PriceSeries.id` can also be `eurusd` or `usdnok`; filter with `?series=brent&series=ttf`.
-  TTF points are monthly (dated the 1st), not daily, so the TTF sparkline has fewer points.
-- There is no `/prices/forward`. `/prices/latest` uses the `ForwardPrices` field names
-  (`brentUsdPerBbl`, `ttfEurPerMwh`, `eurUsd`) but is spot, has no `quarterStart`, and the UI
-  should say "at latest prices" instead of "at forward prices".
-- `Anomaly.operatorName` may be `null`; `fieldName` is Sodir's upper case (the UI already title
-  cases names); `hits` lists every current owner with `isFocus` and `sharePct` (the mock lists
-  only focus companies: filter on `isFocus`); `status` is always `new`.
+`frontend/src/api/extras.ts` turns each response into its frontend type (unit-tested in
+`src/api/__tests__/extras.test.ts`); the static demo runs the same mappers over its exported
+files, except share prices and scenarios, which are never exported.
+
+- Only Brent and TTF are requested (`?series=brent&series=ttf`). TTF points are monthly (dated
+  the 1st), so the landing page shows Brent daily over 3 months and TTF as monthly averages, and
+  says so.
+- There is no `/prices/forward`: `/prices/latest` is spot. The UI says "at latest prices" in
+  every language and shows the date of each value.
+- `Anomaly.operatorName` may be `null` and is then left out; `fieldName` is title-cased; `hits`
+  lists every current owner, focus companies first. `status` is always `new` from the API; the
+  reader's status changes and notes stay in the browser tab.
 - Anomaly `expected`, `actual` and `series` are kboe/d as in the type; `pctVsExpected` is in
   percent.
+- Scenario results are shown as the backend computed them (change, 80% band, price, each
+  driver's contribution, caveats, notice); the intercept is past drift and is not shown with the
+  sensitivities.
