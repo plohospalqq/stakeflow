@@ -75,7 +75,7 @@ export const en = {
       'The forecast (dashed line and band) is sample data; production history is from Sodir',
     prices: 'Brent and TTF prices are generated until a price feed is connected',
     anomalies: 'Anomaly detection is not in the backend yet; the feed is sample data',
-    ask: 'Ask is a preview: a few example questions have hand-written answers with sample numbers',
+    ask: 'Ask is a preview: only a few example questions have answers, prepared in advance from a real query',
     revenue: 'Prices are sample data; the product split is from Sodir',
     revenueNowcast:
       'Prices and the nowcast volume are sample data; the product split is from Sodir',
