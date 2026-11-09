@@ -21,7 +21,7 @@ export function Preferences({
   if (!stacked) {
     return (
       <div className="flex items-center gap-1.5">
-        <ModeSwitch />
+        <ModeSwitch compact />
         <UnitToggle />
         <LanguageSwitch />
         <ThemeToggle />
@@ -88,7 +88,7 @@ function PreferencesButton() {
 export function TopNav({ openAnomalies }: { openAnomalies?: number }) {
   const { m, t } = useI18n();
   return (
-    <header className="sticky top-3 z-30 mx-auto hidden w-[min(1320px,calc(100%-32px))] nav:block">
+    <header className="sticky top-3 z-30 mx-auto hidden w-[min(1440px,calc(100%-32px))] nav:block">
       <nav
         aria-label={m.nav.main}
         className="glass flex items-center gap-1 rounded-full py-1.5 pl-4 pr-2"
@@ -101,12 +101,20 @@ export function TopNav({ openAnomalies }: { openAnomalies?: number }) {
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) =>
-                  `relative flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13.5px] font-medium no-underline transition-colors ${
+                  `relative flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[13.5px] font-medium no-underline transition-colors min-[1536px]:px-3 ${
                     isActive ? 'bg-surface2 text-ink' : 'text-muted hover:text-ink'
                   }`
                 }
               >
-                {m.nav[item.label]}
+                {/* Below 1280px the long labels would not fit: the short tab label takes over. */}
+                {item.short ? (
+                  <>
+                    <span className="min-[1280px]:hidden">{m.nav[item.short]}</span>
+                    <span className="hidden min-[1280px]:inline">{m.nav[item.label]}</span>
+                  </>
+                ) : (
+                  m.nav[item.label]
+                )}
                 {item.badge === 'anomalies' && openAnomalies ? (
                   // Anomalies are sample data for now; the count must not pass for a live alert.
                   <span
@@ -118,7 +126,7 @@ export function TopNav({ openAnomalies }: { openAnomalies?: number }) {
                   </span>
                 ) : null}
                 {item.badge === 'beta' ? (
-                  <span className="rounded-full bg-surface3 px-1.5 text-[10.5px] font-semibold uppercase leading-[16px] tracking-[0.04em] text-muted">
+                  <span className="hidden rounded-full bg-surface3 px-1.5 text-[10.5px] font-semibold uppercase leading-[16px] tracking-[0.04em] text-muted min-[1280px]:inline">
                     {m.nav.beta}
                   </span>
                 ) : null}

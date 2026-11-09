@@ -387,7 +387,7 @@ export const uk: Dict = {
     companyTop: 'Лише <b>{field}</b> дає {share} цього обсягу.',
     companyMoney:
       'За демонстраційними цінами це приблизно <b>{usd} нафти й газу на день</b> (до витрат і податків).',
-    companyChange: 'Це на {pct} {direction}, ніж у {month}.',
+    companyChange: 'Це на {pct} {direction}, ніж місяцем раніше ({month}).',
     fieldAge: 'Видобуток триває з {year} року: {years}.',
     fieldPeak: 'Пік — {peak} {unit} ({years}); нині видобуток на {pct} менший.',
     fieldYoy: 'Родовище дало на {pct} {direction}, ніж рік тому.',

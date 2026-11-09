@@ -8,6 +8,8 @@ export interface NavItem {
   label: keyof Dict['nav'];
   /** Shorter label for the mobile tab bar; items without one live in "More". */
   tab?: keyof Dict['nav'];
+  /** Shorter label for narrow desktop navigation (1024 to 1279 px). */
+  short?: keyof Dict['nav'];
   icon: IconName;
   /** Exact match only (the overview at "/"). */
   end?: boolean;
@@ -20,7 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/companies', label: 'companies', tab: 'companies', icon: 'company' },
   { to: '/fields', label: 'fields', icon: 'field' },
   { to: '/scenarios', label: 'scenarios', tab: 'scenarios', icon: 'sliders' },
-  { to: '/track-record', label: 'trackRecord', icon: 'shield' },
+  { to: '/track-record', label: 'trackRecord', short: 'trackTab', icon: 'shield' },
   { to: '/anomalies', label: 'anomalies', icon: 'pulse', badge: 'anomalies' },
   ...(FEATURE_ASK
     ? [{ to: '/ask', label: 'ask', icon: 'chat', badge: 'beta' } satisfies NavItem]

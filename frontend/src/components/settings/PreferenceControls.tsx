@@ -47,12 +47,17 @@ export function LanguageSwitch() {
   );
 }
 
-export function ModeSwitch() {
+/** Simple words / Expert. `compact` shows "Simple" in the navigation, the full name to screen readers. */
+export function ModeSwitch({ compact = false }: { compact?: boolean }) {
   const { m } = useI18n();
   const mode = useModeStore((s) => s.mode);
   const setMode = useModeStore((s) => s.setMode);
-  const options: { value: Mode; label: string }[] = [
-    { value: 'simple', label: m.settings.simple },
+  const options: { value: Mode; label: string; ariaLabel?: string }[] = [
+    {
+      value: 'simple',
+      label: compact ? m.settings.simpleShort : m.settings.simple,
+      ariaLabel: compact ? m.settings.simple : undefined,
+    },
     { value: 'expert', label: m.settings.expert },
   ];
   return (

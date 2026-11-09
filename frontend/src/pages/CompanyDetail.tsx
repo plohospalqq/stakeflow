@@ -31,6 +31,7 @@ import { addMonths, monthRange } from '@/lib/dates';
 import {
   formatMonth,
   formatMonthName,
+  formatMonthNameLong,
   formatPct,
   formatQuarter,
   formatShare,
@@ -94,7 +95,7 @@ function PlainWords({
       ? t(m.plain.companyChange, {
           pct: formatPct(Math.abs(view.momPct), 1),
           direction: view.momPct >= 0 ? m.plain.more : m.plain.less,
-          month: formatMonthName(addMonths(view.month, -1)),
+          month: formatMonthNameLong(addMonths(view.month, -1)),
         })
       : null,
     perDayUsd ? t(m.plain.companyMoney, { usd: formatUsd(perDayUsd) }) : null,
