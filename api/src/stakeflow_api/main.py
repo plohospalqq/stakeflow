@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from stakeflow_api.db import make_pool
-from stakeflow_api.routers import companies, fields, meta
+from stakeflow_api.routers import ask, companies, fields, meta
 
 
 @asynccontextmanager
@@ -38,10 +38,11 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(","),
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
 app.include_router(meta.router)
 app.include_router(companies.router)
 app.include_router(fields.router)
+app.include_router(ask.router)

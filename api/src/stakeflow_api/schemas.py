@@ -7,7 +7,7 @@ as Sm³ of gas (`gasSm3`) and as Sm³ o.e. (`gasOeSm3`, = gas / 1000), so produc
 from datetime import date, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 
@@ -143,3 +143,48 @@ class Freshness(ApiModel):
 class FeatureCollection(BaseModel):
     type: Literal["FeatureCollection"] = "FeatureCollection"
     features: list[dict[str, Any]]
+
+
+# Ask: same shape as the frontend's AskAnswer (frontend/src/api/types.ts), plus a few extras
+
+
+class AskRequest(ApiModel):
+    question: str = Field(min_length=1, max_length=500)
+
+
+class AskStep(ApiModel):
+    label: str
+    detail: str
+
+
+class AskChartPoint(ApiModel):
+    label: str
+    value: float
+    previous: float | None
+
+
+class AskChartLegend(ApiModel):
+    current: str
+    previous: str | None
+
+
+class AskAnswer(ApiModel):
+    question: str
+    steps: list[AskStep]
+    answer: str
+    sql: str = Field(description="The SQL that ran: the validated, normalised form")
+    duration_ms: int = Field(description="Query execution time")
+    columns: list[str]
+    rows: list[list[str | int | float | None]]
+    chart: list[AskChartPoint]
+    chart_unit: str
+    chart_legend: AskChartLegend
+    follow_ups: list[str]
+    matched: bool = Field(description="False when the data cannot answer the question")
+    chart_type: Literal["bar", "line", "none"] = "none"
+    truncated: bool = Field(False, description="The 500-row cap was reached")
+
+
+class AskTable(ApiModel):
+    name: str
+    description: str
