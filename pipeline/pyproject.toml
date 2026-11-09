@@ -25,6 +25,7 @@ stakeflow-load-snapshot = "stakeflow_pipeline.snapshot_files:main"
 stakeflow-market = "stakeflow_pipeline.market.ingest:main"
 stakeflow-import-share-prices = "stakeflow_pipeline.market.ingest:import_main"
 stakeflow-ml = "stakeflow_pipeline.ml.cli:main"
+stakeflow-load-market-fixtures = "stakeflow_pipeline.market.fixtures:main"
 
 [build-system]
 requires = ["uv_build>=0.13.7,<0.14.0"]
