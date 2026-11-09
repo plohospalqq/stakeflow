@@ -10,6 +10,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from psycopg import Connection
 
+from stakeflow_api.caching import data_cache_headers
 from stakeflow_api.db import fetch_all, fetch_one, get_conn
 from stakeflow_api.schemas import ApiModel
 
@@ -65,7 +66,12 @@ from totals as t, m
 """
 
 
-@router.get("/summary", response_model=ShelfSummary, response_model_by_alias=True)
+@router.get(
+    "/summary",
+    response_model=ShelfSummary,
+    response_model_by_alias=True,
+    dependencies=[Depends(data_cache_headers)],
+)
 def shelf_summary(conn: Conn) -> ShelfSummary:
     rows = fetch_all(conn, TOTALS_SQL)
     latest = next((r for r in rows if r["is_latest"]), None)

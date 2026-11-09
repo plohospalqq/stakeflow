@@ -70,6 +70,7 @@ class Exporter:
 def export_all(client: httpx.Client, out: Path, source: str) -> Exporter:
     ex = Exporter(client, out)
     freshness = ex.export("/meta/freshness", "meta/freshness.json")
+    ex.export("/summary", "meta/summary.json")
     latest = date.fromisoformat(freshness["latestMonth"])
     company_start = add_months(latest, -(COMPANY_WINDOW_MONTHS - 1)).isoformat()
     field_start = add_months(latest, -(FIELD_WINDOW_MONTHS - 1)).isoformat()

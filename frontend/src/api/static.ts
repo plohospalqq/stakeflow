@@ -48,6 +48,7 @@ export function staticRoute(path: string, query: Query = {}): StaticRoute | null
   if (rest.length > 0) return null;
 
   if (root === 'meta' && id === 'freshness' && !sub) return { file: 'meta/freshness.json' };
+  if (root === 'summary' && !id) return { file: 'meta/summary.json' };
 
   if (root === 'companies') {
     if (!id) {

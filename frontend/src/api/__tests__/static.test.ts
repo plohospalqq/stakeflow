@@ -195,3 +195,9 @@ describe('staticCore', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe('summary route', () => {
+  it('maps /summary to the exported landing-page file', () => {
+    expect(staticRoute('/summary')).toEqual({ file: 'meta/summary.json' });
+  });
+});

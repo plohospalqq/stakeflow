@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help env up down reset psql logs ingest refresh dbt openapi web test lint
+.PHONY: help env up down reset psql logs ingest refresh dbt openapi web demo test lint
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -37,6 +37,10 @@ openapi: ## Write the API contract to api/openapi.json (frontend types are gener
 
 web: ## Frontend dev server with hot reload on :5173 (needs the API from make up)
 	cd frontend && pnpm install && VITE_FEATURE_ASK=true pnpm dev
+
+demo: ## Static demo like GitHub Pages: export the running API, build for /stakeflow/
+	cd api && uv run python scripts/export_static.py ../frontend/public/data
+	cd frontend && pnpm install && pnpm build:pages
 
 test: ## Run pipeline, API and frontend tests (DB tests skip if the database is down)
 	cd pipeline && uv run --env-file ../.env pytest -q

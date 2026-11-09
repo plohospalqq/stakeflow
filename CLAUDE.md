@@ -25,6 +25,7 @@ make reset   # stop and delete the DB volume
 make ingest  # without Dagster: download Sodir layers into raw.* (LAYERS="field profiles" for a subset)
 make dbt     # without Dagster: dbt build (models + tests)
 make web     # frontend dev server with hot reload on :5173
+make demo    # static demo like GitHub Pages (export running API → build for /stakeflow/)
 make test    # pipeline + api pytest, frontend vitest (DB tests skip when the DB is down)
 make lint    # ruff + eslint/prettier/tsc
 ```
@@ -58,6 +59,11 @@ More commands get added here as each phase step lands.
 - **Languages:** English, Ukrainian, Norwegian (Bokmål).
 - Nowcast scope is set by `docs/nowcast-feasibility.md` (companies publish production at
   T+12/14, Sodir field data lands at T+40–69).
+- Frontend data source: `VITE_DATA_SOURCE=api|static` (`VITE_USE_MOCKS=true` wins). The static
+  demo reads `frontend/public/data` (gitignored), exported by `api/scripts/export_static.py`.
+- Data endpoints send `Cache-Control` and a freshness `ETag` (`api/src/stakeflow_api/caching.py`).
+- Any new external host (tiles, fonts, analytics) must be added to the CSP in
+  `frontend/nginx.conf`, or it will be blocked.
 - Never commit secrets, `.env`, or raw data files.
 - Commits: small, Conventional Commits, English, no AI attribution trailers.
 - Ask before adding a new dependency.
