@@ -1,5 +1,7 @@
 import type { EChartsOption } from 'echarts';
 import type { ChartTheme } from '@/hooks/useChartTheme';
+import { fill } from '@/i18n/text';
+import type { Dict } from '@/i18n/types';
 import { formatPct } from '@/lib/format';
 import {
   baseGrid,
@@ -24,6 +26,7 @@ export const TARGET_ERROR_PCT = 2;
 export function buildAccuracyOption(
   t: ChartTheme,
   points: AccuracyPoint[],
+  m: Dict,
   compact = false,
 ): EChartsOption {
   const baselineColor = t.fields[3] ?? t.muted;
@@ -39,9 +42,9 @@ export function buildAccuracyOption(
       ...valueAxis(t, compact),
       axisLabel: {
         color: t.muted,
-        fontFamily: t.mono,
+        fontFamily: t.sans,
         fontSize: 11,
-        formatter: (v: number) => `${v}%`,
+        formatter: (v: number) => formatPct(v, 0),
       },
     },
     tooltip: {
@@ -53,14 +56,14 @@ export function buildAccuracyOption(
         if (!p) return '';
         return (
           tooltipTitle(p.quarterName) +
-          tooltipRow(t.forecast, 'Our model', formatPct(p.model)) +
-          tooltipRow(baselineColor, 'Simple guess', formatPct(p.baseline))
+          tooltipRow(t.forecast, m.track.ourModel, formatPct(p.model)) +
+          tooltipRow(baselineColor, m.track.simpleGuess, formatPct(p.baseline))
         );
       },
     },
     series: [
       {
-        name: 'Our model',
+        name: m.track.ourModel,
         type: 'bar',
         color: t.forecast,
         barMaxWidth: 28,
@@ -71,7 +74,7 @@ export function buildAccuracyOption(
           position: 'top',
           formatter: (p) => (typeof p.value === 'number' ? formatPct(p.value) : ''),
           color: t.ink,
-          fontFamily: t.mono,
+          fontFamily: t.sans,
           fontSize: 11,
         },
         data: points.map((p) => p.model),
@@ -80,7 +83,7 @@ export function buildAccuracyOption(
           symbol: ['none', 'none'],
           lineStyle: { color: t.up, type: 'dashed', width: 1 },
           label: {
-            formatter: `${TARGET_ERROR_PCT}% target`,
+            formatter: fill(m.track.target, { n: TARGET_ERROR_PCT }),
             color: t.up,
             fontFamily: t.sans,
             fontSize: 11,
@@ -90,7 +93,7 @@ export function buildAccuracyOption(
         },
       },
       {
-        name: 'Simple guess',
+        name: m.track.simpleGuess,
         type: 'bar',
         color: baselineColor,
         barMaxWidth: 28,

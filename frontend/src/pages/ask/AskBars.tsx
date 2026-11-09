@@ -1,19 +1,21 @@
 import type { AskAnswer } from '@/api/types';
 import { DeltaBadge } from '@/components/DeltaBadge';
+import { useI18n } from '@/i18n/useI18n';
 import { formatNumber } from '@/lib/format';
 
 /** Horizontal bars: one per row, with last period's value as a thinner bar underneath. */
 export function AskBars({ answer }: { answer: AskAnswer }) {
+  const { m, t } = useI18n();
   const max = Math.max(...answer.chart.flatMap((b) => [b.value, b.previous ?? 0]), 0) || 1;
   const width = (v: number) => `${Math.max(0.5, (v / max) * 100)}%`;
   const top = answer.chart[0];
   const summary = top
-    ? `Bar chart of ${answer.chart.length} rows in ${answer.chartUnit}${
+    ? `${t(m.ask.barsAria, { n: answer.chart.length, unit: answer.chartUnit })}${
         answer.chartLegend.previous
-          ? `, ${answer.chartLegend.current} against ${answer.chartLegend.previous}`
+          ? t(m.ask.barsAriaVs, { a: answer.chartLegend.current, b: answer.chartLegend.previous })
           : ''
-      }; first: ${top.label} at ${formatNumber(top.value, 1)}`
-    : 'Empty chart';
+      }${t(m.ask.barsAriaFirst, { label: top.label, value: formatNumber(top.value, 1) })}`
+    : m.ask.emptyChart;
 
   return (
     <div role="img" aria-label={summary} className="flex flex-col gap-2.5 px-[18px] pb-4 pt-1">
@@ -24,10 +26,10 @@ export function AskBars({ answer }: { answer: AskAnswer }) {
         >
           <span className="text-[13px]">{b.label}</span>
           <span className="flex flex-col gap-[3px]" aria-hidden="true">
-            <span className="h-3 rounded-[3px] bg-forecast" style={{ width: width(b.value) }} />
+            <span className="h-3 rounded-full bg-forecast" style={{ width: width(b.value) }} />
             {b.previous !== null ? (
               <span
-                className="h-1.5 rounded-[3px] bg-field-4"
+                className="h-1.5 rounded-full bg-field-4"
                 style={{ width: width(b.previous) }}
               />
             ) : null}

@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import type { LicenceShare } from '@/api/types';
 import { SectionHeading } from '@/components/SectionHeading';
 import { Skeleton } from '@/components/Skeleton';
+import { useCompanyName } from '@/hooks/useCompanyName';
+import { useI18n } from '@/i18n/useI18n';
 import { FOCUS_ORDER } from '@/lib/companies';
 import { diffDays, monthStart, parseIsoDate } from '@/lib/dates';
 import { formatDate, formatMonth, formatNumber } from '@/lib/format';
@@ -32,6 +34,8 @@ export function OwnershipTimeline({
   today,
   firstProductionMonth,
 }: OwnershipTimelineProps) {
+  const { m, t, plural } = useI18n();
+  const companyName = useCompanyName();
   const [showAll, setShowAll] = useState(false);
   const data = useMemo(() => {
     if (!periods || periods.length === 0) return null;
@@ -93,21 +97,26 @@ export function OwnershipTimeline({
   }, [periods, today, firstProductionMonth]);
 
   const segmentText = (s: GroupPeriod) =>
-    `${pct(s.sharePct)} from ${formatDate(s.validFrom)}${s.validTo ? ` to ${formatDate(s.validTo)}` : ' to today'}`;
+    s.validTo
+      ? t(m.field.segment, {
+          pct: pct(s.sharePct),
+          from: formatDate(s.validFrom),
+          to: formatDate(s.validTo),
+        })
+      : t(m.field.segmentToday, { pct: pct(s.sharePct), from: formatDate(s.validFrom) });
+  // Equinor's scope label is localised; other names are data.
+  const display = (groupId: string, fallback: string) =>
+    FOCUS_ORDER.includes(groupId) ? companyName(groupId, fallback) : fallback;
 
   const visibleEvents = data ? (showAll ? data.byDate : data.byDate.slice(0, 5)) : [];
 
   return (
     <section className="card flex min-w-0 flex-col" aria-labelledby="own-h">
-      <SectionHeading
-        id="own-h"
-        title="Ownership over time"
-        sub="Field share of each company, unitised · decides how much of the output each company reports"
-      />
+      <SectionHeading id="own-h" title={m.field.ownershipTitle} sub={m.field.ownershipSub} />
       {!data ? (
         <div className="flex flex-col gap-2 px-[18px] pb-4 pt-2">
           {periods ? (
-            <p className="lbl m-0">No ownership records for this field.</p>
+            <p className="lbl m-0">{m.field.noOwnership}</p>
           ) : (
             [0, 1, 2].map((i) => <Skeleton key={i} height={26} />)
           )}
@@ -139,7 +148,7 @@ export function OwnershipTimeline({
                     <span
                       className={`w-full flex-none break-words text-[13px] leading-tight nav:w-[140px] ${focus ? 'font-semibold' : ''}`}
                     >
-                      {row.name}
+                      {display(row.groupId, row.name)}
                     </span>
                     <span className="sr-only">{row.segments.map(segmentText).join('; ')}</span>
                     <div
@@ -176,10 +185,7 @@ export function OwnershipTimeline({
               item.kind === 'onstream' ? (
                 <li key="onstream" className="flex gap-3">
                   <span className="num lbl w-[76px] flex-none pt-px">{formatMonth(item.date)}</span>
-                  <span>
-                    Field comes on stream with {data.ownersAtStart} licensee
-                    {data.ownersAtStart === 1 ? '' : 's'}.
-                  </span>
+                  <span>{plural(m.field.onStreamEvent, data.ownersAtStart)}</span>
                 </li>
               ) : (
                 <li key={item.date} className="flex gap-3">
@@ -192,9 +198,9 @@ export function OwnershipTimeline({
                         {i > 0 ? ' · ' : ''}
                         <strong className="font-semibold">{e.groupName}</strong>{' '}
                         {e.fromPct === 0
-                          ? `enters with ${pct(e.toPct)}`
+                          ? t(m.field.enters, { pct: pct(e.toPct) })
                           : e.toPct === 0
-                            ? `leaves (${pct(e.fromPct)})`
+                            ? t(m.field.leaves, { pct: pct(e.fromPct) })
                             : `${pct(e.fromPct)} → ${pct(e.toPct)}`}
                       </span>
                     ))}
@@ -206,11 +212,11 @@ export function OwnershipTimeline({
               <li>
                 <button
                   type="button"
-                  className="min-h-[32px] text-[12px] text-muted underline underline-offset-2 hover:text-ink"
+                  className="min-h-[36px] rounded-full bg-surface2 px-3.5 text-[13px] font-medium text-ink hover:bg-surface3"
                   aria-expanded={showAll}
                   onClick={() => setShowAll((s) => !s)}
                 >
-                  {showAll ? 'Show fewer' : `Show all ${data.byDate.length} entries`}
+                  {showAll ? m.common.showFewer : t(m.common.showAll, { n: data.byDate.length })}
                 </button>
               </li>
             ) : null}

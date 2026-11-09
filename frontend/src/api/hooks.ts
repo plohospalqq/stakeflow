@@ -31,6 +31,7 @@ export const queryKeys = {
   prices: ['prices'] as const,
   forwardPrices: ['prices', 'forward'] as const,
   ask: (question: string) => ['ask', question] as const,
+  summary: ['summary'] as const,
 };
 
 /** A 404 will not fix itself; anything else gets the default single retry. */
@@ -190,4 +191,8 @@ export function useAsk(question: string | null) {
     enabled: Boolean(question),
     staleTime: Infinity,
   });
+}
+
+export function useSummary() {
+  return useQuery({ queryKey: queryKeys.summary, queryFn: () => core.summary() });
 }

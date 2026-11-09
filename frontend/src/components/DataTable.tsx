@@ -7,6 +7,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import { useMemo, useState, type ReactNode } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { Skeleton } from './Skeleton';
 
 export interface Column<T> {
@@ -48,12 +49,13 @@ export function DataTable<T>({
   rowKey,
   initialSort,
   onRowClick,
-  empty = 'Nothing to show.',
+  empty,
   dense = false,
   loading = false,
   maxHeight,
   rowClassName,
 }: DataTableProps<T>) {
+  const { m } = useI18n();
   const [sorting, setSorting] = useState<SortingState>(initialSort ? [initialSort] : []);
 
   const columnDefs = useMemo<ColumnDef<T, string | number | undefined>[]>(
@@ -80,7 +82,7 @@ export function DataTable<T>({
     getRowId: rowKey,
   });
 
-  const pad = dense ? 'px-3 py-1.5' : 'px-3 py-2.5';
+  const pad = dense ? 'px-3 py-2' : 'px-3 py-3';
   const alignOf = (id: string) =>
     columns.find((c) => c.id === id)?.align === 'right' ? 'text-right' : 'text-left';
   const widthOf = (id: string) => columns.find((c) => c.id === id)?.width;
@@ -96,7 +98,7 @@ export function DataTable<T>({
       role={maxHeight ? 'region' : undefined}
       aria-label={maxHeight ? caption : undefined}
     >
-      <table className="w-full border-collapse text-[13px]">
+      <table className="w-full border-collapse text-[14px]">
         <caption className="sr-only">{caption}</caption>
         <thead>
           {table.getHeaderGroups().map((group) => (
@@ -118,7 +120,7 @@ export function DataTable<T>({
                             : 'none'
                         : undefined
                     }
-                    className={`sticky top-0 z-[1] whitespace-nowrap border-b border-line bg-surface text-[12px] font-medium ${alignOf(header.column.id)} ${
+                    className={`sticky top-0 z-[1] whitespace-nowrap border-b border-line bg-surface text-[12.5px] font-semibold ${alignOf(header.column.id)} ${
                       sorted ? 'text-ink' : 'text-muted'
                     } ${canSort ? 'px-1.5 py-1' : pad}`}
                     style={{ width: widthOf(header.column.id) }}
@@ -127,7 +129,7 @@ export function DataTable<T>({
                       <button
                         type="button"
                         onClick={header.column.getToggleSortingHandler()}
-                        className={`inline-flex min-h-[32px] w-full items-center gap-1 rounded-md px-1.5 hover:text-ink ${
+                        className={`inline-flex min-h-[32px] w-full items-center gap-1 rounded-lg px-1.5 hover:text-ink max-nav:min-h-[44px] ${
                           alignOf(header.column.id) === 'text-right' ? 'justify-end' : ''
                         }`}
                       >
@@ -160,7 +162,7 @@ export function DataTable<T>({
           {!loading && rows.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className={`${pad} py-6 text-center text-muted`}>
-                {empty}
+                {empty ?? m.common.nothing}
               </td>
             </tr>
           ) : null}
@@ -169,7 +171,7 @@ export function DataTable<T>({
                 <tr
                   key={row.id}
                   onClick={onRowClick ? () => onRowClick(row.original) : undefined}
-                  className={`hover:bg-surface2 [&:last-child>td]:border-b-0 ${onRowClick ? 'cursor-pointer' : ''} ${rowClassName?.(row.original) ?? ''}`}
+                  className={`transition-colors hover:bg-surface2 [&:last-child>td]:border-b-0 ${onRowClick ? 'cursor-pointer' : ''} ${rowClassName?.(row.original) ?? ''}`}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td

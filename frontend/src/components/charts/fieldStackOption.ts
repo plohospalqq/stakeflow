@@ -1,5 +1,6 @@
 import type { BarSeriesOption, EChartsOption } from 'echarts';
 import type { ChartTheme } from '@/hooks/useChartTheme';
+import type { Dict } from '@/i18n/types';
 import type { FieldStack } from '@/lib/fieldStack';
 import { formatMonth, formatMonthShort } from '@/lib/format';
 import {
@@ -24,7 +25,8 @@ export function buildFieldStackOption(
     compact = false,
     format,
     unitLabel,
-  }: { compact?: boolean; format: (v: number) => string; unitLabel: string },
+    m,
+  }: { compact?: boolean; format: (v: number) => string; unitLabel: string; m: Dict },
 ): EChartsOption {
   const series: BarSeriesOption[] = stack.layers.map((layer, i) => ({
     name: layer.name,
@@ -45,7 +47,7 @@ export function buildFieldStackOption(
       ...categoryAxis(t, stack.months.map(formatMonthShort)),
       axisLabel: {
         color: t.muted,
-        fontFamily: t.mono,
+        fontFamily: t.sans,
         fontSize: 11,
         hideOverlap: true,
         interval: compact ? 5 : 2,
@@ -63,7 +65,7 @@ export function buildFieldStackOption(
         stack.layers.forEach((layer, j) => {
           html += tooltipRow(fieldColor(t, j), layer.name, `${format(layer.values[i] ?? 0)}`);
         });
-        html += tooltipRow(t.ink, 'Total', `${format(stack.totals[i] ?? 0)} ${unitLabel}`);
+        html += tooltipRow(t.ink, m.charts.total, `${format(stack.totals[i] ?? 0)} ${unitLabel}`);
         return html;
       },
     },

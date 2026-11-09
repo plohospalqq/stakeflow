@@ -5,7 +5,11 @@ import { DataTable, type Column } from '@/components/DataTable';
 import { Icon } from '@/components/Icon';
 import { SampleBadge } from '@/components/SampleBadge';
 import { SectionHeading } from '@/components/SectionHeading';
+import { useCompanyName } from '@/hooks/useCompanyName';
 import { useUnits, type Units } from '@/hooks/useUnits';
+import type { Dict } from '@/i18n/types';
+import { fill } from '@/i18n/text';
+import { useI18n } from '@/i18n/useI18n';
 import { downloadCsv, rowsToCsv } from '@/lib/csv';
 import { quarterOf } from '@/lib/dates';
 import { formatDate, formatQuarter, formatUtc } from '@/lib/format';
@@ -35,27 +39,35 @@ function toRow(p: Prediction): Row {
   };
 }
 
-function columns(units: Units): Column<Row>[] {
+function columns(
+  units: Units,
+  m: Dict,
+  name: (id: string, fallback?: string) => string,
+): Column<Row>[] {
   const digits = units.unit === 'boe' ? 1 : 3;
   const conv = (r: Row, v: number) => units.fromQuarterRate(v, r.p.quarterStart);
   const open = (r: Row) => r.error === null;
   return [
     {
       id: 'quarter',
-      header: 'Quarter',
+      header: m.common.quarter,
       value: (r) => r.p.quarterStart,
       cell: (r) => <span className="num">{formatQuarter(r.p.quarterStart)}</span>,
     },
-    { id: 'company', header: 'Company', value: (r) => r.p.companyName },
+    {
+      id: 'company',
+      header: m.common.company,
+      value: (r) => name(r.p.companyId, r.p.companyName),
+    },
     {
       id: 'made',
-      header: 'Prediction made',
+      header: m.track.colMade,
       value: (r) => r.p.madeAt,
       cell: (r) =>
         open(r) ? (
           <span className="chip">
             <span className="dot rounded-full bg-warn" aria-hidden="true" />
-            Live · freezes {formatDate(quarterOf(r.p.quarterStart).end)} 23:59 UTC
+            {fill(m.track.live, { date: formatDate(quarterOf(r.p.quarterStart).end) })}
           </span>
         ) : (
           <span className="num text-muted">{formatUtc(r.p.madeAt)}</span>
@@ -63,7 +75,7 @@ function columns(units: Units): Column<Row>[] {
     },
     {
       id: 'report',
-      header: 'Report published',
+      header: m.track.colReport,
       value: (r) => r.reportOn,
       cell: (r) => (
         <span className="num text-muted">
@@ -74,21 +86,21 @@ function columns(units: Units): Column<Row>[] {
     },
     {
       id: 'lead',
-      header: 'Lead',
+      header: m.track.colLead,
       align: 'right',
       value: (r) => r.lead,
-      cell: (r) => `${open(r) ? '≈' : ''}${r.lead} d`,
+      cell: (r) => `${open(r) ? '≈' : ''}${fill(m.track.leadDays, { n: r.lead })}`,
     },
     {
       id: 'predicted',
-      header: 'Predicted',
+      header: m.track.colPredicted,
       align: 'right',
       value: (r) => conv(r, r.p.predicted),
       cell: (r) => <strong>{units.format(conv(r, r.p.predicted), digits)}</strong>,
     },
     {
       id: 'range',
-      header: '80% range',
+      header: m.track.colRange,
       align: 'right',
       sortable: false,
       value: (r) => conv(r, r.p.lo),
@@ -100,52 +112,56 @@ function columns(units: Units): Column<Row>[] {
     },
     {
       id: 'actual',
-      header: 'Actual',
+      header: m.track.colActual,
       align: 'right',
       value: (r) => (r.p.actual === null ? null : conv(r, r.p.actual)),
       cell: (r) =>
         r.p.actual === null ? (
-          <span className="text-muted">Awaiting</span>
+          <span className="text-muted">{m.track.awaiting}</span>
         ) : (
           units.format(conv(r, r.p.actual), digits)
         ),
     },
     {
       id: 'error',
-      header: 'Error',
+      header: m.track.colError,
       align: 'right',
       value: (r) => r.error,
       cell: (r) =>
-        r.error === null ? <span className="chip">Open</span> : <ErrorChip value={r.error} />,
+        r.error === null ? (
+          <span className="chip">{m.track.open}</span>
+        ) : (
+          <ErrorChip value={r.error} />
+        ),
     },
     {
       id: 'inRange',
-      header: 'In range',
+      header: m.track.colInRange,
       value: (r) => (r.inRange === null ? null : r.inRange ? 1 : 0),
       cell: (r) =>
         r.inRange === null ? (
           <span className="text-muted">–</span>
         ) : r.inRange ? (
-          <span className="inline-flex items-center gap-1 text-up">
+          <span className="inline-flex items-center gap-1 text-up-ink">
             <Icon name="check" size={14} />
-            Yes
+            {m.common.yes}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-warn">
+          <span className="inline-flex items-center gap-1 text-warn-ink">
             <Icon name="close" size={14} />
-            No
+            {m.common.no}
           </span>
         ),
     },
     {
       id: 'proof',
-      header: 'Proof',
+      header: m.track.colProof,
       sortable: false,
       value: (r) => r.p.hash,
       cell: (r) => {
         const href = safeExternalUrl(r.p.commitUrl);
         const short = r.p.hash.slice(0, 7);
-        if (open(r)) return <span className="num lbl">pending</span>;
+        if (open(r)) return <span className="num lbl">{m.track.pending}</span>;
         return href ? (
           <a
             href={href}
@@ -154,12 +170,12 @@ function columns(units: Units): Column<Row>[] {
             className="num text-[12px] text-muted underline underline-offset-2 hover:text-ink"
           >
             {short}
-            <span className="sr-only"> (commit, opens in a new tab)</span>
+            <span className="sr-only">{m.track.commitSr}</span>
           </a>
         ) : (
-          <span className="num lbl" title="Sample row: no commit exists">
+          <span className="num lbl" title={m.track.sampleRow}>
             {short}
-            <span className="sr-only"> (sample, not committed)</span>
+            <span className="sr-only">{m.track.sampleRowSr}</span>
           </span>
         );
       },
@@ -203,6 +219,8 @@ export function PredictionLog({
   loading: boolean;
 }) {
   const units = useUnits();
+  const { m, t } = useI18n();
+  const name = useCompanyName();
   const rows = useMemo(
     () =>
       predictions
@@ -216,7 +234,7 @@ export function PredictionLog({
         ),
     [predictions],
   );
-  const cols = useMemo(() => columns(units), [units]);
+  const cols = useMemo(() => columns(units, m, name), [units, m, name]);
   const download = useCallback(
     () => downloadCsv('stakeflow-prediction-log-sample.csv', toCsv(rows)),
     [rows],
@@ -228,21 +246,21 @@ export function PredictionLog({
         id="log-h"
         title={
           <>
-            Prediction log
-            <SampleBadge detail="Sample predictions until the nowcast model is in the backend" />
+            {m.track.logTitle}
+            <SampleBadge detail={m.sample.log} />
           </>
         }
-        sub={`Open quarters first, then newest. Times in UTC · ${units.label}`}
+        sub={t(m.track.logSub, { unit: units.label })}
         actions={
           <button type="button" className="btn" onClick={download} disabled={rows.length === 0}>
             <Icon name="download" />
-            Download CSV
+            {m.common.downloadCsv}
           </button>
         }
       />
-      <div className="px-1.5 pb-1.5">
+      <div className="px-2 pb-2">
         <DataTable
-          caption="Prediction log: every quarterly nowcast with its score (sample data)"
+          caption={m.track.logCaption}
           columns={cols}
           rows={rows}
           rowKey={(r) => r.p.id}
@@ -251,11 +269,7 @@ export function PredictionLog({
           rowClassName={(r) => (r.error === null ? 'bg-surface2' : undefined)}
         />
       </div>
-      <p className="lbl m-0 border-t border-line px-[18px] pb-4 pt-3">
-        Error = (predicted − actual) ÷ actual: green under 2%, amber 2–4%, red above 4%. Lead =
-        report date − prediction time. An open quarter keeps updating until it freezes at quarter
-        end, and is scored when the company publishes its trading update.
-      </p>
+      <p className="lbl m-0 px-5 pb-5 pt-3">{m.track.logNote}</p>
     </section>
   );
 }

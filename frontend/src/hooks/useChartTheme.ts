@@ -22,6 +22,8 @@ export interface ChartTheme {
   /** Neutral ramp for fields in stacked company charts, light to dark (dark theme). */
   fields: string[];
   sans: string;
+  /** Display face for big chart numbers. */
+  display: string;
   mono: string;
 }
 
@@ -49,42 +51,42 @@ type TokenKey = keyof typeof TOKEN_NAMES;
 /** Same values as index.css; used only where computed styles are empty (tests, SSR). */
 const FALLBACK: Record<Theme, Record<TokenKey, string> & { fields: string[] }> = {
   dark: {
-    bg: '#0A0C0F',
-    surface: '#111419',
-    surface2: '#171B21',
-    surface3: '#1F242C',
-    line: '#232932',
-    lineStrong: '#2F3641',
-    ink: '#E7E9EC',
-    muted: '#9AA3B0',
-    faint: '#5F6875',
-    oil: '#E8A33D',
-    gas: '#4A95E6',
-    cond: '#B8A2F4',
-    up: '#5CBF93',
-    down: '#EE7B71',
-    warn: '#E5B54A',
-    forecast: '#D5DAE1',
-    fields: ['#E3E8EE', '#B9C3CF', '#93A0B0', '#707D8F', '#535E6E', '#3B4451'],
+    bg: '#000000',
+    surface: '#141416',
+    surface2: '#1C1C1F',
+    surface3: '#2A2A2E',
+    line: 'rgba(255, 255, 255, 0.1)',
+    lineStrong: 'rgba(255, 255, 255, 0.18)',
+    ink: '#F5F5F7',
+    muted: '#A1A1A6',
+    faint: '#6E6E73',
+    oil: '#FF9F0A',
+    gas: '#64D2FF',
+    cond: '#BF5AF2',
+    up: '#30D158',
+    down: '#FF453A',
+    warn: '#FFD60A',
+    forecast: '#E5E5EA',
+    fields: ['#E5E5EA', '#C7C7CC', '#A1A1A6', '#7C7C80', '#58585C', '#3A3A3C'],
   },
   light: {
-    bg: '#F5F6F8',
+    bg: '#F5F5F7',
     surface: '#FFFFFF',
-    surface2: '#F0F2F5',
-    surface3: '#E6E9EE',
-    line: '#E0E4EA',
-    lineStrong: '#CBD2DB',
-    ink: '#13161B',
-    muted: '#566070',
-    faint: '#A0A8B3',
-    oil: '#B4690C',
-    gas: '#1F6BC1',
-    cond: '#7255D2',
-    up: '#1B7E54',
-    down: '#C0443A',
-    warn: '#946500',
-    forecast: '#2E3540',
-    fields: ['#1F2630', '#3D4756', '#5D697A', '#7F8B9B', '#A3ADBA', '#C6CDD6'],
+    surface2: '#F2F2F5',
+    surface3: '#E8E8ED',
+    line: 'rgba(0, 0, 0, 0.08)',
+    lineStrong: 'rgba(0, 0, 0, 0.15)',
+    ink: '#1D1D1F',
+    muted: '#636366',
+    faint: '#AEAEB2',
+    oil: '#FF9500',
+    gas: '#007AFF',
+    cond: '#AF52DE',
+    up: '#248A3D',
+    down: '#D70015',
+    warn: '#B25000',
+    forecast: '#3A3A3C',
+    fields: ['#1D1D1F', '#48484A', '#6E6E73', '#8E8E93', '#B4B4B9', '#D1D1D6'],
   },
 };
 
@@ -114,6 +116,7 @@ function readTheme(theme: Theme): ChartTheme {
     forecast: pick('forecast'),
     fields: fallback.fields.map((fb, i) => read(`f${i + 1}`, fb)),
     sans: '"Inter Variable", Inter, system-ui, sans-serif',
+    display: '"Inter Tight", "Inter Variable", system-ui, sans-serif',
     mono: '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace',
   };
 }

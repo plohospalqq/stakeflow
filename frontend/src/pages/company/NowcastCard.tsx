@@ -8,7 +8,8 @@ import { buildNowcastOption, type NowcastPoint } from '@/components/charts/quart
 import { useChartTheme } from '@/hooks/useChartTheme';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useUnits } from '@/hooks/useUnits';
-import { formatQuarter } from '@/lib/format';
+import { useI18n } from '@/i18n/useI18n';
+import { formatQuarter, formatQuarterShort } from '@/lib/format';
 import { errorPct } from '@/lib/trackRecord';
 
 const SHOWN = 8;
@@ -26,6 +27,7 @@ export function NowcastCard({
   onRetry: () => void;
 }) {
   const units = useUnits();
+  const { m, t: tr } = useI18n();
   const t = useChartTheme();
   const isDesktop = useIsDesktop();
   const digits = units.unit === 'boe' ? 1 : 3;
@@ -42,7 +44,7 @@ export function NowcastCard({
       .map((p) => {
         const conv = (v: number) => units.fromQuarterRate(v, p.quarterStart);
         return {
-          label: formatQuarter(p.quarterStart).replace(/ 20(\d\d)$/, ' $1'),
+          label: formatQuarterShort(p.quarterStart),
           quarterName: formatQuarter(p.quarterStart),
           predicted: conv(p.predicted),
           lo: conv(p.lo),
@@ -59,8 +61,9 @@ export function NowcastCard({
         compact: !isDesktop,
         format: (v) => units.format(v, digits),
         unitLabel: units.label,
+        m,
       }),
-    [t, points, isDesktop, units, digits],
+    [t, points, isDesktop, units, digits, m],
   );
   const height = isDesktop ? 250 : 210;
   const open = points.find((p) => p.actual === null);
@@ -68,52 +71,53 @@ export function NowcastCard({
   return (
     <ChartCard
       className="min-w-0 flex-[3_1_560px]"
-      title="Nowcast vs reported, by quarter"
-      subtitle={`Average daily production · ${units.label}`}
-      info="Each quarter the model forecasts the company's production. The forecast is frozen at quarter end and scored when the company publishes its trading update. Bars are the reported figure, the bright tick is the frozen forecast, and the number above each bar is the error. The dashed bar is the quarter still open, with its 80% range."
-      sample="The nowcast model is not in the backend yet; every number in this chart is sample data"
+      title={m.nowcastCard.title}
+      subtitle={tr(m.nowcastCard.sub, { unit: units.label })}
+      info={m.nowcastCard.info}
+      sample={m.sample.nowcastAll}
       legend={[
-        { label: 'Reported (sample)', color: 'var(--f4)' },
-        { label: 'Nowcast, frozen at quarter end', color: 'var(--fc)', kind: 'line' },
-        { label: 'Open quarter with 80% range', color: 'var(--fc)', kind: 'dashed' },
+        { label: m.nowcastCard.legendReported, color: 'var(--f4)' },
+        { label: m.nowcastCard.legendNowcast, color: 'var(--fc)', kind: 'line' },
+        { label: m.nowcastCard.legendOpen, color: 'var(--fc)', kind: 'dashed' },
       ]}
-      source={{ label: 'Sample data' }}
+      source={{ label: m.common.sampleSource }}
       state={state === 'ready' && points.length === 0 ? 'empty' : state}
-      message={`${companyName} is not nowcast. Only Aker BP, Vår Energi and Equinor (NCS only) are modelled.`}
+      message={tr(m.nowcastCard.notNowcast, { company: companyName })}
       onRetry={onRetry}
       height={height}
       table={
         <DataTable
-          caption={`${companyName}: sample nowcasts and reported production by quarter`}
+          caption={tr(m.nowcastCard.tableCaption, { company: companyName })}
           dense
           rows={[...points].reverse()}
           rowKey={(p) => p.quarterName}
           columns={[
-            { id: 'q', header: 'Quarter', value: (p) => p.quarterName },
+            { id: 'q', header: m.common.quarter, value: (p) => p.quarterName },
             {
               id: 'pred',
-              header: 'Nowcast',
+              header: m.nowcastCard.colNowcast,
               align: 'right',
               value: (p) => p.predicted,
               cell: (p) => units.format(p.predicted, digits),
             },
             {
               id: 'range',
-              header: '80% range',
+              header: m.nowcastCard.colRange,
               align: 'right',
               value: (p) => p.lo,
               cell: (p) => `${units.format(p.lo, digits)}–${units.format(p.hi, digits)}`,
             },
             {
               id: 'actual',
-              header: 'Reported',
+              header: m.nowcastCard.colReported,
               align: 'right',
               value: (p) => p.actual,
-              cell: (p) => (p.actual === null ? 'Open' : units.format(p.actual, digits)),
+              cell: (p) =>
+                p.actual === null ? m.nowcastCard.open : units.format(p.actual, digits),
             },
             {
               id: 'err',
-              header: 'Error',
+              header: m.nowcastCard.colError,
               align: 'right',
               value: (p) => p.errorPct,
               cell: (p) => (p.errorPct === null ? '–' : <ErrorChip value={p.errorPct} />),
@@ -126,9 +130,13 @@ export function NowcastCard({
         <EChart
           option={option}
           height={height}
-          ariaLabel={`Sample nowcasts for ${companyName} against reported production over ${points.length} quarters${
+          ariaLabel={`${tr(m.nowcastCard.aria, { company: companyName, n: points.length })}${
             open
-              ? `; open quarter ${open.quarterName} at ${units.format(open.predicted)} ${units.label}`
+              ? tr(m.nowcastCard.ariaOpen, {
+                  quarter: open.quarterName,
+                  value: units.format(open.predicted),
+                  unit: units.label,
+                })
               : ''
           }`}
         />

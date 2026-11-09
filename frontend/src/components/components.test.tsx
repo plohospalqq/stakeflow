@@ -41,7 +41,8 @@ describe('KpiCard', () => {
     renderWithProviders(
       <KpiCard label="Nowcast" value={381} unit="kboe/d" format={String} sample />,
     );
-    expect(screen.getByText('381')).toBeInTheDocument();
+    // Visible (animated) copy plus a screen-reader copy of the final value.
+    expect(screen.getAllByText('381')).toHaveLength(2);
     expect(screen.getByText('kboe/d')).toBeInTheDocument();
     expect(screen.getByText('Sample data')).toBeInTheDocument();
   });
@@ -162,6 +163,7 @@ describe('MapSidePanel', () => {
           mainArea: 'North sea',
           operatorName: 'Equinor (NCS only)',
           productKind: 'Mainly gas',
+          productColor: 'var(--gas)',
           latest: null,
           history: [],
           owners: [{ groupId: 'equinor', name: 'Equinor (NCS only)', sharePct: 30.58 }],

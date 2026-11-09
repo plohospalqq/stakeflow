@@ -12,6 +12,7 @@ import type { AskAnswer } from '@/api/types';
 import { Icon } from '@/components/Icon';
 import { Page } from '@/components/layout/Page';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useI18n } from '@/i18n/useI18n';
 import { AnswerCard } from './ask/AnswerCard';
 
 interface Turn {
@@ -21,6 +22,7 @@ interface Turn {
 
 /** Ask (preview, behind VITE_FEATURE_ASK): a chat over the marts with canned answers for now. */
 export default function Ask() {
+  const { m } = useI18n();
   const [turns, setTurns] = useState<Turn[]>(() => [
     { id: 0, question: GOOD_FIRST_QUESTIONS[0] ?? 'Top 10 gas fields in 2025' },
   ]);
@@ -65,18 +67,22 @@ export default function Ask() {
 
   return (
     <Page
+      hideFreshness
       label={
         <span className="flex items-center gap-2">
-          Ask the data <span className="chip px-1.5 text-[11px]">Beta</span>
+          {m.nav.ask}{' '}
+          <span className="rounded-full bg-surface3 px-2 text-[11px] font-semibold uppercase tracking-[0.04em]">
+            {m.nav.beta}
+          </span>
         </span>
       }
-      title="Ask the data"
+      title={m.ask.title}
     >
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 max-w-[900px] flex-[3_1_600px] flex-col gap-[18px]">
           <section aria-labelledby="conv-h" className="flex flex-col gap-[18px]">
             <h2 id="conv-h" className="sr-only">
-              Conversation
+              {m.ask.conversation}
             </h2>
             {turns.map((t, i) => (
               <div
@@ -84,8 +90,8 @@ export default function Ask() {
                 ref={i === turns.length - 1 ? lastTurn : undefined}
                 className="flex scroll-mt-4 flex-col gap-3"
               >
-                <p className="m-0 max-w-[80%] self-end rounded-[14px_14px_4px_14px] bg-surface3 px-4 py-3 text-[14px]">
-                  <span className="sr-only">You asked: </span>
+                <p className="m-0 max-w-[80%] self-end rounded-[22px_22px_6px_22px] bg-ink px-4 py-3 text-[15px] text-bg">
+                  <span className="sr-only">{m.ask.youAsked}</span>
                   {t.question}
                 </p>
                 <AnswerCard question={t.question} onAsk={ask} onReady={onReady} />
@@ -98,10 +104,10 @@ export default function Ask() {
 
           <form
             onSubmit={submit}
-            className="flex items-end gap-2.5 rounded-[14px] border border-line-strong bg-surface py-2.5 pl-4 pr-2.5"
+            className="glass flex items-end gap-2.5 rounded-[26px] py-2.5 pl-5 pr-2.5 shadow-none"
           >
             <label htmlFor={inputId} className="sr-only">
-              Your question
+              {m.ask.question}
             </label>
             <textarea
               id={inputId}
@@ -109,50 +115,50 @@ export default function Ask() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="Ask about fields, companies, owners or forecasts…"
+              placeholder={m.ask.placeholder}
               className="min-w-0 flex-1 resize-none border-0 bg-transparent py-1.5 text-[14px] text-ink outline-none placeholder:text-muted"
             />
             <button
               type="submit"
-              aria-label="Send question"
+              aria-label={m.ask.send}
               disabled={!draft.trim()}
-              className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-control bg-ink text-bg disabled:opacity-40"
+              className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-full bg-ink text-bg disabled:opacity-40"
             >
               <Icon name="send" />
             </button>
           </form>
-          <p className="lbl m-0">
-            A preview: a few example questions have hand-written answers with sample numbers.
-            Answers will come from the same public data as the rest of the site; always check the
-            SQL before relying on one.
-          </p>
+          <p className="lbl m-0">{m.ask.foot}</p>
+          <p className="lbl m-0">{m.ask.examplesNote}</p>
         </div>
 
-        <aside className="flex min-w-0 flex-[1_1_280px] flex-col gap-3.5" aria-label="Help">
-          <section className="card flex flex-col gap-2.5 p-4" aria-labelledby="try-h">
-            <h2 id="try-h" className="m-0 text-[14px] font-semibold">
-              Good first questions
+        <aside className="flex min-w-0 flex-[1_1_280px] flex-col gap-4" aria-label={m.ask.help}>
+          <section className="card flex flex-col gap-2.5 p-5" aria-labelledby="try-h">
+            <h2 id="try-h" className="display m-0 text-h2 font-semibold">
+              {m.ask.goodFirst}
             </h2>
             {GOOD_FIRST_QUESTIONS.map((q) => (
               <button
                 key={q}
                 type="button"
                 onClick={() => ask(q)}
-                className="min-h-[40px] rounded-control border border-line-strong px-3 py-2 text-left text-[13px] hover:bg-surface2"
+                lang="en"
+                className="min-h-[44px] rounded-2xl bg-surface2 px-3.5 py-2.5 text-left text-[14px] hover:bg-surface3"
               >
                 {q}
               </button>
             ))}
           </section>
-          <section className="card flex flex-col gap-2.5 p-4" aria-labelledby="tb-h">
-            <h2 id="tb-h" className="m-0 text-[14px] font-semibold">
-              Data you can ask about
+          <section className="card flex flex-col gap-2.5 p-5" aria-labelledby="tb-h">
+            <h2 id="tb-h" className="display m-0 text-h2 font-semibold">
+              {m.ask.tables}
             </h2>
             <dl className="m-0 flex flex-col">
               {ASK_TABLES.map((t) => (
                 <div key={t.name} className="flex flex-col gap-0.5 border-t border-line py-2">
-                  <dt className="num break-all text-[12px]">{t.name}</dt>
-                  <dd className="lbl m-0">{t.description}</dd>
+                  <dt className="mono break-all text-[12px]">{t.name}</dt>
+                  <dd lang="en" className="lbl m-0">
+                    {t.description}
+                  </dd>
                 </div>
               ))}
             </dl>

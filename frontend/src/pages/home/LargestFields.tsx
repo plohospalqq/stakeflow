@@ -8,6 +8,8 @@ import { ErrorState } from '@/components/ErrorState';
 import { OilShareBar } from '@/components/MixBar';
 import { SectionHeading } from '@/components/SectionHeading';
 import { useUnits, type Units } from '@/hooks/useUnits';
+import type { Dict } from '@/i18n/types';
+import { useI18n } from '@/i18n/useI18n';
 import { addMonths } from '@/lib/dates';
 import { formatMonth, formatMonthName } from '@/lib/format';
 import { latestView } from '@/lib/latest';
@@ -18,42 +20,41 @@ interface Row {
   momPct: number | null;
 }
 
-function columns(units: Units, prevMonthName: string): Column<Row>[] {
+function columns(units: Units, m: Dict, vsLabel: string): Column<Row>[] {
   return [
     {
       id: 'name',
-      header: 'Field',
+      header: m.common.field,
       value: (r) => r.field.name,
       cell: (r) => (
-        <Link to={`/fields/${r.field.id}`} className="link font-medium">
+        <Link to={`/fields/${r.field.id}`} className="link font-semibold">
           {r.field.name}
         </Link>
       ),
     },
     {
       id: 'operator',
-      header: 'Operator',
+      header: m.common.operator,
       value: (r) => r.field.operator?.name ?? '',
       cell: (r) => <span className="text-muted">{r.field.operator?.name ?? '–'}</span>,
     },
     {
       id: 'value',
-      header: `Production, ${units.label}`,
-      headerText: `Production (${units.label})`,
+      header: units.label,
       align: 'right',
       value: (r) => r.value,
       cell: (r) => units.format(r.value),
     },
     {
       id: 'mom',
-      header: `vs ${prevMonthName}`,
+      header: vsLabel,
       align: 'right',
       value: (r) => r.momPct,
       cell: (r) => (r.momPct === null ? '–' : <DeltaBadge value={r.momPct} />),
     },
     {
       id: 'mix',
-      header: 'Oil share',
+      header: m.fields.colOil,
       sortable: false,
       width: 180,
       value: (r) => r.field.latest?.mix.oil ?? null,
@@ -63,6 +64,7 @@ function columns(units: Units, prevMonthName: string): Column<Row>[] {
 }
 
 export function LargestFields({ limit = 8 }: { limit?: number }) {
+  const { m, t } = useI18n();
   const units = useUnits();
   const fields = useFields('Producing');
   const latestMonth = fields.data?.find((f) => f.latest)?.latest?.month;
@@ -80,40 +82,46 @@ export function LargestFields({ limit = 8 }: { limit?: number }) {
     [fields.data, units.unit, limit],
   );
   const cols = useMemo(
-    () => columns(units, latestMonth ? formatMonthName(addMonths(latestMonth, -1)) : 'last month'),
-    [units, latestMonth],
+    () =>
+      columns(
+        units,
+        m,
+        latestMonth
+          ? t(m.common.vsMonth, { month: formatMonthName(addMonths(latestMonth, -1)) })
+          : m.common.vsPrevious,
+      ),
+    [units, m, t, latestMonth],
   );
 
   if (fields.isError) {
-    return (
-      <ErrorState message="Fields could not be loaded." onRetry={() => void fields.refetch()} />
-    );
+    return <ErrorState message={m.fields.loadFailed} onRetry={() => void fields.refetch()} />;
   }
 
   return (
     <section className="card flex min-w-0 flex-col" aria-labelledby="fl-h">
       <SectionHeading
         id="fl-h"
-        title="Largest fields this month"
-        sub={`Gross field production${latestMonth ? `, ${formatMonth(latestMonth)}` : ''} · ${units.label}`}
+        title={m.fields.largestTitle}
+        sub={t(m.fields.largestSub, {
+          month: latestMonth ? formatMonth(latestMonth) : '…',
+          unit: units.label,
+        })}
         actions={
-          <Link to="/map" className="btn">
-            Open map
+          <Link to="/fields" className="btn">
+            {m.nav.fields}
           </Link>
         }
       />
-      <div className="px-1.5 pb-1.5">
+      <div className="px-2 pb-2">
         <DataTable
-          caption="Largest producing fields in the latest month"
+          caption={m.fields.largestTitle}
           columns={cols}
           rows={rows}
           rowKey={(r) => String(r.field.id)}
           loading={fields.isPending}
         />
       </div>
-      <div className="lbl border-t border-line px-[18px] pb-3.5 pt-2.5">
-        Oil share of the field&apos;s oil equivalent; the rest is gas and NGL/condensate.
-      </div>
+      <p className="lbl m-0 px-5 pb-4">{m.fields.oilShareNote}</p>
     </section>
   );
 }

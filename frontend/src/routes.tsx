@@ -4,7 +4,7 @@ import { FEATURE_ASK } from '@/api/mode';
 import { AppShell } from '@/components/layout/AppShell';
 
 const NotFound = lazy(() => import('@/pages/NotFound'));
-const Overview = lazy(() => import('@/pages/Overview'));
+const Home = lazy(() => import('@/pages/Home'));
 const FieldsIndex = lazy(() => import('@/pages/FieldsIndex'));
 const FieldDetail = lazy(() => import('@/pages/FieldDetail'));
 const FieldMap = lazy(() => import('@/pages/FieldMap'));
@@ -18,7 +18,7 @@ export const routes: RouteObject[] = [
   {
     element: <AppShell />,
     children: [
-      { index: true, element: <Overview /> },
+      { index: true, element: <Home /> },
       { path: 'map', element: <FieldMap /> },
       { path: 'fields', element: <FieldsIndex /> },
       { path: 'fields/:id', element: <FieldDetail /> },

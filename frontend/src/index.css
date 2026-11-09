@@ -1,70 +1,107 @@
 @import '@fontsource-variable/inter';
+@import '@fontsource/inter-tight/600.css';
+@import '@fontsource/inter-tight/700.css';
+@import '@fontsource/inter-tight/800.css';
 @import '@fontsource-variable/jetbrains-mono';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Design tokens. The theme is a class on <html>, set before first paint in index.html. */
+/*
+ * Design tokens. One design language, two themes: dark is the stage (landing, map), light is
+ * the bento look. Product colours are the same hues in both; text uses the "-ink" variants,
+ * which are darker in light mode so they stay above 4.5:1 on white and on their own tint.
+ * The theme is a class on <html>, set before first paint in index.html.
+ */
 @layer base {
   .t-dark {
-    --bg: #0a0c0f;
-    --sf: #111419;
-    --sf2: #171b21;
-    --sf3: #1f242c;
-    --bd: #232932;
-    --bd2: #2f3641;
-    --tx: #e7e9ec;
-    --mu: #9aa3b0;
-    --fa: #5f6875;
-    --oil: #e8a33d;
-    --gas: #4a95e6;
-    --cnd: #b8a2f4;
-    --up: #5cbf93;
-    --dn: #ee7b71;
-    --warn: #e5b54a;
-    --fc: #d5dae1;
-    --f1: #e3e8ee;
-    --f2: #b9c3cf;
-    --f3: #93a0b0;
-    --f4: #707d8f;
-    --f5: #535e6e;
-    --f6: #3b4451;
-    /* Text on a tinted pill (deltas, errors, severity). Same as the base in dark mode. */
-    --up-ink: #5cbf93;
-    --dn-ink: #ee7b71;
-    --warn-ink: #e5b54a;
+    --bg: #000000;
+    --sf: #141416;
+    --sf2: #1c1c1f;
+    --sf3: #2a2a2e;
+    --bd: rgba(255, 255, 255, 0.1);
+    --bd2: rgba(255, 255, 255, 0.18);
+    --tx: #f5f5f7;
+    --mu: #a1a1a6;
+    --fa: #6e6e73;
+    --oil: #ff9f0a;
+    --gas: #64d2ff;
+    --cnd: #bf5af2;
+    --oil-ink: #ff9f0a;
+    --gas-ink: #64d2ff;
+    --cnd-ink: #da8fff;
+    --up: #30d158;
+    --dn: #ff453a;
+    --warn: #ffd60a;
+    --up-ink: #30d158;
+    --dn-ink: #ff6961;
+    --warn-ink: #ffd60a;
+    --fc: #e5e5ea;
+    --focus: #0a84ff;
+    --f1: #e5e5ea;
+    --f2: #c7c7cc;
+    --f3: #a1a1a6;
+    --f4: #7c7c80;
+    --f5: #58585c;
+    --f6: #3a3a3c;
+    --glass: rgba(28, 28, 32, 0.62);
+    --glass-strong: rgba(28, 28, 32, 0.82);
+    --shadow-tile: none;
+    --shadow-lift: 0 18px 40px rgba(0, 0, 0, 0.45);
+    --shadow-float: 0 20px 60px rgba(0, 0, 0, 0.5);
+    --hero-grad: linear-gradient(180deg, #ffffff 30%, #8e8e93 115%);
+    --state-tile: linear-gradient(160deg, #2c2c2e, #1c1c1e);
     color-scheme: dark;
   }
 
   .t-light {
-    --bg: #f5f6f8;
+    --bg: #f5f5f7;
     --sf: #ffffff;
-    --sf2: #f0f2f5;
-    --sf3: #e6e9ee;
-    --bd: #e0e4ea;
-    --bd2: #cbd2db;
-    --tx: #13161b;
-    --mu: #566070;
-    --fa: #a0a8b3;
-    --oil: #b4690c;
-    --gas: #1f6bc1;
-    --cnd: #7255d2;
-    --up: #1b7e54;
-    --dn: #c0443a;
-    --warn: #946500;
-    --fc: #2e3540;
-    --f1: #1f2630;
-    --f2: #3d4756;
-    --f3: #5d697a;
-    --f4: #7f8b9b;
-    --f5: #a3adba;
-    --f6: #c6cdd6;
-    /* Darker in light mode: the base colours drop below 4.5:1 on their own 8-14% tint. */
-    --up-ink: #14623f;
-    --dn-ink: #9e3128;
-    --warn-ink: #704c00;
+    --sf2: #f2f2f5;
+    --sf3: #e8e8ed;
+    --bd: rgba(0, 0, 0, 0.08);
+    --bd2: rgba(0, 0, 0, 0.15);
+    --tx: #1d1d1f;
+    --mu: #636366;
+    --fa: #aeaeb2;
+    --oil: #ff9500;
+    --gas: #007aff;
+    --cnd: #af52de;
+    /* The bright light-mode hues fall below 4.5:1 as text; these do not. */
+    --oil-ink: #b25000;
+    --gas-ink: #0062cc;
+    --cnd-ink: #8e3fb8;
+    --up: #248a3d;
+    --dn: #d70015;
+    --warn: #b25000;
+    --up-ink: #17692c;
+    --dn-ink: #b8000f;
+    --warn-ink: #8f4200;
+    --fc: #3a3a3c;
+    --focus: #0071e3;
+    --f1: #1d1d1f;
+    --f2: #48484a;
+    --f3: #6e6e73;
+    --f4: #8e8e93;
+    --f5: #b4b4b9;
+    --f6: #d1d1d6;
+    --glass: rgba(255, 255, 255, 0.68);
+    --glass-strong: rgba(255, 255, 255, 0.86);
+    --shadow-tile: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 30px rgba(0, 0, 0, 0.05);
+    --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.05), 0 18px 40px rgba(0, 0, 0, 0.1);
+    --shadow-float: 0 20px 60px rgba(0, 0, 0, 0.14);
+    --hero-grad: linear-gradient(180deg, #1d1d1f 35%, #6e6e73 120%);
+    --state-tile: linear-gradient(160deg, #1d1d1f, #3a3a3c);
     color-scheme: light;
+  }
+
+  /* Spring curves: a gentle overshoot reads as physical without wobbling. */
+  :root {
+    --spring: cubic-bezier(0.2, 0.9, 0.25, 1.15);
+    --spring-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --font-display: 'Inter Tight', 'SF Pro Display', 'Inter Variable', system-ui, sans-serif;
+    --font-text: 'Inter Variable', 'SF Pro Text', Inter, system-ui, sans-serif;
   }
 
   html {
@@ -79,9 +116,10 @@
     margin: 0;
     background: var(--bg);
     color: var(--tx);
-    font-family: theme('fontFamily.sans');
-    font-size: 14px;
-    line-height: 1.45;
+    font-family: var(--font-text);
+    font-size: 15px;
+    line-height: 1.47;
+    font-feature-settings: 'cv11', 'ss01';
   }
 
   a {
@@ -90,9 +128,9 @@
 
   /* One focus style for everything: visible on both themes, never removed. */
   :focus-visible {
-    outline: 2px solid var(--gas);
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -100,35 +138,74 @@
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
   }
 }
 
 @layer components {
+  /* Bento tile: big radius, soft shadow in light, hairline in dark. */
   .card {
     background: var(--sf);
     border: 1px solid var(--bd);
-    border-radius: 12px;
+    border-radius: 24px;
+    box-shadow: var(--shadow-tile);
+  }
+  .t-light .card {
+    border-color: transparent;
   }
 
-  /* Every number: mono with tabular figures so columns line up and values never jump. */
+  /* Frosted glass for floating chrome (nav, map panels, popovers). */
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: saturate(180%) blur(22px);
+    backdrop-filter: saturate(180%) blur(22px);
+    border: 1px solid var(--bd);
+    box-shadow: var(--shadow-float);
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass {
+      background: var(--glass-strong);
+    }
+  }
+
+  /* Display type: Inter Tight, tight tracking, for headings and big numbers. */
+  .display {
+    font-family: var(--font-display);
+    letter-spacing: -0.035em;
+    font-weight: 700;
+  }
+
+  /* Every number: tabular figures so columns line up and counting digits never jump. */
   .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mono {
     font-family: theme('fontFamily.mono');
     font-variant-numeric: tabular-nums;
   }
 
   .lbl {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--mu);
   }
 
   .cap {
-    font-size: 11px;
-    letter-spacing: 0.07em;
+    font-size: 12px;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--mu);
     font-weight: 600;
+  }
+
+  .eyebrow {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--oil-ink);
   }
 
   .btn {
@@ -136,33 +213,39 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 36px;
-    padding: 0 12px;
-    border-radius: 9px;
-    border: 1px solid var(--bd2);
-    background: var(--sf);
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 0;
+    background: var(--sf2);
     color: var(--tx);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     text-decoration: none;
     cursor: pointer;
     white-space: nowrap;
+    transition:
+      transform 0.35s var(--spring),
+      background 0.2s;
   }
   .btn:hover {
-    background: var(--sf2);
+    background: var(--sf3);
+  }
+  .btn:active {
+    transform: scale(0.97);
   }
   .btn-primary {
     background: var(--tx);
     color: var(--bg);
-    border-color: var(--tx);
   }
   .btn-primary:hover {
     background: var(--tx);
-    opacity: 0.9;
+    opacity: 0.88;
   }
   .btn:disabled {
     cursor: not-allowed;
-    opacity: 0.6;
+    opacity: 0.5;
+    transform: none;
   }
 
   .ibtn {
@@ -171,34 +254,39 @@
     justify-content: center;
     width: 40px;
     height: 40px;
-    border-radius: 10px;
-    border: 1px solid var(--bd);
-    background: var(--sf);
+    border-radius: 999px;
+    border: 0;
+    background: var(--sf2);
     color: var(--tx);
     cursor: pointer;
     flex: none;
+    transition: transform 0.35s var(--spring);
   }
   .ibtn:hover {
-    background: var(--sf2);
+    background: var(--sf3);
+  }
+  .ibtn:active {
+    transform: scale(0.94);
   }
 
+  /* Pill chip: status, operator, product kind. */
   .chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
     font-weight: 500;
-    border: 1px solid var(--bd);
+    background: var(--sf2);
     color: var(--mu);
     white-space: nowrap;
   }
 
   .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
     display: inline-block;
     flex: none;
   }
@@ -208,7 +296,6 @@
     text-decoration: none;
   }
   .link:hover {
-    color: var(--mu);
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -216,24 +303,24 @@
   .skeleton {
     background: linear-gradient(90deg, var(--sf2), var(--sf3), var(--sf2));
     background-size: 200% 100%;
-    border-radius: 6px;
+    border-radius: 8px;
     animation: skeleton-pulse 1.6s ease-in-out infinite;
   }
 
   .input {
     min-height: 40px;
-    padding: 0 12px;
-    border-radius: 10px;
-    border: 1px solid var(--bd2);
-    background: var(--sf);
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--bd);
+    background: var(--sf2);
     color: var(--tx);
-    font-size: 14px;
+    font-size: 15px;
   }
   .input::placeholder {
     color: var(--mu);
   }
 
-  /* Below the sidebar breakpoint the app is used by touch: 44px targets (spec). */
+  /* Below the desktop navigation the app is used by touch: 44px targets. */
   @media (max-width: 1023.98px) {
     .btn {
       min-height: 44px;
@@ -252,6 +339,50 @@
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
+
+  /* --- motion primitives ------------------------------------------------------------ */
+
+  /*
+   * Staggered spring entrance. Starts from a visible state (half opacity, small offset)
+   * so nothing is ever hidden while waiting; set --i on each child for the stagger.
+   */
+  .enter {
+    animation: enter 0.75s var(--spring) both;
+    animation-delay: calc(var(--i, 0) * 55ms);
+  }
+
+  /* Hover lift for tiles that are links. */
+  .lift {
+    transition:
+      transform 0.45s var(--spring),
+      box-shadow 0.45s;
+  }
+  .lift:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: var(--shadow-lift);
+  }
+
+  /*
+   * Draw-on-view: lines and rings are fully drawn at rest; data-reveal="on" (set when the
+   * element is in view) replays the stroke from empty. pathLength="1" on the path.
+   */
+  /* backwards, not both: the dash pattern exists only while drawing, so a finished line
+     is a plain solid stroke whatever the browser does with pathLength. */
+  [data-reveal='on'] .draw {
+    animation: draw-line 1.5s var(--spring-soft) backwards;
+  }
+  [data-reveal='on'] .draw-ring {
+    animation: draw-ring 1.6s var(--spring-soft) both;
+    animation-delay: calc(var(--i, 0) * 120ms);
+  }
+  [data-reveal='on'] .grow-x {
+    animation: grow-x 1.4s var(--spring-soft) both;
+    animation-delay: calc(var(--i, 0) * 120ms);
+  }
+  [data-reveal='on'] .grow-y {
+    animation: grow-y 0.8s var(--spring-soft) both;
+    animation-delay: calc(var(--i, 0) * 25ms);
+  }
 }
 
 @keyframes skeleton-pulse {
@@ -263,10 +394,51 @@
   }
 }
 
+@keyframes enter {
+  from {
+    opacity: 0.5;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+@keyframes draw-line {
+  from {
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Rings carry --len (circumference) and --off (gap at rest) as custom properties. */
+@keyframes draw-ring {
+  from {
+    stroke-dashoffset: var(--len);
+  }
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0.02);
+  }
+}
+
+@keyframes grow-y {
+  from {
+    transform: scaleY(0.05);
+  }
+}
+
 /* MapLibre controls follow the theme instead of their white default. */
 .maplibregl-ctrl-group {
-  background: var(--sf) !important;
+  background: var(--glass) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
   border: 1px solid var(--bd);
+  border-radius: 14px !important;
+  overflow: hidden;
 }
 .maplibregl-ctrl-group button + button {
   border-top-color: var(--bd) !important;
@@ -275,16 +447,89 @@
   filter: invert(1);
 }
 .maplibregl-ctrl-attrib {
-  background: color-mix(in srgb, var(--sf) 85%, transparent) !important;
+  background: color-mix(in srgb, var(--sf) 70%, transparent) !important;
   color: var(--mu);
   font-size: 11px;
+  border-radius: 10px 0 0 0;
 }
 .maplibregl-ctrl-attrib a {
   color: var(--mu) !important;
+}
+.maplibregl-ctrl-attrib-button {
+  filter: var(--attrib-filter, none);
+}
+.t-dark .maplibregl-ctrl-attrib-button {
+  --attrib-filter: invert(1);
+}
+
+/* Map zoom buttons are touch targets on phones. */
+@media (max-width: 1023.98px) {
+  .maplibregl-ctrl-group button {
+    width: 44px !important;
+    height: 44px !important;
+  }
 }
 
 /* Map legend ramp: same Lab interpolation as the circle colours where supported. */
 .oil-gas-ramp {
   background: linear-gradient(90deg, var(--oil), var(--gas));
   background: linear-gradient(in lab 90deg, var(--oil), var(--gas));
+}
+
+/* Range inputs in the app's style: a thin track, a white knob with a soft shadow. */
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 32px;
+  background: transparent;
+  cursor: pointer;
+}
+.range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--tx) 0 var(--fill, 50%),
+    var(--sf3) var(--fill, 50%) 100%
+  );
+}
+.range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--sf3);
+}
+.range::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--tx);
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -9px;
+  border-radius: 999px;
+  background: #fff;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.18),
+    0 1px 1px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s var(--spring);
+}
+.range:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+.range::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #fff;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+@media (max-width: 1023.98px) {
+  .range {
+    height: 44px;
+  }
 }

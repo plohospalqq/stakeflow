@@ -4,8 +4,11 @@ import type { ReportedQuarter } from '@/api/types';
 import { ErrorChip } from '@/components/Chips';
 import { DataTable, type Column } from '@/components/DataTable';
 import { Icon } from '@/components/Icon';
+import { useCompanyName } from '@/hooks/useCompanyName';
 import { useUnits, type Units } from '@/hooks/useUnits';
-import { COMPANY_META } from '@/lib/companies';
+import type { Dict } from '@/i18n/types';
+import { fill } from '@/i18n/text';
+import { useI18n } from '@/i18n/useI18n';
 import { formatDate, formatQuarter } from '@/lib/format';
 
 export interface ReconRow {
@@ -13,14 +16,19 @@ export interface ReconRow {
   quarter: ReportedQuarter;
 }
 
-function columns(units: Units, showCompany: boolean): Column<ReconRow>[] {
+function columns(
+  units: Units,
+  showCompany: boolean,
+  m: Dict,
+  name: (id: string) => string,
+): Column<ReconRow>[] {
   const digits = units.unit === 'boe' ? 1 : 3;
   const value = (r: ReconRow, kboed: number | null) =>
     kboed === null ? null : units.fromQuarterRate(kboed, r.quarter.quarterStart);
   return [
     {
       id: 'quarter',
-      header: 'Quarter',
+      header: m.recon.colQuarter,
       value: (r) => r.quarter.quarterStart,
       cell: (r) => <span className="num">{formatQuarter(r.quarter.quarterStart)}</span>,
     },
@@ -28,11 +36,11 @@ function columns(units: Units, showCompany: boolean): Column<ReconRow>[] {
       ? [
           {
             id: 'company',
-            header: 'Company',
-            value: (r: ReconRow) => COMPANY_META[r.companyId]?.name ?? r.companyId,
+            header: m.recon.colCompany,
+            value: (r: ReconRow) => name(r.companyId),
             cell: (r: ReconRow) => (
               <Link to={`/companies/${r.companyId}`} className="link">
-                {COMPANY_META[r.companyId]?.name ?? r.companyId}
+                {name(r.companyId)}
               </Link>
             ),
           },
@@ -40,25 +48,25 @@ function columns(units: Units, showCompany: boolean): Column<ReconRow>[] {
       : []),
     {
       id: 'months',
-      header: 'Sodir data',
+      header: m.recon.colMonths,
       value: (r) => r.quarter.monthsInData,
       cell: (r) =>
         r.quarter.isComplete ? (
-          <span className="text-muted">3 of 3 months</span>
+          <span className="text-muted">{m.recon.complete}</span>
         ) : (
-          <span className="chip">{r.quarter.monthsInData} of 3 months · provisional</span>
+          <span className="chip">{fill(m.recon.provisional, { n: r.quarter.monthsInData })}</span>
         ),
     },
     {
       id: 'attributed',
-      header: 'Sodir-attributed',
+      header: m.recon.colAttributed,
       align: 'right',
       value: (r) => value(r, r.quarter.attributedKboed),
       cell: (r) => units.format(value(r, r.quarter.attributedKboed) ?? 0, digits),
     },
     {
       id: 'reported',
-      header: 'Reported',
+      header: m.recon.colReported,
       align: 'right',
       value: (r) => value(r, r.quarter.reportedKboed),
       cell: (r) => {
@@ -68,7 +76,7 @@ function columns(units: Units, showCompany: boolean): Column<ReconRow>[] {
     },
     {
       id: 'gap',
-      header: 'Gap',
+      header: m.recon.colGap,
       align: 'right',
       value: (r) => r.quarter.errorPct,
       cell: (r) =>
@@ -76,7 +84,7 @@ function columns(units: Units, showCompany: boolean): Column<ReconRow>[] {
     },
     {
       id: 'reportedOn',
-      header: 'Published',
+      header: m.recon.colPublished,
       value: (r) => r.quarter.reportedOn,
       cell: (r) => (
         <span className="num text-muted">
@@ -86,7 +94,7 @@ function columns(units: Units, showCompany: boolean): Column<ReconRow>[] {
     },
     {
       id: 'source',
-      header: 'Source',
+      header: m.recon.colSource,
       sortable: false,
       value: (r) => r.quarter.sourceUrl,
       // sourceUrl went through safeExternalUrl in the API mapping: https and known hosts only.
@@ -96,11 +104,11 @@ function columns(units: Units, showCompany: boolean): Column<ReconRow>[] {
             href={r.quarter.sourceUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 text-muted underline underline-offset-2 hover:text-ink"
+            className="inline-flex min-h-[32px] items-center gap-1 text-muted underline underline-offset-2 hover:text-ink max-nav:min-h-[44px]"
           >
-            Trading update
+            {m.recon.report}
             <Icon name="external" size={12} />
-            <span className="sr-only">(opens in a new tab)</span>
+            <span className="sr-only">{m.common.opensNewTab}</span>
           </a>
         ) : (
           <span className="text-muted">–</span>
@@ -123,7 +131,9 @@ export function ReconciliationTable({
   empty?: string;
 }) {
   const units = useUnits();
-  const cols = useMemo(() => columns(units, showCompany), [units, showCompany]);
+  const { m } = useI18n();
+  const name = useCompanyName();
+  const cols = useMemo(() => columns(units, showCompany, m, name), [units, showCompany, m, name]);
   return (
     <DataTable
       caption={caption}

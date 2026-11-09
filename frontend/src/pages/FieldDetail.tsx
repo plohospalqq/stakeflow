@@ -9,81 +9,39 @@ import {
 } from '@/api/hooks';
 import { isNotFound } from '@/api/http';
 import { USE_MOCKS } from '@/api/mode';
-import type { FieldDetail as Field, FieldForecast, FieldMonthly } from '@/api/types';
+import type { FieldDetail as Field, FieldMonthly } from '@/api/types';
 import { ChartCard } from '@/components/ChartCard';
 import { FieldStatusChip } from '@/components/Chips';
 import { DataTable } from '@/components/DataTable';
 import { ErrorState } from '@/components/ErrorState';
+import { Icon } from '@/components/Icon';
 import { KpiCard } from '@/components/KpiCard';
 import { Page } from '@/components/layout/Page';
-import { SampleBadge } from '@/components/SampleBadge';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Skeleton } from '@/components/Skeleton';
+import { Term } from '@/components/Term';
 import { ProductionChart } from '@/components/charts/ProductionChart';
 import type {
   ForecastPoint,
   ProductFilter,
   ProductPoint,
 } from '@/components/charts/productionOption';
+import { useFieldStatusLabel } from '@/hooks/useFieldStatusLabel';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useUnits } from '@/hooks/useUnits';
-import { FOCUS_ORDER } from '@/lib/companies';
+import { useI18n } from '@/i18n/useI18n';
 import { downloadCsv, rowsToCsv } from '@/lib/csv';
 import { addMonths } from '@/lib/dates';
 import { plateau } from '@/lib/fieldStats';
-import {
-  formatDate,
-  formatMonth,
-  formatMonthName,
-  formatNumber,
-  formatShare,
-  formatUtc,
-} from '@/lib/format';
+import { formatDate, formatMonth, formatMonthName, formatNumber, formatShare } from '@/lib/format';
 import { latestView } from '@/lib/latest';
-import { productKind } from '@/lib/mix';
+import { productKind, productKindColor } from '@/lib/mix';
 import { sm3ToKboed } from '@/lib/units';
+import { FieldPlainWords, FocusShareCard, ForecastExplainer } from './field/FieldPanels';
 import { MonthlyTable } from './field/MonthlyTable';
 import { OwnershipTimeline } from './field/OwnershipTimeline';
 
-const PRODUCT_OPTIONS = [
-  { value: 'all', label: 'All' },
-  {
-    value: 'oil',
-    label: (
-      <>
-        <span className="dot bg-oil" aria-hidden="true" />
-        Oil
-      </>
-    ),
-  },
-  {
-    value: 'gas',
-    label: (
-      <>
-        <span className="dot bg-gas" aria-hidden="true" />
-        Gas
-      </>
-    ),
-  },
-  {
-    value: 'nglCond',
-    label: (
-      <>
-        <span className="dot bg-cond" aria-hidden="true" />
-        NGL + cond.
-      </>
-    ),
-  },
-] as const;
-
 const PRODUCT_KEYS = { oil: 'oilSm3', gas: 'gasOeSm3', nglCond: 'nglCondSm3' } as const;
-
-function productDot(kind: string): string | null {
-  if (kind === 'Mainly oil') return 'var(--oil)';
-  if (kind === 'Mainly gas') return 'var(--gas)';
-  if (kind === 'Gas and condensate') return 'var(--cnd)';
-  return null;
-}
 
 /** Share of a product in the last 12 months, used to split the total forecast. */
 function productShare(history: FieldMonthly[], product: ProductFilter): number {
@@ -113,129 +71,12 @@ function csvFor(field: Field, history: FieldMonthly[]): string {
   );
 }
 
-function ForecastExplainer({
-  forecast,
-  history,
-}: {
-  forecast: FieldForecast | undefined;
-  history: FieldMonthly[];
-}) {
-  const units = useUnits();
-  const model = forecast?.model;
-  const next12 = forecast?.points.slice(1, 13) ?? [];
-  const last12 = history.slice(-12);
-  const avg = (values: number[]) => values.reduce((s, v) => s + v, 0) / Math.max(1, values.length);
-  const nextAvg = avg(next12.map((p) => units.fromMonth(p.p50, p.month)));
-  const lastAvg = avg(last12.map((h) => units.fromMonth(h.oeSm3, h.month)));
-
-  return (
-    <aside className="card flex min-w-0 flex-col gap-3.5 px-[18px] py-4" aria-labelledby="hw-h">
-      <h2 id="hw-h" className="m-0 text-h2">
-        How to read the forecast
-      </h2>
-      <p className="m-0 text-[13px] text-muted">
-        Fields produce less every year once the reservoir starts to drain. A{' '}
-        <strong className="font-semibold text-ink">decline curve</strong> fits that slowdown and
-        extends it forward.
-      </p>
-      <p className="m-0 text-[13px] text-muted">
-        The dashed line is the most likely path. The shaded band is where production should land{' '}
-        <strong className="font-semibold text-ink">8 times out of 10</strong>; it widens because the
-        far future is less certain. Product views split the total by the last 12 months&apos; mix.
-      </p>
-      <div className="flex flex-col gap-2 border-t border-line pt-3">
-        <span className="flex items-center gap-2">
-          <span className="cap">Model</span>
-          <SampleBadge detail="Forecast model not in the backend yet" />
-        </span>
-        {model ? (
-          <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-[13px] [&_dd]:m-0 [&_dd]:text-right [&_dt]:text-muted">
-            <dt>Method</dt>
-            <dd>{model.method}</dd>
-            <dt>b-factor</dt>
-            <dd className="num">{formatNumber(model.b, 2)}</dd>
-            <dt>Initial decline</dt>
-            <dd className="num">{formatNumber(model.initialDeclinePctPerYear, 1)}% / yr</dd>
-            <dt>Fitted on</dt>
-            <dd>
-              {model.fitWindow.start
-                ? `${formatMonth(model.fitWindow.start)} – ${formatMonth(model.fitWindow.end)}`
-                : '–'}
-            </dd>
-            <dt>Backtest error</dt>
-            <dd className="num">{formatNumber(model.backtestErrorPct, 1)}%</dd>
-            <dt>Model run</dt>
-            <dd className="num">{formatUtc(model.runAt)}</dd>
-          </dl>
-        ) : (
-          <Skeleton height={120} />
-        )}
-      </div>
-      {next12.length > 0 && last12.length > 0 ? (
-        <div className="rounded-control bg-surface2 px-3 py-2.5 text-[12px] text-muted">
-          In the next 12 months the model expects{' '}
-          <strong className="num text-ink">{units.format(nextAvg)}</strong> {units.label} on
-          average,{' '}
-          <strong className="text-ink">
-            {formatNumber(Math.abs((nextAvg / lastAvg - 1) * 100), 1)}%{' '}
-            {nextAvg < lastAvg ? 'lower' : 'higher'}
-          </strong>{' '}
-          than the last 12.
-        </div>
-      ) : null}
-    </aside>
-  );
-}
-
-function FocusShareCard({ field }: { field: Field }) {
-  const units = useUnits();
-  const latest = field.latest;
-  const owners = FOCUS_ORDER.map((id) => {
-    const share = field.currentOwners
-      .filter((o) => o.groupId === id)
-      .reduce((s, o) => s + o.sharePct, 0);
-    const name = field.currentOwners.find((o) => o.groupId === id)?.groupName ?? id;
-    return { id, name, share };
-  }).filter((o) => o.share > 0);
-  const total = latest ? units.fromMonth(latest.oeSm3, latest.month) : 0;
-
-  return (
-    <div className="card col-span-2 flex min-w-0 flex-col gap-1.5 px-4 py-3.5 nav:col-span-1">
-      <span className="lbl">Focus companies&apos; share of output</span>
-      {owners.length === 0 ? (
-        <span className="text-[13px] text-muted">
-          Aker BP, Vår Energi and Equinor hold no share in this field.
-        </span>
-      ) : (
-        <ul className="m-0 flex list-none flex-col gap-1 p-0">
-          {owners.map((o) => (
-            <li
-              key={o.id}
-              className="flex flex-wrap items-baseline justify-between gap-x-2 text-[13px]"
-            >
-              {/* Wrap, never truncate: "(NCS only)" in Equinor's name is a scope rule, not decoration */}
-              <Link to={`/companies/${o.id}`} className="link min-w-0">
-                {o.name}
-              </Link>
-              <span className="flex flex-none items-baseline gap-1.5">
-                <span className="num text-[16px] font-semibold">
-                  {units.format((total * o.share) / 100)}
-                </span>
-                <span className="lbl num">{formatNumber(o.share, 2)}%</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <span className="lbl">{units.label} · today&apos;s share × latest month</span>
-    </div>
-  );
-}
-
 export default function FieldDetail() {
   const params = useParams();
   const id = Number(params.id);
+  const { m, t, simple } = useI18n();
   const units = useUnits();
+  const statusLabel = useFieldStatusLabel();
   const isDesktop = useIsDesktop();
   const [product, setProduct] = useState<ProductFilter>('all');
   const freshness = useFreshness();
@@ -280,16 +121,17 @@ export default function FieldDetail() {
       <Page
         label={
           <Link to="/fields" className="link">
-            Fields
+            {m.page.fields}
           </Link>
         }
-        title={isNotFound(field.error) ? 'Field not found' : 'Field unavailable'}
+        title={isNotFound(field.error) ? m.field.notFound : m.field.unavailable}
       >
         <ErrorState
           message={
             isNotFound(field.error)
-              ? `There is no field with id ${params.id ?? ''}.${USE_MOCKS ? ' Mock mode only knows a subset of fields.' : ''}`
-              : 'The field could not be loaded.'
+              ? t(m.field.notFoundText, { id: params.id ?? '' }) +
+                (USE_MOCKS ? m.field.notFoundMock : '')
+              : m.field.unavailableText
           }
           onRetry={isNotFound(field.error) ? undefined : () => void field.refetch()}
         />
@@ -301,36 +143,75 @@ export default function FieldDetail() {
   const latest = f?.latest ?? null;
   const view = latest ? latestView(latest, units.unit) : null;
   const kind = latest ? productKind(latest.mix) : null;
+  const kindColor = kind ? productKindColor(kind) : null;
   const plateauStats = plateau(
     historyData.map((h) => ({ month: h.month, value: units.fromMonth(h.oeSm3, h.month) })),
   );
   const in12 = forecast.data?.points[12];
   const forecastEnd = forecast.data?.points[forecast.data.points.length - 1]?.month;
-  const digits = units.unit === 'boe' ? 1 : 3;
+  const digits = units.digits;
+  const spark = historyData.slice(-24).map((h) => units.fromMonth(h.oeSm3, h.month));
+  const compact = !isDesktop;
+
+  const productOptions = [
+    { value: 'all' as const, label: m.field.all },
+    {
+      value: 'oil' as const,
+      label: (
+        <>
+          <span className="dot bg-oil" aria-hidden="true" />
+          {m.products.oil}
+        </>
+      ),
+    },
+    {
+      value: 'gas' as const,
+      label: (
+        <>
+          <span className="dot bg-gas" aria-hidden="true" />
+          {m.products.gas}
+        </>
+      ),
+    },
+    {
+      value: 'nglCond' as const,
+      label: (
+        <>
+          <span className="dot bg-cond" aria-hidden="true" />
+          {m.products.nglCondShort}
+        </>
+      ),
+    },
+  ];
 
   const chartTable = (
     <DataTable
-      caption={`${f?.name ?? 'Field'} production by month, last 24 months and forecast`}
+      caption={t(m.field.chartTableCaption, { field: f?.name ?? m.common.field })}
       dense
       maxHeight={320}
       rowKey={(r) => r.month}
       rows={[
         ...chartHistory.slice(-24).map((h) => ({
           month: h.month,
-          kind: 'Actual',
+          kind: m.field.actual,
           total: h.oil + h.gas + h.nglCond,
           range: '',
         })),
         ...chartForecast.slice(1, 13).map((p) => ({
           month: p.month,
-          kind: 'Forecast (sample)',
+          kind: m.field.forecastSample,
           total: p.p50,
           range: `${units.format(p.p10, digits)}–${units.format(p.p90, digits)}`,
         })),
       ]}
       columns={[
-        { id: 'month', header: 'Month', value: (r) => r.month, cell: (r) => formatMonth(r.month) },
-        { id: 'kind', header: 'Type', value: (r) => r.kind },
+        {
+          id: 'month',
+          header: m.common.month,
+          value: (r) => r.month,
+          cell: (r) => formatMonth(r.month),
+        },
+        { id: 'kind', header: m.field.type, value: (r) => r.kind },
         {
           id: 'total',
           header: units.label,
@@ -338,40 +219,39 @@ export default function FieldDetail() {
           value: (r) => r.total,
           cell: (r) => units.format(r.total, digits),
         },
-        { id: 'range', header: '80% range', align: 'right', value: (r) => r.range },
+        { id: 'range', header: m.field.range80, align: 'right', value: (r) => r.range },
       ]}
     />
   );
 
-  const title = f?.name ?? 'Loading field…';
   return (
     <Page
       documentTitle={f?.name}
       label={
-        <nav aria-label="Breadcrumb" className="flex gap-1.5">
+        <nav aria-label={m.page.breadcrumb} className="flex gap-1.5">
           <Link to="/fields" className="text-muted underline-offset-2 hover:underline">
-            Fields
+            {m.page.fields}
           </Link>
           <span aria-hidden="true">/</span>
           <span>{f?.mainArea ?? '…'}</span>
         </nav>
       }
-      title={title}
+      title={f?.name ?? m.field.loadingName}
       meta={
         f ? (
           <div className="flex flex-wrap items-center gap-2">
             <FieldStatusChip status={f.status} />
-            {f.operator ? <span className="chip">Operator · {f.operator.name}</span> : null}
+            {f.operator ? (
+              <span className="chip">
+                <Term id="operator">{m.common.operator}</Term> · {f.operator.name}
+              </span>
+            ) : null}
             {kind ? (
               <span className="chip">
-                {productDot(kind) ? (
-                  <span
-                    className="dot"
-                    style={{ background: productDot(kind) ?? undefined }}
-                    aria-hidden="true"
-                  />
+                {kindColor ? (
+                  <span className="dot" style={{ background: kindColor }} aria-hidden="true" />
                 ) : null}
-                {kind}
+                {m.products.kind[kind]}
               </span>
             ) : null}
           </div>
@@ -384,48 +264,71 @@ export default function FieldDetail() {
           onClick={download}
           disabled={historyData.length === 0}
         >
-          CSV
+          <Icon name="download" />
+          {m.common.csv}
         </button>
       }
     >
       <section
-        aria-label="Key numbers"
-        className="grid grid-cols-2 gap-3 nav:grid-cols-[repeat(auto-fit,minmax(210px,1fr))] nav:gap-3.5"
+        aria-label={m.page.keyNumbers}
+        className="grid grid-cols-2 gap-3 nav:grid-cols-4 nav:gap-5"
       >
         <KpiCard
-          label={latest ? `Production, ${formatMonth(latest.month)}` : 'Production'}
+          index={0}
+          label={
+            latest
+              ? t(simple ? m.company.productionPlain : m.company.production, {
+                  month: formatMonth(latest.month),
+                })
+              : m.company.productionEmpty
+          }
           value={field.isPending ? null : (view?.value ?? 0)}
           unit={units.label}
           format={(v) => units.format(v)}
-          compact={!isDesktop}
-          delta={
-            view?.momPct !== null && view?.momPct !== undefined ? { value: view.momPct } : undefined
+          compact={compact}
+          delta={view?.momPct != null ? { value: view.momPct } : undefined}
+          sub={
+            latest
+              ? t(m.common.vsMonth, { month: formatMonthName(addMonths(latest.month, -1)) })
+              : m.company.noRecent
           }
-          sub={latest ? `vs ${formatMonthName(addMonths(latest.month, -1))}` : 'no recent output'}
+          spark={spark}
+          sparkColor={kindColor ?? undefined}
         />
         <KpiCard
+          index={1}
           label={
-            plateauStats
-              ? `Plateau, ${plateauStats.fromYear}${plateauStats.toYear !== plateauStats.fromYear ? `–${String(plateauStats.toYear).slice(2)}` : ''}`
-              : 'Plateau'
+            <Term id="plateau">
+              {plateauStats
+                ? t(m.field.plateau, {
+                    years:
+                      plateauStats.toYear !== plateauStats.fromYear
+                        ? `${plateauStats.fromYear}–${String(plateauStats.toYear).slice(2)}`
+                        : String(plateauStats.fromYear),
+                  })
+                : m.field.plateauEmpty}
+            </Term>
           }
           value={history.isPending ? null : (plateauStats?.value ?? 0)}
           unit={units.label}
           format={(v) => units.format(v)}
-          compact={!isDesktop}
+          compact={compact}
           delta={
             plateauStats && view
               ? { value: (view.value / plateauStats.value - 1) * 100 }
               : undefined
           }
-          sub="now vs plateau"
+          sub={m.field.nowVsPlateau}
         />
         <KpiCard
-          label={in12 ? `Forecast, ${formatMonth(in12.month)}` : 'Forecast in 12 months'}
+          index={2}
+          label={
+            in12 ? t(m.field.forecastIn, { month: formatMonth(in12.month) }) : m.field.forecast12
+          }
           value={forecast.isPending ? null : in12 ? units.fromMonth(in12.p50, in12.month) : 0}
           unit={units.label}
           format={(v) => units.format(v)}
-          compact={!isDesktop}
+          compact={compact}
           sample
           delta={
             in12 && view && view.value > 0
@@ -434,48 +337,65 @@ export default function FieldDetail() {
           }
           sub={
             in12
-              ? `range ${units.format(units.fromMonth(in12.p10, in12.month))}–${units.format(units.fromMonth(in12.p90, in12.month))}`
-              : 'no forecast for this field'
+              ? t(m.company.range, {
+                  lo: units.format(units.fromMonth(in12.p10, in12.month)),
+                  hi: units.format(units.fromMonth(in12.p90, in12.month)),
+                })
+              : m.field.noForecast
           }
         />
         {f ? (
           <FocusShareCard field={f} />
         ) : (
-          <KpiCard label="Focus companies" value={null} unit="" format={String} />
+          <KpiCard label={m.field.focusTitle} value={null} unit="" format={String} />
         )}
       </section>
 
-      <div className="flex flex-wrap items-stretch gap-4">
+      {simple && f ? (
+        <FieldPlainWords
+          field={f}
+          view={view}
+          plateauStats={plateauStats}
+          latestMonth={latestMonth}
+        />
+      ) : null}
+
+      <div className="grid grid-cols-1 items-start gap-5 nav:grid-cols-4">
         <ChartCard
-          className="min-w-0 flex-[3_1_640px]"
-          title="Production history and forecast"
-          subtitle={`Monthly, gross field · ${units.label}${forecastEnd ? ` · forecast to ${formatMonth(forecastEnd)}` : ''}`}
-          info="Coloured areas are what the field produced each month, by product. The dashed line is the forecast's most likely path and the shaded band its 80% range. Gas is shown as oil equivalent (1,000 Sm³ gas = 1 Sm³ o.e.)."
-          sample="The forecast (dashed line and band) is sample data; production history is from Sodir"
+          className="nav:col-span-3"
+          title={m.field.chartTitle}
+          subtitle={`${t(m.field.chartSub, { unit: units.label })}${
+            forecastEnd ? t(m.field.chartSubForecast, { month: formatMonth(forecastEnd) }) : ''
+          }`}
+          info={m.field.chartInfo}
+          sample={m.sample.forecastChart}
           actions={
             <SegmentedControl
-              label="Product"
+              size="sm"
+              label={m.field.product}
               value={product}
               onChange={setProduct}
-              options={PRODUCT_OPTIONS}
+              options={productOptions}
             />
           }
           legend={[
             ...(product === 'all' || product === 'oil'
-              ? [{ label: 'Oil', color: 'var(--oil)' }]
+              ? [{ label: m.products.oil, color: 'var(--oil)' }]
               : []),
             ...(product === 'all' || product === 'gas'
-              ? [{ label: 'Gas', color: 'var(--gas)' }]
+              ? [{ label: m.products.gas, color: 'var(--gas)' }]
               : []),
             ...(product === 'all' || product === 'nglCond'
-              ? [{ label: 'NGL + condensate', color: 'var(--cnd)' }]
+              ? [{ label: m.products.nglCond, color: 'var(--cnd)' }]
               : []),
-            { label: 'Forecast (median)', color: 'var(--fc)', kind: 'dashed' },
-            { label: '80% range', color: 'var(--fc)', kind: 'band' },
+            { label: m.field.forecastMedian, color: 'var(--fc)', kind: 'dashed' },
+            { label: m.field.range80, color: 'var(--fc)', kind: 'band' },
           ]}
           source={{
-            label: USE_MOCKS ? 'Sample data' : 'Sodir',
-            asOf: latestMonth ? `through ${formatMonth(latestMonth)}` : undefined,
+            label: USE_MOCKS ? m.common.sampleSource : m.common.sodir,
+            asOf: latestMonth
+              ? t(m.common.throughMonth, { month: formatMonth(latestMonth) })
+              : undefined,
           }}
           state={
             history.isError
@@ -487,7 +407,7 @@ export default function FieldDetail() {
                   : 'ready'
           }
           onRetry={() => void history.refetch()}
-          height={isDesktop ? 400 : 220}
+          height={isDesktop ? 400 : 230}
           table={chartTable}
         >
           <ProductionChart
@@ -496,63 +416,61 @@ export default function FieldDetail() {
             product={product}
             events={forecast.data?.events}
             compact={!isDesktop}
-            height={isDesktop ? 400 : 220}
+            height={isDesktop ? 400 : 230}
             format={(v) => units.format(v, digits)}
             unitLabel={units.label}
-            ariaLabel={`${f?.name ?? 'Field'} monthly production since ${
-              historyData[0] ? formatMonth(historyData[0].month) : ''
-            }${view ? `, latest ${units.format(view.value)} ${units.label}` : ''}, with a sample forecast to ${
-              forecastEnd ? formatMonth(forecastEnd) : 'later'
-            }`}
+            ariaLabel={`${t(m.field.chartAria, {
+              field: f?.name ?? m.common.field,
+              from: historyData[0] ? formatMonth(historyData[0].month) : '',
+            })}${
+              view
+                ? t(m.field.chartAriaLatest, { value: units.format(view.value), unit: units.label })
+                : ''
+            }${forecastEnd ? t(m.field.chartAriaForecast, { month: formatMonth(forecastEnd) }) : ''}`}
           />
         </ChartCard>
-        <div className="flex min-w-0 flex-[1_1_280px]">
-          <ForecastExplainer forecast={forecast.data} history={historyData} />
-        </div>
+        <ForecastExplainer forecast={forecast.data} history={historyData} />
       </div>
 
-      <div className="flex flex-wrap items-start gap-4">
-        <div className="min-w-0 flex-[3_1_640px]">
+      <div className="grid grid-cols-1 items-start gap-5 nav:grid-cols-4">
+        <div className="min-w-0 nav:col-span-3">
           <OwnershipTimeline
             periods={ownership.data}
             today={latestMonth ?? f?.lastProductionMonth ?? '2026-08-01'}
             firstProductionMonth={f?.firstProductionMonth ?? null}
           />
         </div>
-        <aside
-          className="card flex min-w-0 flex-[1_1_280px] flex-col gap-3 px-[18px] py-4"
-          aria-labelledby="fx-h"
-        >
-          <h2 id="fx-h" className="m-0 text-h2">
-            Field facts
+        <aside className="card enter flex min-w-0 flex-col gap-3 p-5" aria-labelledby="fx-h">
+          <h2 id="fx-h" className="display m-0 text-h2 font-semibold">
+            {m.field.factsTitle}
           </h2>
           {f ? (
-            <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-[13px] [&_dd]:m-0 [&_dd]:text-right [&_dt]:text-muted">
-              <dt>Operator</dt>
+            <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-[14px] [&_dd]:m-0 [&_dd]:text-right [&_dt]:text-muted">
+              <dt>{m.common.operator}</dt>
               <dd>{f.operator?.name ?? '–'}</dd>
-              <dt>Area</dt>
+              <dt>{m.field.area}</dt>
               <dd>{f.mainArea ?? '–'}</dd>
-              <dt>Discovered</dt>
+              <dt>{m.field.discovered}</dt>
               <dd className="num">{f.discoveryYear ?? '–'}</dd>
-              <dt>On stream</dt>
+              <dt>{m.field.onStream}</dt>
               <dd className="num">
                 {f.firstProductionMonth ? formatMonth(f.firstProductionMonth) : '–'}
               </dd>
-              <dt>Status</dt>
-              <dd>{f.status}</dd>
-              <dt>Size</dt>
+              <dt>{m.field.status}</dt>
+              <dd>{statusLabel(f.status)}</dd>
+              <dt>{m.field.size}</dt>
               <dd className="num">{f.areaKm2 ? `${formatNumber(f.areaKm2, 0)} km²` : '–'}</dd>
-              <dt>Main product</dt>
+              <dt>{m.field.mainProduct}</dt>
               <dd>
                 {latest
-                  ? `${latest.mix.oil >= latest.mix.gas ? 'Oil' : 'Gas'} (≈${formatShare(Math.max(latest.mix.oil, latest.mix.gas))})`
+                  ? `${latest.mix.oil >= latest.mix.gas ? m.products.oil : m.products.gas} (≈${formatShare(Math.max(latest.mix.oil, latest.mix.gas))})`
                   : (f.hcType ?? '–')}
               </dd>
-              <dt>Sodir type</dt>
+              <dt>{m.field.sodirType}</dt>
               <dd>{f.hcType ?? '–'}</dd>
-              <dt>Owners today</dt>
+              <dt>{m.field.ownersToday}</dt>
               <dd className="num">{f.currentOwners.length}</dd>
-              <dt>Source</dt>
+              <dt>{m.field.source}</dt>
               <dd>
                 {f.factpageUrl ? (
                   <a
@@ -561,10 +479,11 @@ export default function FieldDetail() {
                     rel="noreferrer"
                     target="_blank"
                   >
-                    Sodir FactPages
+                    {m.field.factpages}
+                    <span className="sr-only"> {m.common.opensNewTab}</span>
                   </a>
                 ) : (
-                  'Sodir'
+                  m.common.sodir
                 )}
               </dd>
             </dl>
@@ -572,7 +491,9 @@ export default function FieldDetail() {
             <Skeleton height={200} />
           )}
           {latestMonth && f?.lastProductionMonth && f.lastProductionMonth < latestMonth ? (
-            <p className="lbl m-0">Last production reported {formatDate(f.lastProductionMonth)}.</p>
+            <p className="lbl m-0">
+              {t(m.field.lastProduction, { date: formatDate(f.lastProductionMonth) })}
+            </p>
           ) : null}
         </aside>
       </div>

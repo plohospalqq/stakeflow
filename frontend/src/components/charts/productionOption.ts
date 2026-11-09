@@ -1,5 +1,6 @@
 import type { EChartsOption, LineSeriesOption } from 'echarts';
 import type { ChartTheme } from '@/hooks/useChartTheme';
+import type { Dict } from '@/i18n/types';
 import { formatMonth } from '@/lib/format';
 import {
   baseGrid,
@@ -47,10 +48,15 @@ export interface ProductionChartProps {
   unitLabel: string;
 }
 
+/** What the option builder needs besides data: the dictionary for labels. */
+export interface ProductionLabels {
+  m: Dict;
+}
+
 const PRODUCTS = [
-  { key: 'oil', label: 'Oil', color: (t: ChartTheme) => t.oil },
-  { key: 'gas', label: 'Gas', color: (t: ChartTheme) => t.gas },
-  { key: 'nglCond', label: 'NGL + condensate', color: (t: ChartTheme) => t.cond },
+  { key: 'oil', label: (m: Dict) => m.products.oil, color: (t: ChartTheme) => t.oil },
+  { key: 'gas', label: (m: Dict) => m.products.gas, color: (t: ChartTheme) => t.gas },
+  { key: 'nglCond', label: (m: Dict) => m.products.nglCond, color: (t: ChartTheme) => t.cond },
 ] as const;
 
 function readMonth(param: unknown): string | null {
@@ -70,6 +76,7 @@ export function buildProductionOption(
     format,
     unitLabel,
   }: Omit<ProductionChartProps, 'ariaLabel' | 'height'>,
+  { m }: ProductionLabels,
 ): EChartsOption {
   const shown = PRODUCTS.filter((p) => product === 'all' || p.key === product);
   const byMonth = new Map(history.map((h) => [h.month, h]));
@@ -77,7 +84,7 @@ export function buildProductionOption(
   const latestMonth = history[history.length - 1]?.month;
 
   const areaSeries: LineSeriesOption[] = shown.map((p) => ({
-    name: p.label,
+    name: p.label(m),
     type: 'line',
     stack: 'products',
     symbol: 'none',
@@ -101,7 +108,7 @@ export function buildProductionOption(
             data: forecast.map((f) => [f.month, f.p10]),
           },
           {
-            name: '80% range',
+            name: m.field.range80,
             type: 'line',
             stack: 'band',
             symbol: 'none',
@@ -111,7 +118,7 @@ export function buildProductionOption(
             data: forecast.map((f) => [f.month, f.p90 - f.p10]),
           },
           {
-            name: 'Forecast',
+            name: m.field.forecastMedian,
             type: 'line',
             symbol: 'none',
             color: t.forecast,
@@ -124,7 +131,7 @@ export function buildProductionOption(
                   lineStyle: { color: t.forecast, width: 1, type: 'solid', opacity: 0.8 },
                   label: {
                     show: !compact,
-                    formatter: 'Latest data',
+                    formatter: m.charts.latestData,
                     color: t.muted,
                     fontFamily: t.sans,
                     fontSize: 11,
@@ -180,16 +187,22 @@ export function buildProductionOption(
         if (h) {
           let total = 0;
           for (const p of shown) {
-            html += tooltipRow(p.color(t), p.label, `${format(h[p.key])} ${unitLabel}`);
+            html += tooltipRow(p.color(t), p.label(m), `${format(h[p.key])} ${unitLabel}`);
             total += h[p.key];
           }
-          if (shown.length > 1) html += tooltipRow(t.ink, 'Total', `${format(total)} ${unitLabel}`);
+          if (shown.length > 1)
+            html += tooltipRow(t.ink, m.charts.total, `${format(total)} ${unitLabel}`);
         }
         if (f && (!h || month !== latestMonth)) {
-          html += tooltipRow(t.forecast, 'Forecast (p50)', `${format(f.p50)} ${unitLabel}`, true);
+          html += tooltipRow(
+            t.forecast,
+            m.charts.forecastP50,
+            `${format(f.p50)} ${unitLabel}`,
+            true,
+          );
           html += tooltipRow(
             withAlpha(t.forecast, 0.35),
-            '80% range',
+            m.field.range80,
             `${format(f.p10)}–${format(f.p90)}`,
           );
         }

@@ -5,6 +5,7 @@
  */
 import type { EChartsOption } from 'echarts';
 import type { ChartTheme } from '@/hooks/useChartTheme';
+import { formatMonthName } from '@/lib/format';
 
 type XAxisOption = Exclude<NonNullable<EChartsOption['xAxis']>, unknown[]>;
 type YAxisOption = Exclude<NonNullable<EChartsOption['yAxis']>, unknown[]>;
@@ -24,10 +25,17 @@ export function timeAxis(t: ChartTheme, compact = false): XAxisOption {
     axisTick: { show: false },
     axisLabel: {
       color: t.muted,
-      fontFamily: t.mono,
+      fontFamily: t.sans,
       fontSize: 11,
       hideOverlap: true,
-      formatter: { year: '{yyyy}', month: compact ? '' : '{MMM}', day: '' },
+      // Our own formatter, not ECharts' '{MMM}': month names follow the app language.
+      // ECharts places time ticks at local midnight, so read the date in local time.
+      formatter: (value: number) => {
+        const d = new Date(value);
+        if (d.getMonth() === 0 && d.getDate() === 1) return String(d.getFullYear());
+        const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+        return compact ? '' : formatMonthName(month);
+      },
     },
     splitLine: { show: false },
     splitNumber: compact ? 3 : 6,
@@ -40,7 +48,7 @@ export function categoryAxis(t: ChartTheme, data: string[]): XAxisOption {
     data,
     axisLine: { lineStyle: { color: t.line } },
     axisTick: { show: false },
-    axisLabel: { color: t.muted, fontFamily: t.mono, fontSize: 11, hideOverlap: true },
+    axisLabel: { color: t.muted, fontFamily: t.sans, fontSize: 12, hideOverlap: true },
   };
 }
 
@@ -49,7 +57,7 @@ export function valueAxis(t: ChartTheme, compact = false, min?: number): YAxisOp
     type: 'value',
     min: min ?? 0,
     splitNumber: compact ? 3 : 4,
-    axisLabel: { color: t.muted, fontFamily: t.mono, fontSize: 11 },
+    axisLabel: { color: t.muted, fontFamily: t.sans, fontSize: 12 },
     splitLine: { lineStyle: { color: t.line } },
   };
 }
@@ -58,9 +66,11 @@ export function baseTooltip(t: ChartTheme): TooltipOption {
   return {
     trigger: 'axis',
     backgroundColor: t.surface,
-    borderColor: t.lineStrong,
+    borderColor: t.line,
     borderWidth: 1,
-    padding: [8, 10],
+    borderRadius: 14,
+    padding: [10, 12],
+    extraCssText: 'box-shadow: 0 12px 32px rgba(0,0,0,0.18);',
     textStyle: { color: t.ink, fontFamily: t.sans, fontSize: 12 },
     axisPointer: { type: 'line', lineStyle: { color: t.faint, type: 'dashed' } },
     confine: true,
@@ -72,7 +82,7 @@ export function tooltipRow(color: string, label: string, value: string, dashed =
   const key = dashed
     ? `<span style="display:inline-block;width:12px;border-top:2px dashed ${color};margin-right:8px;vertical-align:middle"></span>`
     : `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:8px"></span>`;
-  return `<div style="display:flex;justify-content:space-between;gap:16px;align-items:center"><span>${key}${escapeHtml(label)}</span><span style="font-family:'JetBrains Mono Variable',monospace;font-variant-numeric:tabular-nums">${escapeHtml(value)}</span></div>`;
+  return `<div style="display:flex;justify-content:space-between;gap:16px;align-items:center"><span>${key}${escapeHtml(label)}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">${escapeHtml(value)}</span></div>`;
 }
 
 export function tooltipTitle(text: string): string {

@@ -5,6 +5,8 @@ import { DeltaBadge } from '@/components/DeltaBadge';
 import { SectionHeading } from '@/components/SectionHeading';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { useUnits, type Units } from '@/hooks/useUnits';
+import type { Dict } from '@/i18n/types';
+import { useI18n } from '@/i18n/useI18n';
 import { formatMonth } from '@/lib/format';
 
 interface Row {
@@ -18,7 +20,7 @@ interface Row {
 
 type Span = '6' | '12' | '36';
 
-function columns(units: Units): Column<Row>[] {
+function columns(units: Units, m: Dict): Column<Row>[] {
   const num = (id: keyof Row, label: string, color?: string): Column<Row> => ({
     id,
     header: color ? (
@@ -40,20 +42,20 @@ function columns(units: Units): Column<Row>[] {
   return [
     {
       id: 'month',
-      header: 'Month',
+      header: m.common.month,
       value: (r) => r.month,
       cell: (r) => <span className="num">{formatMonth(r.month)}</span>,
     },
-    num('oil', 'Oil', 'var(--oil)'),
-    num('gas', 'Gas', 'var(--gas)'),
-    num('nglCond', 'NGL + cond.', 'var(--cnd)'),
+    num('oil', m.products.oil, 'var(--oil)'),
+    num('gas', m.products.gas, 'var(--gas)'),
+    num('nglCond', m.products.nglCondShort, 'var(--cnd)'),
     {
-      ...num('total', 'Total'),
+      ...num('total', m.common.total),
       cell: (r) => <strong>{units.format(r.total, units.unit === 'boe' ? 1 : 3)}</strong>,
     },
     {
       id: 'changePct',
-      header: 'vs previous',
+      header: m.common.vsPrevious,
       align: 'right',
       value: (r) => r.changePct,
       cell: (r) => (r.changePct === null ? '–' : <DeltaBadge value={r.changePct} />),
@@ -71,6 +73,7 @@ export function MonthlyTable({
   onDownload: () => void;
 }) {
   const units = useUnits();
+  const { m, t } = useI18n();
   const [span, setSpan] = useState<Span>('6');
   const rows = useMemo(() => {
     const all = history.map((h) => ({
@@ -91,24 +94,25 @@ export function MonthlyTable({
       .slice(-Number(span))
       .reverse();
   }, [history, units, span]);
-  const cols = useMemo(() => columns(units), [units]);
+  const cols = useMemo(() => columns(units, m), [units, m]);
 
   return (
-    <section className="card flex min-w-0 flex-col" aria-labelledby="mt-h">
+    <section className="card enter flex min-w-0 flex-col" aria-labelledby="mt-h">
       <SectionHeading
         id="mt-h"
-        title="Monthly data"
-        sub={`Last ${span} months · gross field · ${units.label}`}
+        title={m.field.monthlyTitle}
+        sub={t(m.field.monthlySub, { n: span, unit: units.label })}
         actions={
           <>
             <SegmentedControl
-              label="Months shown"
+              size="sm"
+              label={m.field.monthsShown}
               value={span}
               onChange={setSpan}
               options={[
-                { value: '6', label: '6 mo' },
-                { value: '12', label: '12 mo' },
-                { value: '36', label: '36 mo' },
+                { value: '6', label: t(m.field.monthsOption, { n: 6 }) },
+                { value: '12', label: t(m.field.monthsOption, { n: 12 }) },
+                { value: '36', label: t(m.field.monthsOption, { n: 36 }) },
               ]}
             />
             <button
@@ -117,14 +121,14 @@ export function MonthlyTable({
               onClick={onDownload}
               disabled={history.length === 0}
             >
-              Download CSV
+              {m.common.downloadCsv}
             </button>
           </>
         }
       />
-      <div className="px-1.5 pb-1.5">
+      <div className="px-2 pb-2">
         <DataTable
-          caption="Monthly production of the field by product"
+          caption={m.field.monthlyCaption}
           columns={cols}
           rows={rows}
           rowKey={(r) => r.month}

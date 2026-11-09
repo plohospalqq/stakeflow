@@ -1,5 +1,10 @@
 import { useId } from 'react';
 import { SampleBadge } from '@/components/SampleBadge';
+import { Term } from '@/components/Term';
+import { Rich } from '@/i18n/Rich';
+import type { Dict } from '@/i18n/types';
+import { useI18n } from '@/i18n/useI18n';
+import { fill } from '@/i18n/text';
 import { Skeleton } from '@/components/Skeleton';
 import {
   formatDate,
@@ -14,41 +19,41 @@ import type { PriceInputs, RevenueModel } from './useRevenue';
 
 interface SliderSpec {
   key: keyof PriceInputs;
-  label: string;
+  label: (m: Dict) => string;
   min: number;
   max: number;
   step: number;
   text: (v: number) => string;
-  spoken: (v: number) => string;
+  spoken: (v: number, m: Dict) => string;
 }
 
 const SLIDERS: SliderSpec[] = [
   {
     key: 'brentUsdPerBbl',
-    label: 'Brent oil price',
+    label: (m) => m.revenue.brent,
     min: 40,
     max: 120,
     step: 0.5,
     text: (v) => `$${formatNumber(v, 1)} /bbl`,
-    spoken: (v) => `${formatNumber(v, 1)} US dollars per barrel`,
+    spoken: (v, m) => fill(m.revenue.brentSpoken, { v: formatNumber(v, 1) }),
   },
   {
     key: 'ttfEurPerMwh',
-    label: 'TTF gas price',
+    label: (m) => m.revenue.ttf,
     min: 10,
     max: 80,
     step: 0.5,
     text: (v) => `€${formatNumber(v, 1)} /MWh`,
-    spoken: (v) => `${formatNumber(v, 1)} euros per megawatt hour`,
+    spoken: (v, m) => fill(m.revenue.ttfSpoken, { v: formatNumber(v, 1) }),
   },
   {
     key: 'realisationPct',
-    label: 'Liquids realised vs Brent',
+    label: (m) => m.revenue.realisation,
     min: 85,
     max: 105,
     step: 0.5,
     text: (v) => `${formatNumber(v, 1)}%`,
-    spoken: (v) => `${formatNumber(v, 1)} percent of Brent`,
+    spoken: (v, m) => fill(m.revenue.realisationSpoken, { v: formatNumber(v, 1) }),
   },
 ];
 
@@ -62,11 +67,13 @@ function Slider({
   onChange: (v: number) => void;
 }) {
   const id = useId();
+  const { m } = useI18n();
+  const fillPct = ((value - spec.min) / (spec.max - spec.min)) * 100;
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex justify-between gap-3 text-[13px]">
-        <label htmlFor={id}>{spec.label}</label>
-        <span className="num" aria-hidden="true">
+      <div className="flex justify-between gap-3 text-[14px]">
+        <label htmlFor={id}>{spec.label(m)}</label>
+        <span className="num font-semibold" aria-hidden="true">
           {spec.text(value)}
         </span>
       </div>
@@ -77,24 +84,21 @@ function Slider({
         max={spec.max}
         step={spec.step}
         value={value}
-        aria-valuetext={spec.spoken(value)}
+        aria-valuetext={spec.spoken(value, m)}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-8 w-full cursor-pointer accent-[var(--tx)] max-nav:h-11"
+        className="range"
+        style={{ '--fill': `${fillPct}%` }}
       />
     </div>
   );
 }
 
-const bn = (usd: number) => formatNumber(usd / 1e9, 2);
-
 export function RevenueCard({ model }: { model: RevenueModel | null }) {
+  const { m, t } = useI18n();
   if (!model) {
     return (
-      <section
-        className="card flex min-w-0 flex-[2_1_380px] flex-col gap-3 p-[18px]"
-        aria-busy="true"
-      >
-        <span className="sr-only">Loading revenue estimate</span>
+      <section className="card flex min-w-0 flex-col gap-3 p-5" aria-busy="true">
+        <span className="sr-only">{m.revenue.loading}</span>
         <Skeleton width="60%" height={16} />
         <Skeleton width="40%" height={30} />
         <Skeleton height={140} />
@@ -107,41 +111,47 @@ export function RevenueCard({ model }: { model: RevenueModel | null }) {
   const quarter = formatQuarter(model.quarterStart);
 
   return (
-    <section className="card flex min-w-0 flex-[2_1_380px] flex-col" aria-labelledby="rv-h">
-      <div className="flex flex-col gap-0.5 border-b border-line px-[18px] pb-2.5 pt-4">
+    <section className="card enter flex min-w-0 flex-col" aria-labelledby="rv-h">
+      <div className="flex flex-col gap-0.5 px-5 pb-3 pt-5">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 id="rv-h" className="m-0 text-h2">
-            {quarter} revenue estimate
+          <h2 id="rv-h" className="display m-0 text-h2 font-semibold">
+            {t(m.revenue.title, { quarter })}
           </h2>
-          <SampleBadge
-            detail={`Prices${model.volumeIsSample ? ' and the nowcast volume' : ''} are sample data; the product split is from Sodir`}
-          />
+          <SampleBadge detail={model.volumeIsSample ? m.sample.revenueNowcast : m.sample.revenue} />
         </div>
-        <span className="lbl">Volume × price. Move the sliders to test your own assumptions.</span>
+        <span className="lbl">{m.revenue.sub}</span>
       </div>
 
-      <div className="flex flex-col gap-1.5 border-b border-line px-[18px] py-4">
-        <span className="flex items-baseline gap-2" aria-live="polite">
-          <span className="num text-kpi">{formatUsd(e.totalUsd)}</span>
-          <span className="lbl">sales value, {quarter}</span>
+      <div className="flex flex-col gap-2 px-5 pb-4">
+        <span className="flex flex-wrap items-baseline gap-2" aria-live="polite">
+          <span className="display num text-kpi font-bold">{formatUsd(e.totalUsd)}</span>
+          <span className="lbl">{t(m.revenue.salesValue, { quarter })}</span>
         </span>
-        <div className="flex h-2 gap-0.5 overflow-hidden rounded" aria-hidden="true">
-          <span style={{ width: `${liquidsPct}%`, background: 'var(--oil)' }} />
-          <span style={{ width: `${100 - liquidsPct}%`, background: 'var(--gas)' }} />
+        <div className="flex h-2.5 gap-[3px] overflow-hidden rounded-full" aria-hidden="true">
+          <span
+            className="rounded-full"
+            style={{ width: `${liquidsPct}%`, background: 'var(--oil)' }}
+          />
+          <span
+            className="rounded-full"
+            style={{ width: `${100 - liquidsPct}%`, background: 'var(--gas)' }}
+          />
         </div>
-        <div className="flex flex-wrap justify-between gap-2 text-[12px] text-muted">
+        <div className="flex flex-wrap justify-between gap-2 text-[13px] text-muted">
           <span className="flex items-center gap-1.5">
             <span className="dot bg-oil" aria-hidden="true" />
-            Liquids <span className="num text-ink">${bn(e.liquidsUsd)} bn</span>
+            {m.revenue.liquids}{' '}
+            <span className="num font-semibold text-ink">{formatUsd(e.liquidsUsd)}</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="dot bg-gas" aria-hidden="true" />
-            Gas <span className="num text-ink">${bn(e.gasUsd)} bn</span>
+            {m.revenue.gas}{' '}
+            <span className="num font-semibold text-ink">{formatUsd(e.gasUsd)}</span>
           </span>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-b border-line px-[18px] py-3.5">
+      <div className="flex flex-col gap-3 border-t border-line px-5 py-4">
         {SLIDERS.map((spec) => (
           <Slider
             key={spec.key}
@@ -153,47 +163,51 @@ export function RevenueCard({ model }: { model: RevenueModel | null }) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <button
             type="button"
-            className="min-h-[36px] text-[12px] text-muted underline underline-offset-2 hover:text-ink disabled:no-underline disabled:opacity-60"
+            className="btn px-3.5 text-[13px]"
             onClick={model.reset}
             disabled={model.isAtForward}
           >
-            Reset to forward prices
+            {m.revenue.reset}
           </button>
-          <span className="lbl">Forward curve, {formatDate(model.forwardAsOf)}</span>
+          <span className="lbl">
+            {t(m.revenue.forward, { date: formatDate(model.forwardAsOf) })}
+          </span>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5 px-[18px] pb-4 pt-3.5">
-        <span className="cap">The maths</span>
-        <dl className="num m-0 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 text-[12px] [&_dd]:m-0 [&_dd]:text-right [&_dt]:text-muted">
+      <div className="flex flex-col gap-2.5 border-t border-line px-5 pb-5 pt-4">
+        <span className="cap">{m.revenue.maths}</span>
+        <dl className="num m-0 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 text-[12.5px] [&_dd]:m-0 [&_dd]:text-right [&_dt]:text-muted">
           <dt>
-            Liquids {formatNumber(e.liquidsKbblPerDay, 1)} kbbl/d × {model.days} d × $
+            {m.revenue.liquids} {formatNumber(e.liquidsKbblPerDay, 1)} kbbl/d × {model.days} d × $
             {formatNumber(prices.brentUsdPerBbl, 1)} × {formatNumber(prices.realisationPct, 1)}%
           </dt>
-          <dd>${bn(e.liquidsUsd)} bn</dd>
+          <dd>{formatUsd(e.liquidsUsd)}</dd>
           <dt>
-            Gas {formatNumber(e.gasMsm3PerDay, 2)} MSm³/d × {model.days} d × {GAS_KWH_PER_SM3}{' '}
-            kWh/Sm³ × €{formatNumber(prices.ttfEurPerMwh, 1)}/MWh × {formatNumber(model.eurUsd, 2)}{' '}
-            USD/EUR
+            {m.revenue.gas} {formatNumber(e.gasMsm3PerDay, 2)} MSm³/d × {model.days} d ×{' '}
+            {GAS_KWH_PER_SM3} kWh/Sm³ × €{formatNumber(prices.ttfEurPerMwh, 1)}/MWh ×{' '}
+            {formatNumber(model.eurUsd, 2)} USD/EUR
           </dt>
-          <dd>${bn(e.gasUsd)} bn</dd>
+          <dd>{formatUsd(e.gasUsd)}</dd>
         </dl>
         <ul className="lbl m-0 flex list-disc flex-col gap-1 pl-4">
           <li>
-            Volume: {model.volumeLabel}, {formatNumber(model.kboed, 1)} kboe/d, split{' '}
-            {formatShare(model.liquidsShare)} liquids (oil + NGL/condensate) as in Sodir data for{' '}
-            {formatMonth(model.splitFrom)}–{formatMonth(model.splitTo)}.
+            {t(m.revenue.volume, {
+              label: model.volumeLabel,
+              kboed: formatNumber(model.kboed, 1),
+              liquids: formatShare(model.liquidsShare),
+              from: formatMonth(model.splitFrom),
+              to: formatMonth(model.splitTo),
+            })}
           </li>
           <li>
-            Revenue follows volumes <strong className="font-semibold text-ink">sold</strong>, not
-            produced. Over- or underlift moves them apart: Aker BP produced 374.3 but sold 395.7
-            kboe/d in Q3 2026.
+            <Rich text={m.revenue.sold} />
           </li>
-          <li>
-            Excludes hedging, transport tariffs and inventory timing. Gas is partly sold on fixed or
-            year-ahead contracts, so TTF spot overstates how much revenue moves with it.
-          </li>
+          <li>{m.revenue.excludes}</li>
         </ul>
+        <p className="lbl m-0">
+          <Term id="brent" /> · <Term id="ttf" />
+        </p>
       </div>
     </section>
   );

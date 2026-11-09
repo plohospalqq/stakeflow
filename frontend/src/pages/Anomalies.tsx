@@ -6,6 +6,7 @@ import { Page } from '@/components/layout/Page';
 import { SampleBadge } from '@/components/SampleBadge';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Skeleton } from '@/components/Skeleton';
+import { useI18n } from '@/i18n/useI18n';
 import { sortAnomalies } from '@/lib/anomalies';
 import { addMonths } from '@/lib/dates';
 import { formatMonth } from '@/lib/format';
@@ -13,13 +14,7 @@ import { AnomalyItem } from './anomalies/AnomalyItem';
 
 type Filter = 'all' | AnomalyStatus;
 
-const FILTERS: { value: Filter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'new', label: 'New' },
-  { value: 'investigating', label: 'Investigating' },
-  { value: 'explained', label: 'Explained' },
-  { value: 'resolved', label: 'Resolved' },
-];
+const FILTERS: Filter[] = ['all', 'new', 'investigating', 'explained', 'resolved'];
 
 /** Changes a reader makes here. Kept in memory only until anomalies have a backend. */
 interface LocalEdits {
@@ -28,6 +23,7 @@ interface LocalEdits {
 }
 
 export default function Anomalies() {
+  const { m, t } = useI18n();
   const anomalies = useAnomalies();
   const freshness = useFreshness();
   const [filter, setFilter] = useState<Filter>('all');
@@ -46,22 +42,25 @@ export default function Anomalies() {
   const latest = freshness.data?.latestMonth;
   const counts = [
     {
-      label: 'Open',
+      label: m.anomalies.open,
       n: items.filter((i) => i.status === 'new' || i.status === 'investigating').length,
     },
-    { label: 'High severity', n: items.filter((i) => i.anomaly.severity === 'high').length },
+    { label: m.anomalies.high, n: items.filter((i) => i.anomaly.severity === 'high').length },
     {
-      label: latest ? `In ${formatMonth(latest)}` : 'Latest month',
+      label: latest
+        ? t(m.anomalies.inMonth, { month: formatMonth(latest) })
+        : m.anomalies.latestMonth,
       n: latest ? items.filter((i) => i.anomaly.month === latest).length : 0,
     },
     {
-      label: 'Last 12 months',
+      label: m.anomalies.last12,
       n: latest ? items.filter((i) => i.anomaly.month > addMonths(latest, -12)).length : 0,
     },
   ];
-  const options = FILTERS.map((f) => ({
-    ...f,
-    count: f.value === 'all' ? items.length : items.filter((i) => i.status === f.value).length,
+  const options = FILTERS.map((value) => ({
+    value,
+    label: value === 'all' ? m.anomalies.all : m.anomalies.status[value],
+    count: value === 'all' ? items.length : items.filter((i) => i.status === value).length,
   }));
   const shown = items.filter((i) => filter === 'all' || i.status === filter);
 
@@ -69,30 +68,25 @@ export default function Anomalies() {
     setEdits((all) => ({ ...all, [id]: change(all[id] ?? { notes: [] }) }));
 
   return (
-    <Page label="Anomalies" title="Unexpected drops and spikes">
+    <Page label={m.anomalies.label} title={m.anomalies.title}>
       <section
-        className="card flex flex-wrap items-center gap-x-7 gap-y-3.5 px-[18px] py-3.5"
+        className="card enter flex flex-wrap items-center gap-x-8 gap-y-4 p-5"
         aria-labelledby="what-h"
       >
-        <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-1">
+        <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 id="what-h" className="m-0 text-[14px] font-semibold">
-              What counts as an anomaly?
+            <h2 id="what-h" className="display m-0 text-h2 font-semibold">
+              {m.anomalies.whatTitle}
             </h2>
-            <SampleBadge detail="Anomaly detection is not in the backend yet; the feed is sample data" />
+            <SampleBadge detail={m.sample.anomalies} />
           </div>
-          <p className="m-0 text-[13px] text-muted">
-            Each month every field&apos;s output is compared with what its forecast expected. If the
-            real number lands outside the expected band, more than 10% and more than 3 standard
-            deviations away, it shows up here. Many have an ordinary reason, such as planned
-            maintenance.
-          </p>
+          <p className="m-0 text-[14px] text-muted">{m.anomalies.whatText}</p>
         </div>
-        <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-2 sm:flex sm:gap-6">
+        <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:gap-7">
           {counts.map((c) => (
             <div key={c.label} className="flex flex-col-reverse">
               <dt className="lbl">{c.label}</dt>
-              <dd className="num m-0 text-[20px] font-semibold">
+              <dd className="display num m-0 text-[30px] font-bold tracking-[-0.03em]">
                 {anomalies.isPending ? '–' : c.n}
               </dd>
             </div>
@@ -102,23 +96,20 @@ export default function Anomalies() {
 
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <SegmentedControl
-          label="Filter by status"
+          label={m.anomalies.filter}
           value={filter}
           onChange={setFilter}
           options={options}
         />
-        <span className="lbl">Most severe first, then newest</span>
+        <span className="lbl">{m.anomalies.order}</span>
       </div>
 
       <section aria-labelledby="feed-h" className="flex flex-col gap-3">
         <h2 id="feed-h" className="sr-only">
-          Anomaly feed
+          {m.anomalies.feed}
         </h2>
         {anomalies.isError ? (
-          <ErrorState
-            message="Anomalies could not be loaded."
-            onRetry={() => void anomalies.refetch()}
-          />
+          <ErrorState message={m.anomalies.failed} onRetry={() => void anomalies.refetch()} />
         ) : anomalies.isPending ? (
           [0, 1, 2].map((i) => (
             <div key={i} className="card flex flex-col gap-2 p-[18px]" aria-busy="true">
@@ -128,8 +119,8 @@ export default function Anomalies() {
             </div>
           ))
         ) : shown.length === 0 ? (
-          <p className="card m-0 px-[18px] py-6 text-center text-[13px] text-muted">
-            No anomalies with this status.
+          <p className="card m-0 px-5 py-8 text-center text-[14px] text-muted">
+            {m.anomalies.none}
           </p>
         ) : (
           <ul className="m-0 flex list-none flex-col gap-3 p-0">
@@ -147,10 +138,7 @@ export default function Anomalies() {
             ))}
           </ul>
         )}
-        <p className="lbl m-0">
-          Notes and status changes stay in this browser tab until anomalies have a backend. Field
-          names and owners are real; the anomaly numbers are sample data.
-        </p>
+        <p className="lbl m-0">{m.anomalies.foot}</p>
       </section>
     </Page>
   );

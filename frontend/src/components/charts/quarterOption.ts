@@ -5,6 +5,8 @@
  */
 import type { BarSeriesOption, EChartsOption, ScatterSeriesOption } from 'echarts';
 import type { ChartTheme } from '@/hooks/useChartTheme';
+import { fill } from '@/i18n/text';
+import type { Dict } from '@/i18n/types';
 import { formatPct } from '@/lib/format';
 import { errorTone, type ErrorTone } from '@/lib/trackRecord';
 import {
@@ -24,6 +26,8 @@ interface ChartOpts {
   compact?: boolean;
   format: (v: number) => string;
   unitLabel: string;
+  /** The active dictionary, for series names and tooltip labels. */
+  m: Dict;
 }
 
 export function toneColor(t: ChartTheme, tone: ErrorTone): string {
@@ -66,7 +70,7 @@ export interface ReconciliationPoint {
 export function buildReconciliationOption(
   t: ChartTheme,
   points: ReconciliationPoint[],
-  { compact = false, format, unitLabel }: ChartOpts,
+  { compact = false, format, unitLabel, m }: ChartOpts,
 ): EChartsOption {
   const color = barColor(t);
   const bars: BarItem[] = points.map((p) => {
@@ -90,14 +94,14 @@ export function buildReconciliationOption(
               distance: 10,
               formatter: formatPct(p.gapPct, compact ? 1 : 2, true),
               color: toneColor(t, errorTone(p.gapPct)),
-              fontFamily: t.mono,
+              fontFamily: t.sans,
               fontSize: 11,
             },
     };
   });
 
   const reported: ScatterSeriesOption = {
-    name: 'Reported by the company',
+    name: m.recon.legendReported,
     type: 'scatter',
     symbol: 'circle',
     symbolSize: compact ? 9 : 11,
@@ -112,7 +116,11 @@ export function buildReconciliationOption(
     xAxis: quarterAxis(
       t,
       points.map((p) =>
-        quarterLabel(p.label, compact, p.monthsInData < 3 ? `${p.monthsInData}/3 mo` : null),
+        quarterLabel(
+          p.label,
+          compact,
+          p.monthsInData < 3 ? fill(m.charts.monthsShort, { n: p.monthsInData }) : null,
+        ),
       ),
     ),
     yAxis: valueAxis(t, compact),
@@ -127,24 +135,25 @@ export function buildReconciliationOption(
         html += tooltipRow(
           color,
           p.monthsInData < 3
-            ? `Sodir-attributed (${p.monthsInData} of 3 months)`
-            : 'Sodir-attributed',
+            ? `${m.recon.legendAttributed} (${fill(m.company.monthsOf3, { n: p.monthsInData })})`
+            : m.recon.legendAttributed,
           `${format(p.attributed)} ${unitLabel}`,
         );
         if (p.reported !== null) {
           html += tooltipRow(
             t.forecast,
-            'Reported by the company',
+            m.recon.legendReported,
             `${format(p.reported)} ${unitLabel}`,
           );
         }
-        if (p.gapPct !== null) html += tooltipRow(t.ink, 'Gap', formatPct(p.gapPct, 2, true));
+        if (p.gapPct !== null)
+          html += tooltipRow(t.ink, m.charts.gap, formatPct(p.gapPct, 2, true));
         return html;
       },
     },
     series: [
       {
-        name: 'Sodir-attributed',
+        name: m.recon.legendAttributed,
         type: 'bar',
         barMaxWidth: 46,
         emphasis: { disabled: true },
@@ -169,10 +178,10 @@ export interface NowcastPoint {
 export function buildNowcastOption(
   t: ChartTheme,
   points: NowcastPoint[],
-  { compact = false, format, unitLabel }: ChartOpts,
+  { compact = false, format, unitLabel, m }: ChartOpts,
 ): EChartsOption {
   const color = barColor(t);
-  const labelStyle = { fontFamily: t.mono, fontSize: 11 };
+  const labelStyle = { fontFamily: t.sans, fontSize: 11 };
   const bars: BarItem[] = points.map((p) =>
     p.actual === null
       ? {
@@ -217,7 +226,7 @@ export function buildNowcastOption(
     grid: { ...baseGrid(compact), top: 30 },
     xAxis: quarterAxis(
       t,
-      points.map((p) => quarterLabel(p.label, compact, p.actual === null ? 'open' : null)),
+      points.map((p) => quarterLabel(p.label, compact, p.actual === null ? m.charts.open : null)),
     ),
     yAxis: valueAxis(t, compact),
     tooltip: {
@@ -227,23 +236,31 @@ export function buildNowcastOption(
         const i = firstDataIndex(params);
         const p = i === null ? undefined : points[i];
         if (!p) return '';
-        let html = tooltipTitle(`${p.quarterName}${p.actual === null ? ' · open' : ''}`);
-        html += tooltipRow(t.forecast, 'Nowcast', `${format(p.predicted)} ${unitLabel}`, true);
+        let html = tooltipTitle(
+          `${p.quarterName}${p.actual === null ? ` · ${m.charts.open}` : ''}`,
+        );
+        html += tooltipRow(
+          t.forecast,
+          m.charts.nowcast,
+          `${format(p.predicted)} ${unitLabel}`,
+          true,
+        );
         html += tooltipRow(
           withAlpha(t.forecast, 0.35),
-          '80% range',
+          m.field.range80,
           `${format(p.lo)}–${format(p.hi)}`,
         );
         if (p.actual !== null) {
-          html += tooltipRow(color, 'Reported', `${format(p.actual)} ${unitLabel}`);
+          html += tooltipRow(color, m.charts.reported, `${format(p.actual)} ${unitLabel}`);
         }
-        if (p.errorPct !== null) html += tooltipRow(t.ink, 'Error', formatPct(p.errorPct, 1, true));
+        if (p.errorPct !== null)
+          html += tooltipRow(t.ink, m.charts.error, formatPct(p.errorPct, 1, true));
         return html;
       },
     },
     series: [
       {
-        name: 'Reported',
+        name: m.charts.reported,
         type: 'bar',
         barMaxWidth: 46,
         emphasis: { disabled: true },
@@ -262,7 +279,7 @@ export function buildNowcastOption(
           : undefined,
       },
       {
-        name: 'Nowcast',
+        name: m.charts.nowcast,
         type: 'scatter',
         symbol: 'rect',
         symbolSize: compact ? [18, 3] : [30, 3],

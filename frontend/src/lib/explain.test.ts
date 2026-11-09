@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CompanyFieldMonthly } from '@/api/types';
+import { en } from '@/i18n/en';
 import { explainChange, fieldMoves } from './explain';
 import { plateau } from './fieldStats';
 import { latestView } from './latest';
@@ -27,8 +28,8 @@ describe('explainChange', () => {
       '2026-07-01',
       identity,
     );
-    expect(explainChange(moves, '2026-07-01', 'kboe/d')).toBe(
-      'Down 9.0 kboe/d on Jul, mostly Johan Sverdrup (−10.0).',
+    expect(explainChange(moves, 'Jul', 'kboe/d', en.explain)).toBe(
+      'Down 9.0 kboe/d vs Jul, mostly Johan Sverdrup (−10.0).',
     );
   });
 
@@ -38,13 +39,13 @@ describe('explainChange', () => {
       { fieldName: 'Skarv', change: 2.5 },
       { fieldName: 'Valhall', change: 2 },
     ];
-    expect(explainChange(moves, '2026-07-01', 'kboe/d')).toBe(
-      'Up 1.5 kboe/d on Jul despite Edvard Grieg (−3.0); Skarv rose the most (+2.5).',
+    expect(explainChange(moves, 'Jul', 'kboe/d', en.explain)).toBe(
+      'Up 1.5 kboe/d vs Jul despite Edvard Grieg (−3.0); Skarv rose the most (+2.5).',
     );
   });
 
   it('returns null without data', () => {
-    expect(explainChange([], '2026-07-01', 'kboe/d')).toBeNull();
+    expect(explainChange([], 'Jul', 'kboe/d', en.explain)).toBeNull();
   });
 });
 
