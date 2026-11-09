@@ -10,19 +10,8 @@
     <meta name="color-scheme" content="dark light" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Stakeflow · NCS production analytics</title>
-    <script>
-      // Runs before first paint so a light-theme user never sees a dark flash.
-      (function () {
-        var theme;
-        try {
-          theme = localStorage.getItem('stakeflow-theme');
-        } catch (e) {}
-        if (theme !== 'dark' && theme !== 'light') {
-          theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-        }
-        document.documentElement.className = 't-' + theme;
-      })();
-    </script>
+    <!-- Classic (blocking) script: sets the theme class before first paint -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>
