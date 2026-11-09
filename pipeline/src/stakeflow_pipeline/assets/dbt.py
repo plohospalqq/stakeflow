@@ -32,10 +32,26 @@ class StakeflowDbtTranslator(DagsterDbtTranslator):
         return dbt_resource_props["config"].get("schema") or "dbt"
 
 
+# Two selections because the forecast run (assets/ml.py) sits between them: it reads the marts
+# and the ml-tagged models read what it writes. One dbt asset would make a cycle.
+ML_MODELS = "tag:ml"
+
+
 @dbt_assets(
     manifest=dbt_project.manifest_path,
     project=dbt_project,
     dagster_dbt_translator=StakeflowDbtTranslator(),
+    exclude=ML_MODELS,
 )
 def stakeflow_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource) -> Iterator[Any]:
+    yield from dbt.cli(["build"], context=context).stream()
+
+
+@dbt_assets(
+    manifest=dbt_project.manifest_path,
+    project=dbt_project,
+    dagster_dbt_translator=StakeflowDbtTranslator(),
+    select=ML_MODELS,
+)
+def stakeflow_dbt_ml_assets(context: AssetExecutionContext, dbt: DbtCliResource) -> Iterator[Any]:
     yield from dbt.cli(["build"], context=context).stream()
