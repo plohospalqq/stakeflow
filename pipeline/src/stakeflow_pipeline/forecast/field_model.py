@@ -15,7 +15,7 @@ extrapolated from a ramp-up or a plateau:
     shut_down   nothing produced in the last 3 months                    zero
 
 Three refinements, each kept because it beat the naive baseline or improved calibration in
-backtests over 5 cut-offs (Aug 2024 - Aug 2026, ~95 fields each):
+backtests (five 12-month holdouts ending Dec 2024 to Aug 2026, ~95 fields each):
 
 - Seasonal factors: one multiplicative factor per calendar month from the last 5 years (summer
   turnarounds, winter gas offtake). Fitted on the deseasonalised series, re-applied to the
