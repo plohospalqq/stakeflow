@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import { NavLink } from 'react-router';
+import { isSample } from '@/api/mode';
 import { useI18n } from '@/i18n/useI18n';
 import { Icon } from '../Icon';
 import { POPOVER_CLASS, useDismiss } from '../popover';
@@ -116,10 +117,13 @@ export function TopNav({ openAnomalies }: { openAnomalies?: number }) {
                   m.nav[item.label]
                 )}
                 {item.badge === 'anomalies' && openAnomalies ? (
-                  // Anomalies are sample data for now; the count must not pass for a live alert.
+                  // A quiet count, not an alarm: the newest month's flags. Sample data says so.
                   <span
                     className="num rounded-full border border-dashed border-line-strong px-1.5 text-[11px] leading-[16px]"
-                    aria-label={t(m.nav.openAnomalies, { n: openAnomalies })}
+                    aria-label={t(
+                      isSample('anomalies') ? m.nav.openAnomaliesSample : m.nav.openAnomalies,
+                      { n: openAnomalies },
+                    )}
                     title={m.nav.openAnomaliesTitle}
                   >
                     {openAnomalies}

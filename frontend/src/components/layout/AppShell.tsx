@@ -39,8 +39,11 @@ export function AppShell() {
   useScrollToTopOnPathChange();
   const [moreOpen, setMoreOpen] = useState(false);
   const anomalies = useAnomalies();
+  // Only the newest month: the feed keeps two years of flags, all of them "new" to the
+  // detector, and a count in the hundreds would be noise, not an alert.
+  const newest = anomalies.data?.reduce((max, a) => (a.month > max ? a.month : max), '');
   const openAnomalies = anomalies.data?.filter(
-    (a) => a.status === 'new' || a.status === 'investigating',
+    (a) => a.month === newest && (a.status === 'new' || a.status === 'investigating'),
   ).length;
   return (
     <div className="flex min-h-screen flex-col bg-bg pb-[84px] text-ink nav:pb-0">

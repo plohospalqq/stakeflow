@@ -14,12 +14,16 @@ const model: ScenarioModel = {
   companyId: 'aker-bp',
   ticker: 'AKRBP',
   method: 'ols-monthly-log-returns',
+  methodText: null,
   window: { start: '2019-01-01', end: '2026-10-01' },
   observations: 94,
   rSquared: 0.41,
+  adjRSquared: null,
   coefficients: { brent: 0.28, ttf: 0.04, production: 0.55, eurusd: -0.3 },
   standardErrors: { brent: 0.06, ttf: 0.03, production: 0.21, eurusd: 0.14 },
   residualVolMonthly: 0.062,
+  excludedMonths: [],
+  backtest: null,
   runAt: '2026-11-02T04:00:00Z',
   version: 'test',
 };
@@ -80,7 +84,8 @@ describe('scenario contract', () => {
 describe('scenario model', () => {
   it('is a transparent sum of β × log change', () => {
     const r = modelScenario(model, { ...NEUTRAL_SCENARIO, brentChangePct: -30 });
-    expect(r.contributions.brent).toBeCloseTo(0.28 * Math.log(0.7) * 100, 6);
+    // Like the backend: a driver's contribution is the change it alone would cause, in %.
+    expect(r.contributions.brent).toBeCloseTo((Math.exp(0.28 * Math.log(0.7)) - 1) * 100, 6);
     expect(r.medianPct).toBeCloseTo((Math.exp(0.28 * Math.log(0.7)) - 1) * 100, 6);
     expect(r.lowPct).toBeLessThan(r.medianPct);
     expect(r.highPct).toBeGreaterThan(r.medianPct);
@@ -100,24 +105,30 @@ describe('scenario model', () => {
   });
 });
 
+const CONTEXT = { companyId: 'aker-bp', reference: null };
+
 describe('free-text stand-in parser (sample)', () => {
   it('reads English, Ukrainian and Norwegian into parameters, never results', async () => {
     const en = await mockScenarioApi.parseScenario(
       'oil drops 25% and gas rises 10% over the next 6 months',
+      CONTEXT,
     );
     expect(en.params).toMatchObject({ brentChangePct: -25, ttfChangePct: 10, horizonMonths: 6 });
     expect(en.recognised).toEqual(['brentChangePct', 'ttfChangePct', 'horizonMonths']);
 
-    const uk = await mockScenarioApi.parseScenario('нафта впаде на 30% за 12 місяців');
+    const uk = await mockScenarioApi.parseScenario('нафта впаде на 30% за 12 місяців', CONTEXT);
     expect(uk.params).toMatchObject({ brentChangePct: -30, horizonMonths: 12 });
 
     const nb = await mockScenarioApi.parseScenario(
       'oljeprisen faller 20 % og gassprisen stiger 15 %',
+      CONTEXT,
     );
     expect(nb.params).toMatchObject({ brentChangePct: -20, ttfChangePct: 15 });
   });
 
   it('recognises nothing in text without numbers', async () => {
-    expect((await mockScenarioApi.parseScenario('what about the weather?')).recognised).toEqual([]);
+    expect(
+      (await mockScenarioApi.parseScenario('what about the weather?', CONTEXT)).recognised,
+    ).toEqual([]);
   });
 });

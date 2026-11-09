@@ -1,10 +1,11 @@
 /**
- * The two halves of the data layer. CoreApi is what the backend serves today (live API,
- * or mocks when VITE_USE_MOCKS=true). ExtrasApi is what it does not serve yet; it is
- * always the mock layer, and every UI element showing it carries a "Sample data" badge.
+ * The two halves of the data layer. CoreApi is production, ownership and reported quarters.
+ * ExtrasApi is the models, markets and Ask: the live API serves all of it, the static demo
+ * its public parts, and the mock layer stands in for the rest (mode.ts says what is sample).
  */
 import type {
-  AskAnswer,
+  AskReply,
+  AskTable,
   Anomaly,
   Company,
   CompanyDetail,
@@ -16,8 +17,8 @@ import type {
   FieldOutlines,
   FieldStatus,
   FieldSummary,
-  ForwardPrices,
   Freshness,
+  LatestPrices,
   LicenceShare,
   MonthRange,
   Nowcast,
@@ -26,9 +27,10 @@ import type {
   ReportedQuarter,
 } from './types';
 import type {
+  ParseContext,
   ParsedScenario,
-  ScenarioModel,
   ScenarioParams,
+  ScenarioPreset,
   ScenarioResult,
   SharePriceSeries,
 } from './types.scenario';
@@ -49,18 +51,24 @@ export interface CoreApi {
 }
 
 export interface ExtrasApi {
+  /** 404 when the field has no model card (nothing produced in the last two years). */
   fieldForecast(id: number): Promise<FieldForecast>;
+  /** The newest live prediction per focus company, for the open quarter. */
   nowcasts(): Promise<Nowcast[]>;
+  /** The newest row per company, quarter and kind: live and backtest rows both. */
   predictionLog(): Promise<Prediction[]>;
   anomalies(): Promise<Anomaly[]>;
+  /** Brent (daily) and TTF (monthly) over the last year. */
   prices(): Promise<PriceSeries[]>;
-  forwardPrices(): Promise<ForwardPrices>;
-  ask(question: string): Promise<AskAnswer>;
+  latestPrices(): Promise<LatestPrices>;
+  ask(question: string): Promise<AskReply>;
+  askTables(): Promise<AskTable[]>;
   sharePrices(companyId: string): Promise<SharePriceSeries>;
-  scenarioModel(companyId: string): Promise<ScenarioModel>;
+  scenarioPresets(): Promise<ScenarioPreset[]>;
+  /** The answer carries the model with its fit, the caveats and the notice. */
   runScenario(companyId: string, params: ScenarioParams): Promise<ScenarioResult>;
   /** Free text → parameters (an LLM on the backend). 503 = AI not configured there. */
-  parseScenario(text: string): Promise<ParsedScenario>;
+  parseScenario(text: string, context: ParseContext): Promise<ParsedScenario>;
 }
 
 /**

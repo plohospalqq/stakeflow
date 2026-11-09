@@ -5,12 +5,13 @@ import {
   useCompanyFields,
   useCompanyProduction,
   useCompanyQuarters,
-  useForwardPrices,
   useFreshness,
+  useLatestPrices,
   useNowcasts,
   usePredictionLog,
 } from '@/api/hooks';
 import { isNotFound } from '@/api/http';
+import { isSample } from '@/api/mode';
 import type { CompanyDetail as Company, CompanyFieldMonthly, ReportedQuarter } from '@/api/types';
 import type { ChartState } from '@/components/ChartCard';
 import { ErrorChip } from '@/components/Chips';
@@ -98,7 +99,16 @@ function PlainWords({
           month: formatMonthNameLong(addMonths(view.month, -1)),
         })
       : null,
-    perDayUsd ? t(m.plain.companyMoney, { usd: formatUsd(perDayUsd) }) : null,
+    perDayUsd && revenue
+      ? t(
+          revenue.isSample
+            ? m.plain.companyMoneySample
+            : revenue.isAtLatest
+              ? m.plain.companyMoney
+              : m.plain.companyMoneyYours,
+          { usd: formatUsd(perDayUsd) },
+        )
+      : null,
   ].filter((l): l is string => Boolean(l));
   return (
     <section
@@ -124,7 +134,9 @@ function PlainWords({
           </li>
         ))}
       </ul>
-      {perDayUsd ? <SampleBadge className="self-start" detail={m.sample.revenue} /> : null}
+      {perDayUsd && revenue?.isSample ? (
+        <SampleBadge className="self-start" detail={m.sample.revenue} />
+      ) : null}
     </section>
   );
 }
@@ -187,7 +199,7 @@ export default function CompanyDetail() {
   const quarters = useCompanyQuarters(id);
   const nowcasts = useNowcasts();
   const log = usePredictionLog();
-  const forward = useForwardPrices();
+  const prices = useLatestPrices();
 
   const meta = COMPANY_META[id];
   const latestMonth = freshness.data?.latestMonth;
@@ -200,7 +212,7 @@ export default function CompanyDetail() {
     () => (log.data ?? []).filter((p) => p.companyId === id),
     [log.data, id],
   );
-  const revenue = useRevenue(production.data, nowcast, forward.data);
+  const revenue = useRevenue(production.data, nowcast, prices.data);
 
   if (company.isError) {
     const missing = isNotFound(company.error);
@@ -327,7 +339,7 @@ export default function CompanyDetail() {
             unit={units.label}
             format={(v) => units.format(v, digits)}
             compact={compact}
-            sample
+            sample={isSample('nowcast')}
             delta={refValue ? { value: (nowValue / refValue - 1) * 100 } : undefined}
             sub={t(m.company.range, {
               lo: units.format(units.fromQuarterRate(nowcast.lo, nowcast.quarterStart)),
@@ -339,7 +351,9 @@ export default function CompanyDetail() {
         ) : (
           <div className="card flex min-w-0 flex-col gap-1.5 p-5">
             <span className="text-[13px] font-semibold text-muted">{m.company.quarterNowcast}</span>
-            <span className="text-[14px] text-muted">{m.company.notModelled}</span>
+            <span className="text-[14px] text-muted">
+              {nowcasts.isError ? m.company.nowcastUnavailable : m.company.notModelled}
+            </span>
           </div>
         )}
         {revenue ? (
@@ -350,18 +364,20 @@ export default function CompanyDetail() {
             unit=""
             format={formatUsd}
             compact={compact}
-            sample
-            sub={revenue.isAtForward ? m.company.atForward : m.company.atYours}
+            sample={revenue.isSample}
+            sub={revenue.isAtLatest ? m.company.atLatest : m.company.atYours}
           />
-        ) : production.isPending || forward.isPending ? (
+        ) : production.isPending || prices.isPending ? (
           <KpiCard label={m.company.revenue} value={null} unit="" format={String} />
         ) : (
           <div className="card flex min-w-0 flex-col gap-1.5 p-5">
             <span className="flex items-center justify-between gap-2">
               <span className="text-[13px] font-semibold text-muted">{m.company.revenue}</span>
-              <SampleBadge />
+              {isSample('prices') ? <SampleBadge /> : null}
             </span>
-            <span className="text-[14px] text-muted">{m.company.noRevenue}</span>
+            <span className="text-[14px] text-muted">
+              {prices.isError ? m.company.noPrices : m.company.noRevenue}
+            </span>
           </div>
         )}
       </section>

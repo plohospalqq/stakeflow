@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { useCompanyFields, useFreshness, useScenario, useScenarioModel } from '@/api/hooks';
+import { useCompanyFields, useFreshness, useScenario, useScenarioPresets } from '@/api/hooks';
+import { isUnavailable } from '@/api/http';
+import { IS_STATIC_DEMO, isSample } from '@/api/mode';
 import type { ParsedScenario, ScenarioParams } from '@/api/types.scenario';
 import { Icon } from '@/components/Icon';
 import { Page } from '@/components/layout/Page';
@@ -12,16 +14,21 @@ import { Term } from '@/components/Term';
 import { useCompanyName } from '@/hooks/useCompanyName';
 import { useDebounced } from '@/hooks/useDebounced';
 import { useI18n } from '@/i18n/useI18n';
-import { formatMonth, formatPct, formatSigned } from '@/lib/format';
+import { formatDate, formatMonth, formatNumber, formatPct } from '@/lib/format';
 import { clampScenario, DRIVERS, NEUTRAL_SCENARIO, SCENARIO_LIMITS } from '@/lib/scenario';
 import { ModelFit } from './scenarios/ModelFit';
-import { isPresetId, PRESETS, SCENARIO_COMPANIES, type PresetId } from './scenarios/presets';
+import {
+  DEFAULT_PARAMS,
+  DEFAULT_PRESET,
+  orderPresets,
+  presetWords,
+  SCENARIO_COMPANIES,
+} from './scenarios/presets';
 import { ScenarioSlider } from './scenarios/ScenarioSlider';
 import { SharePriceCard } from './scenarios/SharePriceCard';
 import { WriteYourOwn } from './scenarios/WriteYourOwn';
 
 const SVERDRUP = 26376286;
-const OIL_DOWN: ScenarioParams = { ...NEUTRAL_SCENARIO, brentChangePct: -30 };
 
 /** Johan Sverdrup's share of the company's output in the latest month (0 if none). */
 function useSverdrupShare(companyId: string): { share: number; month: string | undefined } {
@@ -35,17 +42,16 @@ function useSverdrupShare(companyId: string): { share: number; month: string | u
 }
 
 /** ?co= and ?preset= keep the explorer shareable. */
-function useScenarioUrl(): [string, (id: string) => void, PresetId | null] {
+function useScenarioUrl(): [string, (id: string) => void, string | null] {
   const [params, setParams] = useSearchParams();
   const raw = params.get('co');
   const company = raw && SCENARIO_COMPANIES.includes(raw) ? raw : 'aker-bp';
-  const preset = params.get('preset');
   const setCompany = (id: string) => {
     const next = new URLSearchParams(params);
     next.set('co', id);
     setParams(next, { replace: true, preventScrollReset: true });
   };
-  return [company, setCompany, isPresetId(preset) ? preset : null];
+  return [company, setCompany, params.get('preset')];
 }
 
 export default function Scenarios() {
@@ -53,23 +59,24 @@ export default function Scenarios() {
   const name = useCompanyName();
   const [company, setCompany, presetFromUrl] = useScenarioUrl();
   const sverdrup = useSverdrupShare(company);
-  // Opens on "Oil −30%": a blank 0% says nothing about what the explorer does.
-  const [params, setParams] = useState<ScenarioParams>(OIL_DOWN);
-  const [active, setActive] = useState<PresetId | null>('oilDown');
+  const presetQuery = useScenarioPresets();
+  const presets = useMemo(() => orderPresets(presetQuery.data ?? []), [presetQuery.data]);
+  const [params, setParams] = useState<ScenarioParams>(DEFAULT_PARAMS);
+  const [active, setActive] = useState<string | null>(DEFAULT_PRESET);
   const settled = useDebounced(params, 120);
   const result = useScenario(company, settled);
-  const model = useScenarioModel(company);
+  const sample = isSample('scenario');
 
-  // A preset in the link (from the landing page) applies once its inputs are known.
+  // A preset in the link (from the landing page) applies once the presets are known.
   const appliedFromUrl = useRef(false);
   useEffect(() => {
     if (appliedFromUrl.current || !presetFromUrl) return;
-    const preset = PRESETS.find((p) => p.id === presetFromUrl);
-    if (!preset || (preset.id === 'sverdrup' && !sverdrup.month)) return;
+    const preset = presets.find((p) => p.id === presetFromUrl);
+    if (!preset) return;
     appliedFromUrl.current = true;
-    setParams(preset.params(sverdrup.share));
+    setParams(preset.params);
     setActive(preset.id);
-  }, [presetFromUrl, sverdrup.share, sverdrup.month]);
+  }, [presetFromUrl, presets]);
 
   const set = (key: keyof ScenarioParams, value: number) => {
     setParams((p) => clampScenario({ ...p, [key]: value }));
@@ -81,6 +88,10 @@ export default function Scenarios() {
       for (const key of parsed.recognised) next[key] = parsed.params[key];
       return clampScenario(next);
     });
+    // The parser computed a production change for the company the text named.
+    if (parsed.companyId && SCENARIO_COMPANIES.includes(parsed.companyId)) {
+      setCompany(parsed.companyId);
+    }
     setActive(null);
   };
 
@@ -88,6 +99,8 @@ export default function Scenarios() {
   const pct = (v: number) => formatPct(v, 0, true);
   const spoken = (v: number) => t(m.scenarios.change, { v: formatPct(v, 0, true) });
   const r = result.data;
+  const activePreset = presets.find((p) => p.id === active);
+  const activeWords = activePreset ? presetWords(m, activePreset) : null;
   const sliders: {
     key: keyof ScenarioParams;
     label: string;
@@ -126,6 +139,8 @@ export default function Scenarios() {
     () => Math.max(1, ...DRIVERS.map((d) => Math.abs(r?.contributions[d] ?? 0))),
     [r],
   );
+  const sampleDetail = IS_STATIC_DEMO ? m.sample.scenarioStatic : m.sample.scenario;
+  const unavailable = result.isError && isUnavailable(result.error) ? result.error : null;
 
   return (
     <Page
@@ -142,6 +157,9 @@ export default function Scenarios() {
         <div className="flex flex-col gap-1">
           <strong className="text-[16px] font-semibold">{m.scenarios.notice}</strong>
           <p className="m-0 text-[14px] text-muted">{m.scenarios.noticeText}</p>
+          {IS_STATIC_DEMO ? (
+            <p className="m-0 text-[14px] text-muted">{m.scenarios.staticNote}</p>
+          ) : null}
         </div>
       </aside>
 
@@ -172,10 +190,19 @@ export default function Scenarios() {
             <h2 id="res-h" className="m-0 text-[14px] font-semibold text-muted">
               {m.scenarios.result} · {name(company)}
             </h2>
-            <SampleBadge detail={m.sample.scenario} />
+            {sample ? <SampleBadge detail={sampleDetail} /> : null}
           </div>
           {r ? (
             <ScenarioGauge medianPct={r.medianPct} lowPct={r.lowPct} highPct={r.highPct} />
+          ) : unavailable ? (
+            <div className="flex flex-col gap-1.5 text-[14px] text-muted" role="alert">
+              <p className="m-0">{m.scenarios.noModel}</p>
+              {unavailable.detail ? (
+                <p lang="en" className="lbl m-0">
+                  {unavailable.detail}
+                </p>
+              ) : null}
+            </div>
           ) : result.isError ? (
             <p className="m-0 text-[14px] text-muted" role="alert">
               {m.scenarios.loadFailed}
@@ -183,6 +210,18 @@ export default function Scenarios() {
           ) : (
             <Skeleton width={240} height={150} />
           )}
+          {r?.price ? (
+            <p className="m-0 text-center text-[13px] text-muted">
+              {t(m.scenarios.priceLine, {
+                base: formatNumber(r.price.base, 1),
+                currency: r.price.currency,
+                date: formatDate(r.price.date),
+                median: formatNumber(r.price.median, 0),
+                low: formatNumber(r.price.low, 0),
+                high: formatNumber(r.price.high, 0),
+              })}
+            </p>
+          ) : null}
           <span className="text-center text-[12.5px] text-muted">
             <Term id="range80">{m.glossary.range80.term}</Term>
           </span>
@@ -200,33 +239,39 @@ export default function Scenarios() {
               {m.scenarios.presets}
             </h2>
             <div role="group" aria-label={m.scenarios.presets} className="flex flex-wrap gap-2">
-              {PRESETS.map((p) => {
+              {presets.map((p) => {
                 const on = active === p.id;
+                const words = presetWords(m, p);
                 return (
                   <button
                     key={p.id}
                     type="button"
                     aria-pressed={on}
+                    lang={words.lang}
                     onClick={() => {
-                      setParams(p.params(sverdrup.share));
+                      setParams(p.params);
                       setActive(p.id);
                     }}
                     className={`min-h-[40px] rounded-full px-4 text-[14px] font-medium transition-transform duration-300 hover:scale-[1.04] max-nav:min-h-[44px] ${
                       on ? 'bg-ink text-bg' : 'bg-surface2 text-ink hover:bg-surface3'
                     }`}
                   >
-                    {m.scenarios[p.label]}
+                    {words.label}
                   </button>
                 );
               })}
             </div>
-            {active === 'sverdrup' && sverdrup.month ? (
+            {activeWords ? (
+              <p lang={activeWords.lang} className="m-0 text-[13px] text-muted">
+                {activeWords.text}
+              </p>
+            ) : null}
+            {active === 'sverdrup-outage' && sverdrup.month && sverdrup.share > 0 ? (
               <p className="m-0 text-[13px] text-muted">
                 {t(m.scenarios.presetSverdrupNote, {
                   share: formatPct(sverdrup.share * 100, 0),
                   company: name(company),
                   month: formatMonth(sverdrup.month),
-                  cut: formatPct(params.productionChangePct, 1),
                 })}
               </p>
             ) : null}
@@ -239,7 +284,7 @@ export default function Scenarios() {
                 className="btn px-3.5 text-[13px]"
                 onClick={() => {
                   setParams(NEUTRAL_SCENARIO);
-                  setActive('calm');
+                  setActive(null);
                 }}
               >
                 <Icon name="reset" size={15} />
@@ -279,9 +324,7 @@ export default function Scenarios() {
                 <li key={d} className="flex flex-col gap-1">
                   <span className="flex justify-between text-[14px]">
                     <span>{m.scenarios.drivers[d]}</span>
-                    <span className="num font-semibold">
-                      {t(m.scenarios.pp, { v: formatSigned(v, 1) })}
-                    </span>
+                    <span className="num font-semibold">{formatPct(v, 1, true)}</span>
                   </span>
                   <span className="relative block h-2 rounded-full bg-surface2" aria-hidden="true">
                     <span className="absolute inset-y-0 left-1/2 w-px bg-line-strong" />
@@ -298,13 +341,27 @@ export default function Scenarios() {
               );
             })}
           </ul>
-          <span className="lbl">{m.scenarios.ppNote}</span>
+          <span className="lbl">{m.scenarios.driverNote}</span>
+          {r && (r.caveats.length > 0 || r.notice) ? (
+            <div className="flex w-full flex-col gap-1.5 border-t border-line pt-3">
+              <span className="cap">{m.scenarios.caveats}</span>
+              <ul lang="en" className="m-0 flex list-none flex-col gap-1.5 p-0 text-[13px]">
+                {r.caveats.map((c) => (
+                  <li key={c} className="flex gap-1.5 text-muted">
+                    <Icon name="info" size={14} className="mt-0.5 flex-none text-warn-ink" />
+                    <span>{c}</span>
+                  </li>
+                ))}
+                {r.notice ? <li className="font-semibold text-ink">{r.notice}</li> : null}
+              </ul>
+            </div>
+          ) : null}
         </section>
 
         <div className="nav:col-span-2">
-          <WriteYourOwn onApply={applyParsed} />
+          <WriteYourOwn companyId={company} onApply={applyParsed} />
         </div>
-        <ModelFit model={model.data} />
+        <ModelFit model={r?.model} failed={result.isError} />
       </div>
     </Page>
   );

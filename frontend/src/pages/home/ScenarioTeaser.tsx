@@ -1,22 +1,21 @@
 import { Link } from 'react-router';
 import { useScenario } from '@/api/hooks';
+import { IS_STATIC_DEMO, isSample } from '@/api/mode';
 import { SampleBadge } from '@/components/SampleBadge';
 import { ScenarioGauge } from '@/components/ScenarioGauge';
 import { Skeleton } from '@/components/Skeleton';
 import { useCompanyName } from '@/hooks/useCompanyName';
 import { useI18n } from '@/i18n/useI18n';
 import { formatPct } from '@/lib/format';
-import { NEUTRAL_SCENARIO } from '@/lib/scenario';
-import { PRESETS } from '../scenarios/presets';
+import { DEFAULT_PARAMS, PRESET_ORDER } from '../scenarios/presets';
 
 const TEASER_COMPANY = 'aker-bp';
-const OIL_DOWN = { ...NEUTRAL_SCENARIO, brentChangePct: -30 };
 
 /** "What if oil falls 30%?": a taste of the scenario explorer, clearly a scenario. */
 export function ScenarioTeaser() {
   const { m, t } = useI18n();
   const name = useCompanyName();
-  const scenario = useScenario(TEASER_COMPANY, OIL_DOWN);
+  const scenario = useScenario(TEASER_COMPANY, DEFAULT_PARAMS);
   const r = scenario.data;
 
   return (
@@ -32,15 +31,15 @@ export function ScenarioTeaser() {
             <span className="text-muted">{m.home.scenarioHookDim}</span>
           </p>
           <ul className="m-0 flex list-none flex-wrap gap-2.5 p-0">
-            {PRESETS.slice(0, 4).map((p, i) => (
-              <li key={p.id}>
+            {PRESET_ORDER.slice(0, 4).map((id, i) => (
+              <li key={id}>
                 <Link
-                  to={`/scenarios?preset=${p.id}`}
+                  to={`/scenarios?preset=${id}`}
                   className={`inline-flex min-h-[44px] items-center rounded-full px-4 text-[15px] font-medium no-underline transition-transform duration-300 hover:scale-[1.04] ${
                     i === 0 ? 'bg-ink text-bg' : 'bg-surface2 text-ink'
                   }`}
                 >
-                  {m.scenarios[p.label]}
+                  {m.scenarios.presetsById[id].label}
                 </Link>
               </li>
             ))}
@@ -62,6 +61,10 @@ export function ScenarioTeaser() {
                 })}
               </p>
             </>
+          ) : scenario.isError ? (
+            <p className="m-0 max-w-[320px] text-center text-[14px] text-muted">
+              {m.scenarios.noModel}
+            </p>
           ) : (
             <Skeleton width={240} height={140} />
           )}
@@ -69,7 +72,9 @@ export function ScenarioTeaser() {
             <span className="rounded-full border border-[color-mix(in_srgb,var(--oil)_50%,transparent)] px-3 py-1 text-[11.5px] font-semibold uppercase tracking-[0.05em] text-oil-ink">
               {m.scenarios.notice}
             </span>
-            <SampleBadge detail={m.sample.scenario} />
+            {isSample('scenario') ? (
+              <SampleBadge detail={IS_STATIC_DEMO ? m.sample.scenarioStatic : m.sample.scenario} />
+            ) : null}
           </div>
         </div>
       </div>

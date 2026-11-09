@@ -1,7 +1,8 @@
 /**
  * Scenario contract helpers: ranges, clamping, the snake_case wire names the backend uses,
- * and the model's arithmetic. The arithmetic is here (not only in the backend) so the UI can
- * print every step and the mock computes exactly what the screen explains.
+ * and the model's arithmetic for the sample model. The arithmetic follows the backend's
+ * (api/src/stakeflow_api/scenario.py) so the sample explains the same thing the real model
+ * does; with the live API the page shows the backend's numbers and never recomputes them.
  */
 import type {
   ScenarioDriver,
@@ -26,12 +27,13 @@ export const PARAM_KEYS: (keyof ScenarioParams)[] = [
   'horizonMonths',
 ];
 
+/** Nothing changes over the backend's default horizon of three months. */
 export const NEUTRAL_SCENARIO: ScenarioParams = {
   brentChangePct: 0,
   ttfChangePct: 0,
   productionChangePct: 0,
   eurusdChangePct: 0,
-  horizonMonths: 6,
+  horizonMonths: 3,
 };
 
 /** Wire names of the backend contract. */
@@ -92,36 +94,41 @@ const DRIVER_PARAM: Record<ScenarioDriver, keyof ScenarioParams> = {
 
 export const DRIVERS: ScenarioDriver[] = ['brent', 'ttf', 'production', 'eurusd'];
 
-/** z for a two-sided 80% interval. */
-const Z80 = 1.2816;
+/** z for a two-sided 80% interval (same constant as the backend). */
+const Z80 = 1.2815515655446004;
 
-/** log(1 + pct/100), with −100% kept finite (a full stop is a 99.9% fall, not −∞). */
+/** ln(1 + pct/100). −100% is computed as −99%, as the backend does: a log cannot reach zero. */
 function logChange(pct: number): number {
-  return Math.log(Math.max(0.001, 1 + pct / 100));
+  return Math.log(Math.max(0.01, 1 + pct / 100));
 }
 
+const pct = (logReturn: number) => (Math.exp(logReturn) - 1) * 100;
+
+export type ScenarioCore = Pick<
+  ScenarioResult,
+  'params' | 'medianPct' | 'lowPct' | 'highPct' | 'contributions' | 'model'
+>;
+
 /**
- * The model's answer to a scenario. Median: Σ β·log(1+change). 80% range: coefficient
- * uncertainty for these changes plus the residual volatility over the horizon, which is
- * why longer horizons get wider bands.
+ * The model's answer to a scenario. Central change: Σ β·ln(1 + change), no drift. 80% range:
+ * coefficient uncertainty for these changes plus the residual volatility over the horizon,
+ * which is why longer horizons get wider bands. The sample model has no covariance matrix, so
+ * it treats the coefficients as independent; the backend uses the full matrix (x′ Cov(b) x).
  */
-export function modelScenario(
-  model: ScenarioModel,
-  input: ScenarioParams,
-): Omit<ScenarioResult, 'companyId'> {
+export function modelScenario(model: ScenarioModel, input: ScenarioParams): ScenarioCore {
   const params = clampScenario(input);
   const x = (d: ScenarioDriver) => logChange(params[DRIVER_PARAM[d]]);
   const term = (d: ScenarioDriver) => model.coefficients[d] * x(d);
+  // What each driver alone would do; they combine by multiplying, as the backend reports them.
   const contributions: Record<ScenarioDriver, number> = {
-    brent: term('brent') * 100,
-    ttf: term('ttf') * 100,
-    production: term('production') * 100,
-    eurusd: term('eurusd') * 100,
+    brent: pct(term('brent')),
+    ttf: pct(term('ttf')),
+    production: pct(term('production')),
+    eurusd: pct(term('eurusd')),
   };
   const median = DRIVERS.reduce((s, d) => s + term(d), 0);
   const paramVar = DRIVERS.reduce((s, d) => s + (model.standardErrors[d] * x(d)) ** 2, 0);
   const sigma = Math.sqrt(paramVar + model.residualVolMonthly ** 2 * params.horizonMonths);
-  const pct = (logReturn: number) => (Math.exp(logReturn) - 1) * 100;
   return {
     params,
     medianPct: pct(median),
@@ -130,4 +137,10 @@ export function modelScenario(
     contributions,
     model,
   };
+}
+
+/** |t| ≥ 2: the backend's line between a sensitivity and noise. */
+export function isSignificant(model: ScenarioModel, driver: ScenarioDriver): boolean {
+  const se = model.standardErrors[driver];
+  return se > 0 && Math.abs(model.coefficients[driver] / se) >= 2;
 }

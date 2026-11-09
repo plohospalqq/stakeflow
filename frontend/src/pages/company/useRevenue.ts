@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import type { CompanyMonthly, ForwardPrices, Nowcast } from '@/api/types';
-import { daysInQuarter } from '@/lib/dates';
+import { isSample } from '@/api/mode';
+import type { CompanyMonthly, LatestPrices, Nowcast } from '@/api/types';
+import { daysInQuarter, quarterOf } from '@/lib/dates';
 import { useI18n } from '@/i18n/useI18n';
 import { formatMonth, formatQuarter } from '@/lib/format';
 import { estimateRevenue, type RevenueEstimate } from '@/lib/revenue';
@@ -20,17 +21,19 @@ export interface RevenueModel {
   days: number;
   /** What the volume is based on, in words. */
   volumeLabel: string;
-  /** True when the volume itself is sample data (the nowcast). */
-  volumeIsSample: boolean;
+  /** Prices or the nowcast volume are sample data (mocks mode). */
+  isSample: boolean;
   kboed: number;
   liquidsShare: number;
   /** Months the product split was taken from. */
   splitFrom: string;
   splitTo: string;
   eurUsd: number;
-  forwardAsOf: string;
+  /** When the default prices were observed: Brent's day and TTF's month. */
+  brentDate: string;
+  ttfMonth: string;
   prices: PriceInputs;
-  isAtForward: boolean;
+  isAtLatest: boolean;
   estimate: RevenueEstimate;
   setPrice: (key: keyof PriceInputs, value: number) => void;
   reset: () => void;
@@ -39,19 +42,22 @@ export interface RevenueModel {
 /**
  * Inputs for the revenue estimate. Volume: the open-quarter nowcast when the company has
  * one, otherwise the average of the last three Sodir months. Product split: always the
- * last three Sodir months. Prices: forward prices until the reader moves a slider.
+ * last three Sodir months. Prices: the latest Brent, TTF and EUR/USD until the reader moves a
+ * slider. Without all three prices there is no estimate rather than a made-up one.
  */
 export function useRevenue(
   production: CompanyMonthly[] | undefined,
   nowcast: Nowcast | undefined,
-  forward: ForwardPrices | undefined,
+  latest: LatestPrices | undefined,
 ): RevenueModel | null {
   const { m, t } = useI18n();
   const [overrides, setOverrides] = useState<Partial<PriceInputs>>({});
 
   const recent = useMemo(() => (production ?? []).slice(-3), [production]);
 
-  if (!forward || recent.length === 0) return null;
+  if (!latest || recent.length === 0) return null;
+  const { brentUsdPerBbl, ttfEurPerMwh, eurUsd, brentDate, ttfMonth } = latest;
+  if (brentUsdPerBbl === null || ttfEurPerMwh === null || eurUsd === null) return null;
   const first = recent[0];
   const last = recent[recent.length - 1];
   if (!first || !last) return null;
@@ -61,11 +67,11 @@ export function useRevenue(
   const days = recent.reduce((s, p) => s + p.daysInMonth, 0);
   const liquidsShare = recent.reduce((s, p) => s + p.oilSm3 + p.nglCondSm3, 0) / oe;
 
-  const quarterStart = nowcast?.quarterStart ?? forward.quarterStart;
+  const quarterStart = nowcast?.quarterStart ?? quarterOf(latest.asOf).start;
   const kboed = nowcast ? nowcast.value : sm3ToKboed(oe, days);
   const prices: PriceInputs = {
-    brentUsdPerBbl: overrides.brentUsdPerBbl ?? forward.brentUsdPerBbl,
-    ttfEurPerMwh: overrides.ttfEurPerMwh ?? forward.ttfEurPerMwh,
+    brentUsdPerBbl: overrides.brentUsdPerBbl ?? brentUsdPerBbl,
+    ttfEurPerMwh: overrides.ttfEurPerMwh ?? ttfEurPerMwh,
     realisationPct: overrides.realisationPct ?? DEFAULT_REALISATION_PCT,
   };
   const quarterDays = daysInQuarter(quarterStart);
@@ -76,20 +82,21 @@ export function useRevenue(
     volumeLabel: nowcast
       ? t(m.revenue.volumeNowcast, { quarter: formatQuarter(quarterStart) })
       : t(m.revenue.volumeAverage, { from: formatMonth(first.month), to: formatMonth(last.month) }),
-    volumeIsSample: Boolean(nowcast),
+    isSample: isSample('prices') || (Boolean(nowcast) && isSample('nowcast')),
     kboed,
     liquidsShare,
     splitFrom: first.month,
     splitTo: last.month,
-    eurUsd: forward.eurUsd,
-    forwardAsOf: forward.asOf,
+    eurUsd,
+    brentDate: brentDate ?? latest.asOf,
+    ttfMonth: ttfMonth ?? latest.asOf,
     prices,
-    isAtForward: Object.keys(overrides).length === 0,
+    isAtLatest: Object.keys(overrides).length === 0,
     estimate: estimateRevenue({
       kboed,
       liquidsShare,
       days: quarterDays,
-      eurUsd: forward.eurUsd,
+      eurUsd,
       ...prices,
     }),
     setPrice: (key, value) => setOverrides((o) => ({ ...o, [key]: value })),

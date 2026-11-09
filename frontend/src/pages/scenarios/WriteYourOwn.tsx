@@ -1,7 +1,7 @@
 import { useId, useState, type FormEvent } from 'react';
-import { useParseScenario } from '@/api/hooks';
+import { useLatestPrices, useParseScenario } from '@/api/hooks';
 import { ApiError } from '@/api/http';
-import type { ParsedScenario } from '@/api/types.scenario';
+import type { ParseContext, ParsedScenario } from '@/api/types.scenario';
 import { Icon } from '@/components/Icon';
 import { useI18n } from '@/i18n/useI18n';
 import { describeParsed } from './describe';
@@ -9,12 +9,20 @@ import { describeParsed } from './describe';
 /**
  * Free text → the five numbers. Only the translation is done by AI on the backend; the
  * model computes the result, and every number lands on the sliders where it can be changed.
+ * The parser gets today's price levels, so "oil at $90" becomes a percentage it can show.
  * A 503 means the backend has no AI configured: say so and point to the presets.
  */
-export function WriteYourOwn({ onApply }: { onApply: (parsed: ParsedScenario) => void }) {
+export function WriteYourOwn({
+  companyId,
+  onApply,
+}: {
+  companyId: string;
+  onApply: (parsed: ParsedScenario) => void;
+}) {
   const { m, t, plural } = useI18n();
   const [text, setText] = useState('');
   const parse = useParseScenario();
+  const latest = useLatestPrices();
   const id = useId();
   const statusId = useId();
 
@@ -22,19 +30,35 @@ export function WriteYourOwn({ onApply }: { onApply: (parsed: ParsedScenario) =>
     e.preventDefault();
     const q = text.trim();
     if (!q) return;
-    parse.mutate(q, {
-      onSuccess: (parsed) => {
-        if (parsed.recognised.length > 0) onApply(parsed);
+    const prices = latest.data;
+    const context: ParseContext = {
+      companyId,
+      reference: prices
+        ? { brentUsd: prices.brentUsdPerBbl, ttfEurMwh: prices.ttfEurPerMwh, eurusd: prices.eurUsd }
+        : null,
+    };
+    parse.mutate(
+      { text: q, context },
+      {
+        onSuccess: (parsed) => {
+          if (parsed.recognised.length > 0) onApply(parsed);
+        },
       },
-    });
+    );
   };
 
   let status: { tone: 'ok' | 'warn' | 'error'; text: string } | null = null;
   if (parse.isError) {
     status =
       parse.error instanceof ApiError && parse.error.status === 503
-        ? { tone: 'warn', text: m.scenarios.aiOff }
-        : { tone: 'error', text: m.scenarios.writeFailed };
+        ? {
+            tone: 'warn',
+            text:
+              parse.error.code === 'llm_not_configured' ? m.scenarios.aiOff : m.scenarios.aiDown,
+          }
+        : parse.error instanceof ApiError && parse.error.status === 422
+          ? { tone: 'warn', text: m.scenarios.writeNothing }
+          : { tone: 'error', text: m.scenarios.writeFailed };
   } else if (parse.data) {
     status =
       parse.data.recognised.length === 0
@@ -89,6 +113,16 @@ export function WriteYourOwn({ onApply }: { onApply: (parsed: ParsedScenario) =>
       >
         {status ? status.text : m.scenarios.writeNote}
       </p>
+      {parse.data && parse.data.assumptions.length > 0 && !parse.isError ? (
+        <div className="flex flex-col gap-1">
+          <span className="cap">{m.scenarios.howWorkedOut}</span>
+          <ul lang="en" className="lbl m-0 flex list-disc flex-col gap-1 pl-4">
+            {parse.data.assumptions.map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   );
 }

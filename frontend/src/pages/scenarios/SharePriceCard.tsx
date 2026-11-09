@@ -1,6 +1,7 @@
 import type { EChartsOption } from 'echarts';
 import { useMemo } from 'react';
 import { useSharePrices } from '@/api/hooks';
+import { IS_STATIC_DEMO, isSample } from '@/api/mode';
 import { ChartCard } from '@/components/ChartCard';
 import { EChart } from '@/components/charts/EChart';
 import {
@@ -18,12 +19,16 @@ import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useI18n } from '@/i18n/useI18n';
 import { formatDate, formatNumber } from '@/lib/format';
 
-/** Real share prices for context (sample until the price endpoint is wired; badged). */
+/**
+ * Share prices for context. Live: the closes the operator imported from their own Euronext
+ * download (empty when none were). Static demo and mocks: generated, badged.
+ */
 export function SharePriceCard({ companyId }: { companyId: string }) {
   const { m, t, plural, lang } = useI18n();
   const theme = useChartTheme();
   const isDesktop = useIsDesktop();
   const prices = useSharePrices(companyId);
+  const sample = isSample('scenario');
   const data = prices.data;
   const points = useMemo(() => data?.points ?? [], [data]);
   const months = Math.round(points.length / 21);
@@ -97,10 +102,19 @@ export function SharePriceCard({ companyId }: { companyId: string }) {
             })
           : '…'
       }
-      sample={m.sample.sharePrice}
+      sample={sample ? (IS_STATIC_DEMO ? m.sample.scenarioStatic : m.sample.sharePrice) : undefined}
       legend={[]}
-      source={{ label: m.common.sampleSource }}
-      state={prices.isError ? 'error' : prices.isPending ? 'loading' : 'ready'}
+      source={{ label: sample ? m.common.sampleSource : m.scenarios.priceSource }}
+      state={
+        prices.isError
+          ? 'error'
+          : prices.isPending
+            ? 'loading'
+            : points.length === 0
+              ? 'empty'
+              : 'ready'
+      }
+      message={m.scenarios.priceEmpty}
       onRetry={() => void prices.refetch()}
       height={height}
       className="nav:col-span-2"

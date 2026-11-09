@@ -72,3 +72,52 @@ def test_field_series_reach_back_to_the_field_window(exported):
     )
     assert longest[0]["month"] >= meta["seriesStart"]["field"]
     assert longest[-1]["month"] == meta["latestMonth"]
+
+
+def test_every_field_with_a_model_card_has_its_forecast(exported, client):
+    fields = read(exported, "fields/all.json")
+    with_card = [
+        f["id"] for f in fields if client.get(f"/fields/{f['id']}/forecast").status_code == 200
+    ]
+    assert with_card, "no field has a model card; run the forecast first"
+    for field_id in with_card:
+        assert (exported / f"fields/{field_id}/forecast.json").is_file(), field_id
+    without = {f["id"] for f in fields} - set(with_card)
+    for field_id in without:
+        assert not (exported / f"fields/{field_id}/forecast.json").exists(), field_id
+    first = with_card[0]
+    assert (
+        read(exported, f"fields/{first}/forecast.json")
+        == client.get(f"/fields/{first}/forecast").json()
+    )
+
+
+def test_models_and_markets_are_the_api_responses(exported, client):
+    expected = {
+        "models/nowcasts.json": client.get("/nowcasts"),
+        "models/predictions.json": client.get("/predictions", params={"latest": True}),
+        "anomalies/all.json": client.get("/anomalies", params={"limit": 500}),
+        "prices/series.json": client.get("/prices", params={"series": ["brent", "ttf"]}),
+        "prices/latest.json": client.get("/prices/latest"),
+    }
+    for file, response in expected.items():
+        if response.status_code == 503:
+            # Not run on this database yet: the exporter leaves the file out
+            assert not (exported / file).exists(), file
+            continue
+        assert read(exported, file) == response.json(), file
+
+
+def test_prices_hold_brent_and_ttf_only(exported):
+    if not (exported / "prices/series.json").is_file():
+        pytest.skip("no prices loaded")
+    series = read(exported, "prices/series.json")
+    assert sorted(s["id"] for s in series) == ["brent", "ttf"]
+    assert {s["id"]: s["frequency"] for s in series} == {"brent": "daily", "ttf": "monthly"}
+
+
+def test_nothing_derived_from_euronext_is_exported(exported):
+    # Share prices are the user's own Euronext download: never redistributed, so neither the
+    # series nor a scenario computed from them may land in the public demo.
+    names = [p.relative_to(exported).as_posix() for p in exported.rglob("*") if p.is_file()]
+    assert not [n for n in names if "share" in n or "scenario" in n]

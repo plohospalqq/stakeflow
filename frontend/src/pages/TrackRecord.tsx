@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 import { useCompaniesQuarters, usePredictionLog } from '@/api/hooks';
+import { isSample } from '@/api/mode';
+import type { PredictionKind } from '@/api/types';
 import type { ChartState } from '@/components/ChartCard';
 import { ErrorState } from '@/components/ErrorState';
 import { KpiCard } from '@/components/KpiCard';
@@ -9,17 +11,25 @@ import { SampleBadge } from '@/components/SampleBadge';
 import { SectionHeading } from '@/components/SectionHeading';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Term } from '@/components/Term';
-import { useCompanyName } from '@/hooks/useCompanyName';
+import { useCompanyName, useReportKind } from '@/hooks/useCompanyName';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useUnits } from '@/hooks/useUnits';
 import { Rich } from '@/i18n/Rich';
 import { useI18n } from '@/i18n/useI18n';
 import { FOCUS_ORDER } from '@/lib/companies';
-import { formatNumber, formatPct, formatQuarter } from '@/lib/format';
-import { leadDays, modelStats, reconciledQuarters, reconciliationSummary } from '@/lib/trackRecord';
+import { quarterOf } from '@/lib/dates';
+import { formatDate, formatNumber, formatPct, formatQuarter } from '@/lib/format';
+import {
+  frozenAt,
+  leadDays,
+  modelStats,
+  reconciledQuarters,
+  reconciliationSummary,
+  type ModelStats,
+} from '@/lib/trackRecord';
 import { WhyTheyDiffer } from './company/ReconciliationCard';
 import { AccuracyCard } from './track/AccuracyCard';
-import { PredictionLog } from './track/PredictionLog';
+import { KindChip, PredictionLog } from './track/PredictionLog';
 import { ReconciliationTable } from './track/ReconciliationTable';
 import { TrustItems } from './track/TrustItems';
 
@@ -39,6 +49,88 @@ function useCompanyFilter(): [string, (value: string) => void] {
   return [value, set];
 }
 
+/** The four scores for one kind of prediction; live and backtests never share a row. */
+function StatsRow({
+  kind,
+  stats,
+  pending,
+}: {
+  kind: PredictionKind;
+  stats: ModelStats | null;
+  pending: boolean;
+}) {
+  const { m, t } = useI18n();
+  const isDesktop = useIsDesktop();
+  const sample = isSample('predictions');
+  const value = (v: number | null | undefined) => (pending ? null : (v ?? 0));
+  return (
+    <div
+      aria-label={t(m.track.summary, { kind: m.track.kind[kind] })}
+      role="group"
+      className="grid grid-cols-2 gap-3 nav:grid-cols-4 nav:gap-5"
+    >
+      <KpiCard
+        index={0}
+        label={m.track.avgErrModel}
+        value={value(stats?.modelError)}
+        unit="%"
+        format={(v) => formatNumber(v, 1)}
+        compact={!isDesktop}
+        sample={sample}
+        sub={m.track.howFar}
+      />
+      <KpiCard
+        index={1}
+        label={m.track.avgErrBaseline}
+        value={value(stats?.baselineError)}
+        unit="%"
+        format={(v) => formatNumber(v, 1)}
+        compact={!isDesktop}
+        sample={sample}
+        sub={
+          stats?.improvement != null ? (
+            <Rich
+              text={stats.improvement >= 1 ? m.track.moreAccurate : m.track.lessAccurate}
+              vars={{
+                n: formatNumber(
+                  stats.improvement >= 1 ? stats.improvement : 1 / stats.improvement,
+                  1,
+                ),
+              }}
+            />
+          ) : (
+            m.track.noResolved
+          )
+        }
+      />
+      <KpiCard
+        index={2}
+        label={<Term id="range80">{m.track.inRange}</Term>}
+        value={value(stats?.inRange)}
+        unit=""
+        format={(v) => `${formatNumber(v, 0)} / ${stats?.resolved ?? 0}`}
+        compact={!isDesktop}
+        sample={sample}
+        sub={m.track.inRangeSub}
+      />
+      <KpiCard
+        index={3}
+        label={m.track.bias}
+        value={value(stats?.bias)}
+        unit="%"
+        format={(v) => `${v > 0 ? '+' : ''}${formatNumber(v, 1)}`}
+        compact={!isDesktop}
+        sample={sample}
+        sub={
+          stats
+            ? `${m.track.biasSub} · ${formatQuarter(stats.firstQuarter)}–${formatQuarter(stats.lastQuarter)}`
+            : m.track.biasSub
+        }
+      />
+    </div>
+  );
+}
+
 function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
@@ -55,7 +147,7 @@ export default function TrackRecord() {
   const { m, t, plural } = useI18n();
   const units = useUnits();
   const name = useCompanyName();
-  const isDesktop = useIsDesktop();
+  const reportKind = useReportKind();
   const [company, setCompany] = useCompanyFilter();
   const ids = useMemo(() => (company === ALL ? FOCUS_ORDER : [company]), [company]);
   const quarterQueries = useCompaniesQuarters(FOCUS_ORDER);
@@ -87,14 +179,21 @@ export default function TrackRecord() {
     () => (log.data ?? []).filter((p) => ids.includes(p.companyId)),
     [log.data, ids],
   );
-  const stats = modelStats(predictions);
+  const live = predictions.filter((p) => p.kind === 'live');
+  const backtests = predictions.filter((p) => p.kind === 'backtest');
+  const liveStats = modelStats(live);
+  const backtestStats = modelStats(backtests);
   const resolved = predictions.filter((p) => p.reportedOn !== null && p.status === 'resolved');
   const averageLead = resolved.length
     ? Math.round(
-        resolved.reduce((s, p) => s + leadDays(p.madeAt, p.reportedOn ?? p.madeAt), 0) /
+        resolved.reduce((s, p) => s + leadDays(frozenAt(p), p.reportedOn ?? p.madeAt), 0) /
           resolved.length,
       )
     : null;
+  const nextLive = live
+    .filter((p) => p.status === 'open')
+    .sort((a, b) => a.expectedReportOn.localeCompare(b.expectedReportOn))[0];
+  const sample = isSample('predictions');
   const logState: ChartState = log.isError ? 'error' : log.isPending ? 'loading' : 'ready';
   const filterOptions = [
     { value: ALL, label: m.track.allCompanies },
@@ -195,7 +294,7 @@ export default function TrackRecord() {
             <h2 id="model-h" className="display m-0 text-display-l font-bold">
               {m.track.modelTitle}
             </h2>
-            <SampleBadge detail={m.sample.nowcastAll} />
+            {sample ? <SampleBadge detail={m.sample.nowcastAll} /> : null}
           </div>
           <p className="m-0 max-w-[780px] text-[15px] text-muted">{m.track.modelText}</p>
         </div>
@@ -205,68 +304,52 @@ export default function TrackRecord() {
         {log.isError ? (
           <ErrorState message={m.track.logFailed} onRetry={() => void log.refetch()} />
         ) : (
-          <div
-            aria-label={m.track.summary}
-            role="group"
-            className="grid grid-cols-2 gap-3 nav:grid-cols-4 nav:gap-5"
-          >
-            <KpiCard
-              index={0}
-              label={m.track.avgErrModel}
-              value={log.isPending ? null : (stats?.modelError ?? 0)}
-              unit="%"
-              format={(v) => formatNumber(v, 1)}
-              compact={!isDesktop}
-              sample
-              sub={m.track.howFar}
-            />
-            <KpiCard
-              index={1}
-              label={m.track.avgErrBaseline}
-              value={log.isPending ? null : (stats?.baselineError ?? 0)}
-              unit="%"
-              format={(v) => formatNumber(v, 1)}
-              compact={!isDesktop}
-              sample
-              sub={
-                stats ? (
-                  <Rich
-                    text={m.track.moreAccurate}
-                    vars={{ n: formatNumber(stats.improvement, 1) }}
-                  />
-                ) : (
-                  m.track.noResolved
-                )
-              }
-            />
-            <KpiCard
-              index={2}
-              label={<Term id="range80">{m.track.inRange}</Term>}
-              value={log.isPending ? null : (stats?.inRange ?? 0)}
-              unit=""
-              format={(v) => `${formatNumber(v, 0)} / ${stats?.resolved ?? 0}`}
-              compact={!isDesktop}
-              sample
-              sub={m.track.inRangeSub}
-            />
-            <KpiCard
-              index={3}
-              label={m.track.bias}
-              value={log.isPending ? null : (stats?.bias ?? 0)}
-              unit="%"
-              format={(v) => `${v > 0 ? '+' : ''}${formatNumber(v, 1)}`}
-              compact={!isDesktop}
-              sample
-              sub={
-                stats
-                  ? `${m.track.biasSub} · ${formatQuarter(stats.firstQuarter)}–${formatQuarter(stats.lastQuarter)}`
-                  : m.track.biasSub
-              }
-            />
-          </div>
+          <>
+            <section aria-labelledby="live-h" className="card enter flex flex-col gap-2 p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <KindChip kind="live" />
+                <h3 id="live-h" className="m-0 text-[15px] font-semibold">
+                  {m.track.liveTitle}
+                </h3>
+              </div>
+              <p className="m-0 text-[14px] text-muted">
+                {liveStats
+                  ? plural(m.track.liveScored, liveStats.resolved)
+                  : nextLive
+                    ? t(m.track.liveNone, {
+                        quarter: formatQuarter(nextLive.quarterStart),
+                        freeze: formatDate(quarterOf(nextLive.quarterStart).end),
+                        company: name(nextLive.companyId, nextLive.companyName),
+                        kind: reportKind(nextLive.reportKind),
+                        date: formatDate(nextLive.expectedReportOn),
+                      })
+                    : m.track.liveEmpty}
+              </p>
+            </section>
+            {liveStats ? <StatsRow kind="live" stats={liveStats} pending={log.isPending} /> : null}
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <KindChip kind="backtest" />
+                <h3 className="m-0 text-[15px] font-semibold">{m.track.backtestTitle}</h3>
+              </div>
+              <p className="m-0 max-w-[780px] text-[14px] text-muted">
+                <Rich text={m.track.backtestText} />
+              </p>
+            </div>
+            <StatsRow kind="backtest" stats={backtestStats} pending={log.isPending} />
+          </>
         )}
 
+        {liveStats ? (
+          <AccuracyCard
+            kind="live"
+            predictions={predictions}
+            state={logState}
+            onRetry={() => void log.refetch()}
+          />
+        ) : null}
         <AccuracyCard
+          kind="backtest"
           predictions={predictions}
           state={logState}
           onRetry={() => void log.refetch()}

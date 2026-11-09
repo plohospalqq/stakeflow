@@ -71,7 +71,7 @@ A switch in the navigation; first-time visitors get **Simple words**.
   state's share in barrels and per cent, homes one year of gas could heat
   (`bn m³ × 1e9 × 10.8 kWh ÷ 12,000 kWh per home`, with the assumption footnoted), how much a field
   fell in a year and why fields decline, how long it has produced and how far below its plateau
-  it is, roughly what a company's oil and gas is worth a day at sample prices.
+  it is, roughly what a company's oil and gas is worth a day at the latest prices.
 - Glossary terms (dotted underline) open a short definition in both modes: barrels of oil
   equivalent, licence share, the state's direct stake (Petoro/SDFI), NGL and condensate, trading
   update, nowcast, plateau, decline, 80% range, R² and more.
@@ -79,24 +79,28 @@ A switch in the navigation; first-time visitors get **Simple words**.
 
 ## Real data and sample data
 
-The backend serves production, ownership, reported quarters and the shelf summary. Everything
-else comes from a deterministic mock layer and is marked with a dashed amber **Sample data**
-badge wherever it appears.
+Where numbers come from depends on the data mode (`src/api/mode.ts`). Anything that is not
+real carries a dashed amber **Sample data** badge, and the footer says which parts are which.
 
-| Screen                          | Real (live API)                                                                                                                                                                                         | Sample (badged)                                                                                                     |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Landing `/`                     | Shelf total and its 24 months (`/summary`), state share, last year's gas, largest fields, the company race and what moved, how-it-works example, the reconciliation record                              | Scenario teaser, Brent/TTF, recent anomalies                                                                        |
-| Field map `/map`                | Field centroids and outlines, production, oil share, owners, 36-month history, "Highlight owner", the shelf timeline                                                                                    | –                                                                                                                   |
-| Fields `/fields`                | Every field with latest production and change                                                                                                                                                           | –                                                                                                                   |
-| Field detail `/fields/:id`      | History by product, plateau, owners and ownership timeline, facts, plain-words facts, monthly table and CSV                                                                                             | Decline-curve forecast, model card, 12-month forecast KPI                                                           |
-| Company detail `/companies/:id` | Net production by field (day-weighted shares), product rings, latest month, last reported quarter and its gap, **public data vs reported by quarter**, legal entities                                   | Quarter nowcast, nowcast-vs-reported chart, revenue estimate (prices and nowcast volume; the product split is real) |
-| Scenarios `/scenarios`          | –                                                                                                                                                                                                       | Share prices, the fitted model and its answer, the free-text parser (until the endpoints are wired)                 |
-| Track record `/track-record`    | **Public data vs what the companies reported** per company and quarter (e.g. 14 complete quarters each: 0.22% Equinor's Norway segment, 0.72% Aker BP, 3.8% Vår Energi, whose figures include fuel gas) | Model summary, accuracy over time, prediction log and its CSV                                                       |
-| Anomalies `/anomalies`          | Field names, operators and owners                                                                                                                                                                       | Every anomaly, its numbers and the impact per company                                                               |
-| Ask `/ask` (beta)               | Table catalogue; the SQL shown runs as-is on the marts and the answers are its real output                                                                                                              | Pre-computed: only a few example questions are answered                                                             |
+- **Live API** (`VITE_DATA_SOURCE=api`, the default with `make up`): every number comes from the
+  API. Free text in Ask and in the scenario explorer needs `ANTHROPIC_API_KEY` on the server;
+  without it Ask answers with prepared examples marked "AI is not configured on this server".
+- **Static demo** (`VITE_DATA_SOURCE=static`, GitHub Pages): the API's responses frozen at build
+  time by `api/scripts/export_static.py`. Share prices and scenario results are never exported
+  (Euronext data may not be redistributed), so the scenario explorer runs on a badged sample
+  model there, and Ask is a preview (no server).
+- **Mocks** (`VITE_USE_MOCKS=true`, tests and CI): everything is deterministic sample data.
 
-`VITE_USE_MOCKS=true` mocks everything (tests, CI, demos without a backend); the footer then
-says every number is sample data.
+| Screen                          | Live API                                                                                                                                                                                                                                 | Static demo                                                |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Landing `/`                     | Shelf total and its 24 months, state share, gas, largest fields, the company race, the reconciliation record, Brent (daily, 3 months, EIA) and TTF (monthly averages, World Bank), recent anomalies, the scenario teaser (Aker BP model) | All real except the scenario teaser (sample)               |
+| Field map `/map`, Fields        | Field centroids and outlines, production, owners, history, the shelf timeline                                                                                                                                                            | Real                                                       |
+| Field detail `/fields/:id`      | History by product, plateau, owners, facts, monthly table; the forecast with its 80% range and model card (decline curve, or held flat on plateau, ramp-up or a young field), backtest error next to the simple guess                    | Real (every field with a model card)                       |
+| Company detail `/companies/:id` | Net production by field, product rings, Sodir vs reported, the quarter nowcast and its range, nowcast vs reported (past quarters are backtests), the revenue estimate at the latest Brent, TTF and EUR/USD                               | Real, frozen at the snapshot                               |
+| Scenarios `/scenarios`          | Share prices from the user's own Euronext import (local only), the fitted model (R², adjusted R², window, coefficients, backtest), its answer with the backend's band, caveats and notice, the presets                                   | Sample (badged): share prices, model and answers           |
+| Track record `/track-record`    | Reconciliation; live predictions and backtests scored apart, never pooled; accuracy over time; the prediction log and its CSV, with links to the committed file of each quarter-end live prediction                                      | Real, frozen at the snapshot                               |
+| Anomalies `/anomalies`          | The latest detector run: every flagged field-month, its band and the effect on each owner. Status and notes are yours and stay in the browser tab                                                                                        | Real                                                       |
+| Ask `/ask` (beta)               | AI answers with the SQL that ran; without an AI key, prepared examples (badged) say why. Table catalogue from `/ask/tables`                                                                                                              | Prepared examples (badged); their SQL and numbers are real |
 
 ### Rules the UI keeps
 
@@ -126,17 +130,23 @@ The scenario explorer uses the backend's parameter contract, in camelCase in the
 | `eurusd_change_pct`     | `eurusdChangePct`     | −50 … +100  |
 | `horizon_months`        | `horizonMonths`       | 1 … 24      |
 
-`ExtrasApi` has `sharePrices(companyId)`, `scenarioModel(companyId)`,
-`runScenario(companyId, params)` and `parseScenario(text)`; types in `api/types.scenario.ts`,
-sample implementations in `api/mock/scenario.ts`. A 503 from `parseScenario` is shown as "AI is
-not configured on this server" with the ready-made scenarios next to it.
+`ExtrasApi` has `sharePrices(companyId)`, `scenarioPresets()`, `runScenario(companyId, params)`
+and `parseScenario(text, { companyId, reference })`; the parser gets today's Brent, TTF and
+EUR/USD from `/prices/latest`, so "oil at $90" becomes a percentage it can explain. Types in
+`api/types.scenario.ts`, sample implementations in `api/mock/scenario.ts`. The page shows the
+backend's band, caveats and notice as they are and never recomputes them. A 503 from
+`parseScenario` reads "AI is not configured on this server" (code `llm_not_configured`) or "The
+AI did not answer", with the ready-made scenarios next to it.
 
 ## Architecture
 
 ```
 src/
-  api/        CoreApi (live API or mocks) and ExtrasApi (always mocks), TanStack Query hooks
-    summary.ts  GET /summary (kept beside http.ts until the data-mode work lands)
+  api/        CoreApi (production, ownership) and ExtrasApi (models, markets, Ask) per data
+              mode, TanStack Query hooks
+    http.ts     fetch, errors (status + the API's reason code) and the core mappers
+    extras.ts   mappers for forecasts, nowcasts, predictions, anomalies, prices, scenarios, Ask
+    static.ts   the same mappers over the exported files of the static demo
     mock/       deterministic sample data behind the same interfaces
   i18n/       en (source), uk, nb dictionaries, useI18n, <Rich>
   lib/        pure, tested helpers: units, Intl formatting, dates, plain-language facts,
@@ -173,6 +183,7 @@ The API comes from `make up` at the repo root. `make web` runs the dev server fo
 
 | Variable            | Default                 | What it does                                            |
 | ------------------- | ----------------------- | ------------------------------------------------------- |
+| `VITE_DATA_SOURCE`  | `api`                   | `static` = read the exported files in `public/data`     |
 | `VITE_USE_MOCKS`    | `false`                 | `true` = no backend needed, every number is sample data |
 | `VITE_FEATURE_ASK`  | unset                   | `true` shows the Ask page and its nav item              |
 | `STAKEFLOW_API_URL` | `http://localhost:8000` | Where the dev proxy sends `/api`                        |
@@ -184,8 +195,10 @@ pnpm gen:api                   # regenerate src/api/schema.gen.ts from ../api/op
 
 Tests run against the mock layer (never the network) with reduced motion; they cover the
 dictionaries (keys, placeholders, plural forms), language detection, Simple words vs Expert,
-the scenario contract (ranges, clamping, wire names, the 503 path), the motion fallbacks and
-every screen's main flows.
+the live-API mappers on real response shapes (null model-card fields, null baselines, null SQL
+cells, live vs backtest, committed-file links, the 503 fallbacks), the static routes, which data
+is sample in which mode, the scenario contract (ranges, clamping, wire names), the motion
+fallbacks and every screen's main flows.
 
 ## Accessibility and responsiveness
 
@@ -198,7 +211,9 @@ every screen's main flows.
 
 ## Screenshots
 
-Taken from the live API at 1440 × 1000 and 390 × 844 with reduced motion.
+Taken from the live API at 1440 × 1000 and 390 × 844 with reduced motion, except the scenario
+explorer: share prices and scenario results come from the user's own Euronext download, which
+may not be published, so those screenshots are taken in mocks mode and show sample data.
 
 |                                    | Dark                                                                                            | Light                                                                                             |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -228,10 +243,10 @@ On a phone:
 
 ## Known limits
 
-- Nowcasts, the prediction log, forecasts, anomalies, Brent/TTF, share prices, the scenario
-  model and Ask are sample data until the backend serves them.
-- `/summary` is fetched by `api/summary.ts` with plain `fetch`; it does not follow a static data
-  mode yet.
+- Brent is a daily spot price and TTF a monthly average: no free source may publish forwards or
+  daily TTF, so the revenue estimate runs "at latest prices", not forward prices.
+- Anomaly status and notes are not stored: the detector flags every anomaly as new.
+- The static demo has no share prices and no scenario model (Euronext terms), and no Ask server.
 - Anomaly notes, the Ask examples and non-focus companies' scope notes are English in every
   language (marked `lang="en"`).
 - The map circles always show the latest month; the timeline replays the shelf total only.

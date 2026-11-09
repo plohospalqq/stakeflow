@@ -8,7 +8,7 @@ import {
   useFreshness,
 } from '@/api/hooks';
 import { isNotFound } from '@/api/http';
-import { USE_MOCKS } from '@/api/mode';
+import { isSample, USE_MOCKS } from '@/api/mode';
 import type { FieldDetail as Field, FieldMonthly } from '@/api/types';
 import { ChartCard } from '@/components/ChartCard';
 import { FieldStatusChip } from '@/components/Chips';
@@ -149,6 +149,9 @@ export default function FieldDetail() {
   );
   const in12 = forecast.data?.points[12];
   const forecastEnd = forecast.data?.points[forecast.data.points.length - 1]?.month;
+  const forecastSample = isSample('forecast');
+  // No model card: the field has not produced for two years. Not an error worth retrying.
+  const noModel = forecast.isError && isNotFound(forecast.error);
   const digits = units.digits;
   const spark = historyData.slice(-24).map((h) => units.fromMonth(h.oeSm3, h.month));
   const compact = !isDesktop;
@@ -199,7 +202,7 @@ export default function FieldDetail() {
         })),
         ...chartForecast.slice(1, 13).map((p) => ({
           month: p.month,
-          kind: m.field.forecastSample,
+          kind: forecastSample ? m.field.forecastSample : m.field.forecastLabel,
           total: p.p50,
           range: `${units.format(p.p10, digits)}–${units.format(p.p90, digits)}`,
         })),
@@ -329,7 +332,7 @@ export default function FieldDetail() {
           unit={units.label}
           format={(v) => units.format(v)}
           compact={compact}
-          sample
+          sample={forecastSample}
           delta={
             in12 && view && view.value > 0
               ? { value: (units.fromMonth(in12.p50, in12.month) / view.value - 1) * 100 }
@@ -368,7 +371,7 @@ export default function FieldDetail() {
             forecastEnd ? t(m.field.chartSubForecast, { month: formatMonth(forecastEnd) }) : ''
           }`}
           info={m.field.chartInfo}
-          sample={m.sample.forecastChart}
+          sample={forecastSample ? m.sample.forecastChart : undefined}
           actions={
             <SegmentedControl
               size="sm"
@@ -392,7 +395,11 @@ export default function FieldDetail() {
             { label: m.field.range80, color: 'var(--fc)', kind: 'band' },
           ]}
           source={{
-            label: USE_MOCKS ? m.common.sampleSource : m.common.sodir,
+            label: USE_MOCKS
+              ? m.common.sampleSource
+              : chartForecast.length > 0
+                ? m.field.sourceWithForecast
+                : m.common.sodir,
             asOf: latestMonth
               ? t(m.common.throughMonth, { month: formatMonth(latestMonth) })
               : undefined,
@@ -426,10 +433,16 @@ export default function FieldDetail() {
               view
                 ? t(m.field.chartAriaLatest, { value: units.format(view.value), unit: units.label })
                 : ''
-            }${forecastEnd ? t(m.field.chartAriaForecast, { month: formatMonth(forecastEnd) }) : ''}`}
+            }${
+              forecastEnd
+                ? t(forecastSample ? m.field.chartAriaSampleForecast : m.field.chartAriaForecast, {
+                    month: formatMonth(forecastEnd),
+                  })
+                : ''
+            }`}
           />
         </ChartCard>
-        <ForecastExplainer forecast={forecast.data} history={historyData} />
+        <ForecastExplainer forecast={forecast.data} history={historyData} missing={noModel} />
       </div>
 
       <div className="grid grid-cols-1 items-start gap-5 nav:grid-cols-4">

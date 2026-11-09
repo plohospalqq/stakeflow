@@ -173,6 +173,8 @@ export interface NowcastPoint {
   /** Null while the quarter is open. */
   actual: number | null;
   errorPct: number | null;
+  /** Replayed with today's data rather than frozen at the time. */
+  backtest: boolean;
 }
 
 export function buildNowcastOption(
@@ -237,7 +239,9 @@ export function buildNowcastOption(
         const p = i === null ? undefined : points[i];
         if (!p) return '';
         let html = tooltipTitle(
-          `${p.quarterName}${p.actual === null ? ` · ${m.charts.open}` : ''}`,
+          `${p.quarterName}${p.actual === null ? ` · ${m.charts.open}` : ''}${
+            p.backtest ? ` · ${m.charts.backtest}` : ''
+          }`,
         );
         html += tooltipRow(
           t.forecast,

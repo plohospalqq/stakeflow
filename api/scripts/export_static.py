@@ -1,7 +1,13 @@
 """Export the API's responses as JSON files for the static GitHub Pages demo.
 
 The frontend's static mode (VITE_DATA_SOURCE=static, frontend/src/api/static.ts) maps every API
-path it calls to one of these files, so the demo shows the real numbers without a backend.
+path it calls to one of these files, so the demo shows the real numbers without a backend:
+production and ownership, field forecasts with their model cards, nowcasts, the prediction log,
+anomalies, Brent and TTF prices.
+
+Share prices and scenario results are never exported: they derive from the user's own Euronext
+download, which may not be redistributed (docs/market-data-sources.md). The demo's scenario
+explorer runs on badged sample data instead.
 
     # against the API from `make up` (or any running API with --api-url)
     uv run python scripts/export_static.py ../frontend/public/data
@@ -32,6 +38,11 @@ LIST_LIMIT = 500
 # Ids become file paths: only accept the shapes the API itself produces
 COMPANY_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
+# The only price series a page draws; FX stays out of the demo to keep it small
+PRICE_SERIES = ["brent", "ttf"]
+
+Param = str | int | bool | list[str]
+
 
 def add_months(month: date, n: int) -> date:
     total = month.year * 12 + month.month - 1 + n
@@ -53,14 +64,27 @@ class Exporter:
         self.files += 1
         self.bytes += len(text.encode())
 
-    def export(self, path: str, file: str, **params: str | int | bool) -> Any:
+    def export(self, path: str, file: str, **params: Param) -> Any:
         response = self.client.get(path, params=params)
         response.raise_for_status()
         body = response.json()
         self.save(file, body)
         return body
 
-    def full_list(self, path: str, file: str, **params: str | int | bool) -> list[dict]:
+    def export_if_present(self, path: str, file: str, **params: Param) -> Any | None:
+        """A model output: 404 means this item has none (a field without a model card); 503 means
+        the model has not run on this database. Either way the demo shows what the API would."""
+        response = self.client.get(path, params=params)
+        if response.status_code in (404, 503):
+            if response.status_code == 503:
+                print(f"skipped {path}: {response.status_code} {response.text}", file=sys.stderr)
+            return None
+        response.raise_for_status()
+        body = response.json()
+        self.save(file, body)
+        return body
+
+    def full_list(self, path: str, file: str, **params: Param) -> list[dict]:
         rows = self.export(path, file, limit=LIST_LIMIT, **params)
         if len(rows) >= LIST_LIMIT:
             raise SystemExit(f"{path} {params}: {len(rows)} rows fill a page; the list is cut")
@@ -91,7 +115,11 @@ def export_all(client: httpx.Client, out: Path, source: str) -> Exporter:
             f"fields/{field_id}/production.json",
             start=field_start,
         )
+        # Every field with a model card (produced in the last two years); the rest answer 404
+        ex.export_if_present(f"/fields/{field_id}/forecast", f"fields/{field_id}/forecast.json")
         group_ids |= {o["groupId"] for o in detail["currentOwners"]}
+
+    export_models_and_markets(ex)
 
     for group_id in sorted(group_ids):
         if not COMPANY_ID.match(group_id):
@@ -115,6 +143,19 @@ def export_all(client: httpx.Client, out: Path, source: str) -> Exporter:
         },
     )
     return ex
+
+
+def export_models_and_markets(ex: Exporter) -> None:
+    """Nowcasts, the prediction log, anomalies and prices: one file each, as the pages ask."""
+    ex.export_if_present("/nowcasts", "models/nowcasts.json")
+    # The newest row per quarter and kind, live and backtest alike: what every page requests
+    ex.export_if_present("/predictions", "models/predictions.json", latest=True)
+    anomalies = ex.export_if_present("/anomalies", "anomalies/all.json", limit=LIST_LIMIT)
+    if anomalies is not None and len(anomalies) >= LIST_LIMIT:
+        raise SystemExit(f"/anomalies: {len(anomalies)} rows fill a page; the list is cut")
+    # Brent is daily and TTF monthly, over the API's default year
+    ex.export_if_present("/prices", "prices/series.json", series=PRICE_SERIES)
+    ex.export_if_present("/prices/latest", "prices/latest.json")
 
 
 def prepare_out_dir(out: Path) -> None:

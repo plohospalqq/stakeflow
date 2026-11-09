@@ -63,23 +63,21 @@ export const nb: Dict = {
 
   sample: {
     badge: 'Eksempeldata',
-    title: 'Genererte eksempeldata: serveren leverer ikke dette ennå.',
-    sr: ': generert, ikke fra Sodir eller selskapsrapporter',
-    nowcast: 'Modellen for nåtidsanslag er ikke på serveren ennå',
-    nowcastAll:
-      'Modellen for nåtidsanslag er ikke på serveren ennå; alle tallene her er eksempeldata',
-    forecast: 'Prognosemodellen er ikke på serveren ennå',
-    forecastChart:
-      'Prognosen (stiplet linje og bånd) er eksempeldata; produksjonshistorikken er fra Sodir',
-    prices: 'Brent- og TTF-prisene er genererte til en priskilde er koblet til',
-    anomalies: 'Deteksjon av anomalier er ikke på serveren ennå; listen er eksempeldata',
-    ask: 'Spør er en forhåndsvisning: bare noen få eksempelspørsmål har svar, hentet på forhånd med en ekte spørring',
-    revenue: 'Prisene er eksempeldata; fordelingen på produkter er fra Sodir',
-    revenueNowcast:
-      'Prisene og volumet i nåtidsanslaget er eksempeldata; fordelingen på produkter er fra Sodir',
-    log: 'Eksempelanslag til modellen for nåtidsanslag er på serveren',
-    sharePrice: 'Aksjekursene er eksempeldata til prisendepunktet er koblet til',
-    scenario: 'Scenariomodellen er eksempeldata til endepunktet er koblet til',
+    title: 'Genererte eksempeldata, ikke ekte tall.',
+    sr: ': generert, ikke fra Sodir, selskapsrapporter eller en markedskilde',
+    nowcastAll: 'Genererte eksempler på nåtidsanslag: alle tallene her er oppdiktet',
+    forecast: 'Generert eksempel på prognosemodell',
+    forecastChart: 'Prognosen (stiplet linje og bånd) er genererte eksempeldata',
+    prices: 'Genererte eksempelpriser for Brent og TTF',
+    anomalies: 'Anomalilisten er genererte eksempeldata',
+    ask: 'Et forberedt eksempel: SQL-en er ekte og svaret er det den faktisk gir, men ingen KI skrev den',
+    revenue:
+      'Prisene eller volumet fra nåtidsanslaget er genererte eksempeldata; fordelingen på produkter er ekte',
+    log: 'Genererte eksempelanslag',
+    sharePrice: 'Genererte eksempelkurser',
+    scenario: 'En eksempelmodell med oppdiktede koeffisienter',
+    scenarioStatic:
+      'En eksempelmodell med oppdiktede koeffisienter: den ekte tilpasses på aksjekurser fra Euronext, som ikke kan publiseres her',
   },
 
   nav: {
@@ -101,8 +99,9 @@ export const nb: Dict = {
     logoLabel: 'Stakeflow, forsiden',
     tagline: 'Norsk sokkel, selskap for selskap',
     settings: 'Visningsinnstillinger',
-    openAnomalies: '{n} åpne, eksempeldata',
-    openAnomaliesTitle: 'Åpne anomalier (eksempeldata)',
+    openAnomalies: '{n} flagget i siste måned',
+    openAnomaliesSample: '{n} flagget i siste måned, eksempeldata',
+    openAnomaliesTitle: 'Anomalier flagget i siste måned med data',
   },
 
   settings: {
@@ -200,12 +199,19 @@ export const nb: Dict = {
     licence:
       'Produksjon og lisenser: Sokkeldirektoratet (Sodir), under {licence}. Selskapstallene gjelder kun norsk sokkel.',
     licenceName: 'Norsk lisens for offentlige data (NLOD)',
-    live: 'Live: produksjon, eierskap og rapporterte kvartaler.',
+    live: 'Live fra denne serveren: produksjon, eierskap, rapporterte kvartaler, prognoser, nåtidsanslag og anslagsloggen, anomalier, priser, aksjekurser og scenariomodellen. Uten KI-nøkkel svarer Spør med forberedte eksempler.',
+    staticLive:
+      'Statisk demo, låst ved øyeblikksbildet: produksjon, eierskap, rapporterte kvartaler, prognoser, nåtidsanslag og anslagsloggen, anomalier og priser er ekte.',
     sampleLabel: 'Eksempeldata:',
-    sampleParts:
-      'prognoser og modellkort, nåtidsanslag og anslagsloggen, anomalier, Brent/TTF-priser, aksjekurser og scenarioer, og svarene i Spør.',
+    staticSample:
+      'aksjekurser og scenariomodellen (data fra Euronext kan ikke publiseres her), og Spør (forberedte eksempler, ingen server).',
     mockLabel: 'Testmodus:',
     mockText: 'alle tall på dette nettstedet er eksempeldata.',
+    sourcesLabel: 'Kilder:',
+    sources:
+      'Brent: U.S. Energy Information Administration (EIA), fri bruk (public domain). EUR/USD: ECB-statistikk (ECB statistics). TTF-gass: World Bank Commodity Price Data (The Pink Sheet), CC BY 4.0, regnet om av Stakeflow fra USD/MMBtu til EUR/MWh.',
+    shares:
+      'Aksjekurser: hver brukers egen nedlasting fra Euronext, bare lastet inn i brukerens lokale database og aldri videreformidlet.',
     basemap: 'Bakgrunnskart © OpenFreeMap, OpenMapTiles, OpenStreetMap-bidragsytere.',
   },
 
@@ -281,6 +287,10 @@ export const nb: Dict = {
     rSquared: {
       term: 'R²',
       def: 'Hvor mye av de tidligere kursbevegelsene modellen forklarer: 0 er ingenting, 1 er alt. Det meste av bevegelsene i en aksjekurs forklares ikke av olje- og gassprisene.',
+    },
+    backtest: {
+      term: 'tilbaketest',
+      def: 'En test på fortiden: modellen kjøres som om det var en tidligere dato, med bare dataene som var publisert da, og sammenlignes med det som faktisk skjedde.',
     },
   },
 
@@ -361,8 +371,17 @@ export const nb: Dict = {
     nextText:
       '{month} er ventet. Norge publiserer feltdataene for hver måned 40–69 dager etter at måneden er slutt.',
     pricesTitle: 'Priser',
-    priceWeek: '3 mnd. · endring siste uke',
-    priceAria: 'Prisen på {name} de siste tre månedene, fra {from} til {to} {unit}',
+    brentName: 'Brent-olje',
+    ttfName: 'TTF-gass',
+    vsWeek: 'mot en uke før',
+    vsMonth: 'mot måneden før',
+    priceDaily: 'daglig, {date}',
+    priceMonthly: 'månedssnitt, {month}',
+    priceNote: 'Brent: daglig, siste 3 måneder. TTF: månedssnitt.',
+    priceSources:
+      'Brent: daglig spotpris, siste 3 måneder, U.S. EIA. TTF: månedssnitt, World Bank (CC BY 4.0), regnet om til EUR/MWh av Stakeflow.',
+    pricesFailed: 'Prisene kunne ikke lastes.',
+    priceAria: 'Prisen på {name} over {period}, fra {from} til {to} {unit}',
   },
 
   plain: {
@@ -370,6 +389,10 @@ export const nb: Dict = {
       '{company} får omtrent <b>{value} {unit}</b> fra {fields}, ved å eie en andel i hvert av dem.',
     companyTop: '<b>{field}</b> alene står for {share} av dette.',
     companyMoney:
+      'Med siste priser er det omtrent <b>{usd} i olje og gass om dagen</b> (før kostnader og skatt).',
+    companyMoneyYours:
+      'Med prisene dine er det omtrent <b>{usd} i olje og gass om dagen</b> (før kostnader og skatt).',
+    companyMoneySample:
       'Med eksempelprisene er det omtrent <b>{usd} i olje og gass om dagen</b> (før kostnader og skatt).',
     companyChange: 'Det er {pct} {direction} enn i {month}.',
     fieldAge: 'Feltet har produsert siden {year}: {years}.',
@@ -415,12 +438,14 @@ export const nb: Dict = {
     quarterNowcast: 'Nåtidsanslag for kvartalet',
     notModelled:
       'Ikke modellert. Nåtidsanslag dekker Aker BP, Vår Energi og Equinor (kun norsk sokkel).',
+    nowcastUnavailable: 'Nåtidsanslaget kunne ikke lastes. Det dukker opp når prognosen har kjørt.',
     range: 'intervall {lo}–{hi}',
     revenueLabel: 'Inntektsanslag for {quarter}',
     revenue: 'Inntektsanslag',
-    atForward: 'med terminpriser',
+    atLatest: 'med siste priser',
     atYours: 'med prisene dine nedenfor',
     noRevenue: 'Ingen nylig produksjon å regne inntekt på.',
+    noPrices: 'Ingen priser er lastet inn ennå, så det er ingenting å gange med.',
     mixTitle: 'Hva selskapet produserer',
     ringsLabel: 'Olje {oil}, gass {gas}, NGL og kondensat {ngl}',
     byField: 'Produksjon per felt',
@@ -488,19 +513,22 @@ export const nb: Dict = {
   nowcastCard: {
     title: 'Nåtidsanslag mot rapportert, per kvartal',
     sub: 'Gjennomsnittlig daglig produksjon · {unit}',
-    info: 'Hvert kvartal anslår modellen selskapets produksjon. Anslaget låses ved kvartalsslutt og sjekkes mot fasit når selskapet publiserer. Søylene er det rapporterte tallet, streken er det låste anslaget, og tallet over hver søyle er feilen. Den stiplede søylen er kvartalet som fortsatt er åpent, med 80 %-intervallet.',
-    legendReported: 'Rapportert (eksempel)',
+    subBacktest: 'tidligere kvartaler er tilbaketester',
+    info: 'Hvert kvartal anslår modellen selskapets produksjon. Anslaget låses ved kvartalsslutt og sjekkes mot fasit når selskapet publiserer. Søylene er det rapporterte tallet, streken er anslaget, og tallet over hver søyle er feilen. Den stiplede søylen er kvartalet som fortsatt er åpent, med 80 %-intervallet. Tidligere kvartaler er tilbaketester: modellen kjørt på nytt med bare dataene som var publisert ved hvert kvartalsslutt, men i dagens versjon, så de får modellen til å se litt bedre ut.',
+    legendReported: 'Rapportert av selskapet',
     legendNowcast: 'Nåtidsanslag, låst ved kvartalsslutt',
+    legendBacktest: 'Vårt anslag (tilbaketest)',
     legendOpen: 'Åpent kvartal med 80 %-intervall',
+    source: 'Stakeflows modell for nåtidsanslag; selskapsrapporter',
     notNowcast:
       '{company} har ikke nåtidsanslag. Bare Aker BP, Vår Energi og Equinor (kun norsk sokkel) er modellert.',
-    tableCaption: '{company}: eksempler på nåtidsanslag og rapportert produksjon per kvartal',
+    tableCaption: '{company}: nåtidsanslag og rapportert produksjon per kvartal',
     colNowcast: 'Nåtidsanslag',
     colRange: '80 %-intervall',
     colReported: 'Rapportert',
     colError: 'Feil',
     open: 'Åpent',
-    aria: 'Eksempler på nåtidsanslag for {company} mot rapportert produksjon over {n} kvartaler',
+    aria: 'Nåtidsanslag for {company} mot rapportert produksjon over {n} kvartaler',
     ariaOpen: '; åpent kvartal {quarter} på {value} {unit}',
     frozen: 'Låst ved kvartalsslutt ({date}), sjekket mot selskapets {kind}.',
     expected: '{kind} ≈ {date}',
@@ -519,8 +547,10 @@ export const nb: Dict = {
     brentSpoken: '{v} amerikanske dollar per fat',
     ttfSpoken: '{v} euro per megawattime',
     realisationSpoken: '{v} prosent av Brent',
-    reset: 'Tilbakestill til terminpriser',
-    forward: 'Terminkurve, {date}',
+    reset: 'Tilbakestill til siste priser',
+    latest: 'Siste priser: Brent {date}, TTF {month} (månedssnitt)',
+    priceSources:
+      'Priser: Brent fra U.S. EIA, TTF fra World Bank (CC BY 4.0), EUR/USD fra ECB. Spotpriser, ikke terminpriser: ingen gratis kilde kan publisere dem.',
     maths: 'Utregningen',
     volume:
       'Volum: {label}, {kboed} kboe/d, fordelt med {liquids} væsker (olje + NGL/kondensat) som i Sodir-dataene for {from}–{to}.',
@@ -560,22 +590,46 @@ export const nb: Dict = {
     range80: '80 %-intervall',
     chartTableCaption: 'Produksjonen på {field} per måned, siste 24 måneder og prognose',
     actual: 'Faktisk',
+    forecastLabel: 'Prognose',
     forecastSample: 'Prognose (eksempel)',
     type: 'Type',
+    sourceWithForecast: 'Sodir; prognose: Stakeflows modell',
     chartAria: 'Månedlig produksjon på {field} siden {from}',
     chartAriaLatest: ', sist {value} {unit}',
-    chartAriaForecast: ', med en eksempelprognose til {month}',
+    chartAriaForecast: ', med en prognose til {month}',
+    chartAriaSampleForecast: ', med en eksempelprognose til {month}',
     howTitle: 'Slik leser du prognosen',
     how1: 'Felt produserer mindre hvert år når reservoaret begynner å tømmes. En <b>fallkurve</b> tilpasses denne nedgangen og forlenger den framover.',
+    howFlat: {
+      plateau:
+        'Feltet produserer fortsatt nær toppen: det er på <b>platået</b>. Det er ingen nedgang å tilpasse ennå, så prognosen holder det på de tre siste månedene, med den vanlige sesongsvingningen.',
+      ramp_up:
+        'Feltet vokser fortsatt etter oppstart, så det er ikke på en fallkurve ennå. Prognosen holder det på de tre siste månedene; den faktiske produksjonen kan fortsette å stige.',
+      too_short:
+        'Feltet har produsert i under ett år, for kort til å tilpasse en kurve. Prognosen holder det på de tre siste månedene.',
+    },
     how2: 'Den stiplede linjen er det mest sannsynlige forløpet. Det skraverte båndet viser hvor produksjonen bør havne <b>8 av 10 ganger</b>; det blir bredere fordi den fjerne framtiden er mer usikker. Produktvisningene fordeler totalen etter miksen de siste 12 månedene.',
+    noForecastText:
+      'Feltet har ikke produsert de siste månedene, så det er ingenting å lage prognose for.',
     model: 'Modell',
     method: 'Metode',
-    methodArps: 'Hyperbolsk Arps-fallkurve',
+    methodBy: {
+      arps: 'Fallkurve (Arps)',
+      plateau: 'Holdt flatt: på platå',
+      ramp_up: 'Holdt flatt: fortsatt i opptrapping',
+      too_short: 'Holdt flatt: for ungt',
+      shut_down: 'Ingen: stengt ned',
+    },
     bFactor: 'b-faktor',
     initialDecline: 'Innledende fallrate',
     perYear: '{v} % / år',
     fittedOn: 'Tilpasset på',
     backtest: 'Feil i tilbaketest',
+    naive: 'Enkel gjetning, samme test',
+    coverage: 'Måneder innenfor 80 %-intervallet',
+    backtestNote:
+      'Tilbaketest: modellen ble tilpasset uten de siste 12 månedene og sammenlignet med det som skjedde. Den enkle gjetningen holder de 3 månedene før det flatt.',
+    dataThrough: 'Data til og med',
     modelRun: 'Modellkjøring',
     next12:
       'De neste 12 månedene venter modellen i snitt <b>{value}</b> {unit}, <b>{pct} {direction}</b> enn de siste 12.',
@@ -689,7 +743,7 @@ export const nb: Dict = {
       'Låst kl. 23:59 UTC siste dag i kvartalet, i snitt {n} dager før selskapet publiserer.',
     hashed: 'Hashet til en offentlig logg',
     hashedText:
-      'Hashen til hvert anslag legges i en offentlig Git-logg, så det kan ikke endres i det stille.',
+      'Hvert anslag ved kvartalsslutt committes til GitHub med hashene sine, så det kan ikke endres i det stille.',
     baseline: 'Sammenlignet med en enkel gjetning',
     baselineText: 'Referanse: forrige kvartals rapporterte tall, uendret.',
     never: 'Aldri redigert',
@@ -713,34 +767,58 @@ export const nb: Dict = {
     perCompany: 'Gjennomsnittlig avvik per selskap',
     modelTitle: 'Modell for nåtidsanslag',
     modelText:
-      'Nåtidsanslaget per kvartal er ikke på serveren ennå. Alt nedenfor bruker eksempelanslag for å vise hvordan hver prognose skal vurderes: låst ved kvartalsslutt, sammenlignet med selskapets første publisering og stilt opp mot en enkel gjetning.',
+      'Hvert kvartal anslår modellen produksjonen til hvert fokusselskap fra Sodirs feltdata, uker før selskapet rapporterer den. Live-anslag låses ved kvartalsslutt og committes til GitHub; tilbaketester kjører den samme modellen på tidligere kvartaler. Begge sammenlignes med selskapets første publisering og med en enkel gjetning, og blandes aldri.',
     logFailed: 'Anslagsloggen kunne ikke lastes.',
-    summary: 'Modellsammendrag',
+    summary: 'Modellsammendrag, {kind}',
     avgErrModel: 'Gjennomsnittlig feil, vår modell',
     avgErrBaseline: 'Gjennomsnittlig feil, enkel gjetning',
     howFar: 'hvor langt unna, uavhengig av retning',
     moreAccurate: 'modellen er <b>{n}× mer treffsikker</b>',
+    lessAccurate: 'den enkle gjetningen er <b>{n}× mer treffsikker</b>',
     noResolved: 'ingen avgjorte anslag',
     inRange: 'Faktisk tall innenfor 80 %-intervallet',
     inRangeSub: 'ventet omtrent 8 av 10 hvis intervallene er ærlige',
     bias: 'Skjevhet',
     biasSub: 'positiv = anslagene ligger for høyt',
-    accuracyTitle: 'Treffsikkerhet over tid',
+    liveTitle: 'Live-anslag',
+    liveScored: {
+      one: '{n} live-anslag er sjekket mot fasit så langt.',
+      other: '{n} live-anslag er sjekket mot fasit så langt.',
+    },
+    liveNone:
+      'Ingen er sjekket ennå. Det første, {quarter}, låses {freeze} og sjekkes mot fasit når {company} publiserer sin {kind}, rundt {date}.',
+    liveEmpty: 'Ingen live-anslag ennå.',
+    backtestTitle: 'Tilbaketester',
+    backtestText:
+      'Hvert tidligere kvartal kjørt på nytt: modellen ser bare Sodir-dataene som var publisert ved kvartalets slutt, men i dagens versjon, fordi eldre øyeblikksbilder ikke ble tatt vare på. En rettferdig test av metoden, litt for gunstig, og <b>aldri blandet med live-anslag</b>.',
+    accuracyTitle: '{kind}: treffsikkerhet over tid',
     accuracySub: 'Gjennomsnittlig feil per kvartal, % · lavere er bedre',
+    accuracySubBacktest:
+      'Gjennomsnittlig feil per kvartal, % · lavere er bedre · kjørt på nytt med dagens data',
     accuracyInfo:
-      'For hvert kvartal: hvor langt de låste prognosene havnet fra det selskapene rapporterte, uavhengig av retning, ved siden av det samme tallet for den enkle gjetningen (forrige kvartals tall, uendret). Den stiplede linjen er målet på 2 %.',
+      'For hvert kvartal: hvor langt prognosene havnet fra det selskapene rapporterte, uavhengig av retning, ved siden av det samme tallet for den enkle gjetningen (forrige kvartals tall, uendret). Den stiplede linjen er målet på 2 %.',
     ourModel: 'Vår modell',
     simpleGuess: 'Enkel gjetning',
     target: '{n} %-mål',
     accuracyEmpty: 'Ingen avgjorte anslag for dette utvalget ennå.',
-    accuracyCaption: 'Gjennomsnittlig feil per kvartal, modell mot enkel gjetning (eksempeldata)',
+    accuracyCaption: '{kind}: gjennomsnittlig feil per kvartal, modell mot enkel gjetning',
     accuracyAria:
-      'Gjennomsnittlig feil per kvartal over {n} kvartaler (eksempeldata): modellen var under målet på {target} % i {onTarget} av dem og under den enkle gjetningen i {below}.',
+      '{kind}: gjennomsnittlig feil per kvartal over {n} kvartaler. Modellen var under målet på {target} % i {onTarget} av dem og under den enkle gjetningen i {below}.',
+    source: 'Stakeflows modell for nåtidsanslag; selskapsrapporter',
     logTitle: 'Anslagslogg',
     logSub: 'Åpne kvartaler først, så de nyeste. Tider i UTC · {unit}',
-    logCaption: 'Anslagslogg: alle kvartalsvise nåtidsanslag med fasit (eksempeldata)',
+    logCaption: 'Anslagslogg: alle kvartalsvise nåtidsanslag med fasit',
     logNote:
-      'Feil = (anslått − faktisk) ÷ faktisk: grønn under 2 %, gul 2–4 %, rød over 4 %. Forsprang = rapportdato − tidspunkt for anslaget. Et åpent kvartal oppdateres til det låses ved kvartalsslutt, og sjekkes mot fasit når selskapet publiserer.',
+      'Feil = (anslått − faktisk) ÷ faktisk: grønn under 2 %, gul 2–4 %, rød over 4 %. Forsprang = rapportdato − tidspunkt for anslaget; en tilbaketest regnes fra datoen den gjenskaper. Et åpent kvartal oppdateres til det låses ved kvartalsslutt, og sjekkes mot fasit når selskapet publiserer.',
+    kindFilter: 'Type anslag',
+    allKinds: 'Alle',
+    whatIsBacktest: 'Hva er en tilbaketest?',
+    colKind: 'Type',
+    kind: {
+      live: 'Live',
+      backtest: 'Tilbaketest',
+    },
+    replayedAsOf: 'Gjenskapt per {date}',
     colMade: 'Anslag laget',
     colReport: 'Rapport publisert',
     colLead: 'Forsprang',
@@ -755,9 +833,14 @@ export const nb: Dict = {
     open: 'Åpent',
     pending: 'venter',
     leadDays: '{n} d',
-    commitSr: ' (commit, åpnes i ny fane)',
+    commitSr: ' (lagret kopi på GitHub, åpnes i ny fane)',
     sampleRow: 'Eksempelrad: det finnes ingen commit',
     sampleRowSr: ' (eksempel, ikke committet)',
+    backtestRow: 'Tilbaketest: kjørt senere, derfor aldri committet',
+    backtestRowSr: ' (tilbaketest, ikke committet)',
+    notCommitted:
+      'En live-oppdatering i løpet av kvartalet; bare anslaget ved kvartalsslutt committes',
+    notCommittedSr: ' (oppdatering i løpet av kvartalet, ikke committet)',
   },
 
   anomalies: {
@@ -765,7 +848,7 @@ export const nb: Dict = {
     label: 'Anomalier',
     whatTitle: 'Hva regnes som en anomali?',
     whatText:
-      'Hver måned sammenlignes produksjonen på hvert felt med det prognosen ventet. Havner det faktiske tallet utenfor det ventede båndet, mer enn 10 % og mer enn 3 standardavvik unna, dukker det opp her. Mange har en helt vanlig forklaring, som planlagt vedlikehold.',
+      'Hver måned sammenlignes produksjonen på hvert felt med det feltets egen nyere historikk tilsier. Havner det faktiske tallet utenfor det ventede båndet, mer enn 10 % og mer enn 3 standardavvik unna, dukker det opp her. Mange har en helt vanlig forklaring, som planlagt vedlikehold. Virkningen for eierne regnes med dagens andeler.',
     open: 'Åpne',
     high: 'Høy alvorlighet',
     inMonth: 'I {month}',
@@ -777,12 +860,18 @@ export const nb: Dict = {
     feed: 'Liste over anomalier',
     failed: 'Anomaliene kunne ikke lastes.',
     none: 'Ingen anomalier med denne statusen.',
-    foot: 'Notater og statusendringer blir bare i denne nettleserfanen til anomaliene har en server. Feltnavn og eiere er ekte; anomalitallene er eksempeldata.',
+    foot: 'Detektoren merker hver anomali som ny. Notater og statusendringer er dine: de blir i denne nettleserfanen og lagres ikke.',
+    footSample:
+      'Notater og statusendringer blir i denne nettleserfanen. Feltnavn og eiere er ekte; anomalitallene er eksempeldata.',
     vsExpected: 'mot forventet',
     operator: 'Operatør {name}',
     yourNote: 'Ditt notat (bare denne fanen): ',
     hits: 'Påvirker selskapsproduksjon',
-    noFocus: 'Ingen fokusselskaper eier en andel.',
+    noFocus: 'Ingen eierdata for dette feltet.',
+    moreOwners: {
+      one: 'og {n} eier til',
+      other: 'og {n} eiere til',
+    },
     addNote: 'Legg til notat',
     markExplained: 'Merk som forklart',
     marked: 'Merket som {status}',
@@ -814,10 +903,18 @@ export const nb: Dict = {
     question: 'Spørsmålet ditt',
     placeholder: 'Spør om felt, selskaper, eiere eller prognoser…',
     send: 'Send spørsmål',
-    foot: 'En forhåndsvisning: noen eksempelspørsmål har håndskrevne svar med ekte tall fra marts-tabellene. Svarene skal komme fra de samme offentlige dataene som resten av nettstedet; sjekk alltid SQL-en før du stoler på et svar.',
+    foot: 'En KI gjør spørsmålet ditt om til én skrivebeskyttet SQL-spørring mot de offentlige marts-tabellene og beskriver resultatet. Sjekk alltid SQL-en før du stoler på et svar.',
+    footPreview:
+      'En forhåndsvisning: noen eksempelspørsmål har forberedte svar med ekte tall fra marts-tabellene. Sjekk alltid SQL-en før du stoler på et svar.',
+    previewAiOff:
+      'KI er ikke satt opp på denne serveren, så et forberedt eksempel svarer i stedet.',
+    previewUnavailable:
+      'KI-en eller den skrivebeskyttede databasen svarte ikke, så et forberedt eksempel svarer i stedet.',
+    previewOffline: 'Denne demoen har ingen server, så et forberedt eksempel svarer.',
     help: 'Hjelp',
     goodFirst: 'Gode spørsmål å begynne med',
     tables: 'Data du kan spørre om',
+    tablesFailed: 'Tabellisten kunne ikke lastes.',
     resultView: 'Visning av resultat',
     chart: 'Diagram',
     table: 'Tabell',
@@ -840,7 +937,7 @@ export const nb: Dict = {
     edit: 'Rediger og kjør på nytt',
     copyBlocked: 'Kopiering er blokkert i denne nettleseren; marker teksten i stedet.',
     rerunNote:
-      'Forhåndsvisningen kan ikke kjøre din egen SQL ennå. Når Spør får en server, kjøres redigerte spørringer skrivebeskyttet mot marts.',
+      'Redigerte spørringer kan ikke kjøres herfra ennå. Kopier SQL-en og kjør den skrivebeskyttet i din egen database (make psql).',
     examplesNote:
       'Eksempelspørsmålene og svarene er på engelsk foreløpig; den ferdige versjonen svarer på språket du spør på.',
   },
@@ -858,15 +955,40 @@ export const nb: Dict = {
     priceTitle: 'Aksjekurs som bakgrunn',
     priceSub: '{ticker} · sluttkurs per dag, {currency} · siste {n}',
     priceAria: 'Aksjekursen til {ticker} over {n}, fra {from} til {to} {currency}',
+    staticNote:
+      'Denne offentlige demoen har ingen aksjekurser: data fra Euronext kan ikke videreformidles. Modellen nedenfor er et eksempel med oppdiktede koeffisienter; kjør Stakeflow lokalt med din egen nedlasting fra Euronext for å se den ekte.',
+    priceSource: 'Euronext, brukerens egen nedlasting (bare lokalt)',
+    priceEmpty:
+      'Ingen aksjekurser i denne installasjonen. Hver bruker importerer sin egen nedlasting fra Euronext (make import-shares); de følger aldri med appen.',
     presets: 'Ferdige scenarioer',
-    presetOilDown: 'Olje −30 %',
-    presetGasUp: 'Gass +50 %',
-    presetOilUp: 'Olje +20 %',
-    presetDollar: 'Svakere dollar',
-    presetSverdrup: 'Sverdrup stopper i 2 måneder',
+    presetsById: {
+      'oil-crash': {
+        label: 'Olje −30 %',
+        text: 'Brent faller med nesten en tredel i løpet av tre måneder, som sent i 2014 eller våren 2020. Alt annet står stille.',
+      },
+      'gas-spike': {
+        label: 'Gass +50 %',
+        text: 'Europeiske gasspriser stiger med halvparten i løpet av tre måneder, som under forsyningsfrykten i 2021 og 2022.',
+      },
+      'oil-rally': {
+        label: 'Olje +30 %',
+        text: 'Brent stiger med nesten en tredel i løpet av tre måneder. Alt annet står stille.',
+      },
+      'strong-dollar': {
+        label: 'Sterkere dollar',
+        text: 'Den amerikanske dollaren styrker seg med omtrent en tidel mot euroen over seks måneder.',
+      },
+      'sverdrup-outage': {
+        label: 'Produksjon −10 %',
+        text: 'Selskapet produserer 10 % mindre i tre måneder, omtrent det en lang stans på Johan Sverdrup ville bety.',
+      },
+      'calm-year': {
+        label: 'Ingenting endres',
+        text: 'Olje, gass, produksjon og dollaren står stille i ett år. Den sentrale endringen er null; intervallet viser hvor mye aksjen beveger seg av grunner modellen ikke ser.',
+      },
+    },
     presetSverdrupNote:
-      'Johan Sverdrup står for {share} av produksjonen til {company} i {month}; to av seks måneder er {cut}.',
-    presetCalm: 'Ingenting endres',
+      'Til sammenligning: Johan Sverdrup sto for {share} av produksjonen til {company} i {month}.',
     sliders: 'Dine antakelser',
     brent: 'Oljepris (Brent)',
     ttf: 'Gasspris (TTF)',
@@ -880,12 +1002,19 @@ export const nb: Dict = {
     resultSr: 'Modellert endring {median}, 80 %-intervall {lo} til {hi}',
     range: '80 %-intervall {lo} til {hi}',
     bandAria: 'Intervall fra {lo} til {hi}, midtpunkt {median}',
+    noModel:
+      'Ingen scenariomodell på denne serveren ennå. Den trenger aksjekurser, som hver installasjon importerer fra sin egen nedlasting fra Euronext.',
+    priceLine:
+      'Brukt på siste sluttkurs ({base} {currency}, {date}): {median} {currency}, 80 %-intervall {low}–{high}.',
+    caveats: 'Verdt å huske',
     contributions: 'Hva som driver det',
     contribution: '{driver}: {v}',
-    pp: '{v} pp',
-    ppNote: 'pp = prosentpoeng av den modellerte endringen.',
+    driverNote:
+      'Hva hver endring ville gjort alene. Sammen ganges de, så de summerer seg bare omtrent til totalen.',
     fit: 'Hvor godt modellen passer',
+    noModelFit: 'Ingen modell å vise.',
     rSquared: 'R²',
+    adjRSquared: 'Justert R²',
     window: 'Tilpasset på',
     observations: 'Observasjoner',
     observationsValue: { one: '{n} måned', other: '{n} måneder' },
@@ -895,8 +1024,16 @@ export const nb: Dict = {
     coefficients: 'Følsomheter (β)',
     coefficientsNote:
       'En β på 0,30 for olje betyr at en oljeendring på 10 % henger sammen med en aksjeendring på omtrent 3 %.',
+    notSignificant: 'kan være null',
     uncertainty: 'Restvolatilitet',
-    perYear: '{v} i året',
+    perMonth: '{v} per måned',
+    modelRun: 'Modellkjøring',
+    excluded: 'Holdt utenfor tilpasningen fordi produksjonen hoppet ved et oppkjøp: {months}.',
+    backtest: 'Tilbaketest',
+    quartersScored: 'Kvartaler sjekket på usette data',
+    r2InSample: 'R² per kvartal, tilpassede måneder',
+    r2OutOfSample: 'R² per kvartal, usette måneder',
+    bandCoverage: 'Usette kvartaler innenfor 80 %-intervallet',
     writeTitle: 'Skriv ditt eget scenario',
     writeLabel: 'Beskriv et scenario med egne ord',
     writePlaceholder: 'f.eks. oljen faller 25 % og gassen stiger 10 % de neste 6 månedene',
@@ -907,6 +1044,9 @@ export const nb: Dict = {
     writeNothing: 'Fant ingen tall i teksten. Prøv «olje −20 % over 6 måneder».',
     aiOff:
       'KI er ikke satt opp på denne serveren, så fritekst kan ikke leses ennå. Bruk et ferdig scenario eller glidebryterne i stedet.',
+    aiDown:
+      'KI-en svarte ikke. Prøv igjen senere, eller bruk et ferdig scenario eller glidebryterne.',
+    howWorkedOut: 'Slik ble tallene regnet ut',
     writeFailed:
       'Teksten kunne ikke gjøres om til et scenario. Prøv igjen eller bruk glidebryterne.',
     applied: 'Lagt inn i glidebryterne.',
@@ -923,6 +1063,7 @@ export const nb: Dict = {
     reported: 'Rapportert',
     error: 'Feil',
     open: 'åpent',
+    backtest: 'tilbaketest',
     monthsShort: '{n}/3 mnd.',
   },
 

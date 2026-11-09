@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { useAnomalies } from '@/api/hooks';
+import { isSample } from '@/api/mode';
 import { SeverityChip, StatusChip } from '@/components/Chips';
 import { SampleBadge } from '@/components/SampleBadge';
 import { Skeleton } from '@/components/Skeleton';
@@ -19,7 +20,7 @@ export function RecentAnomalies({ limit = 4 }: { limit?: number }) {
           <h3 id="an-h" className="display m-0 text-h2 font-semibold">
             {m.anomalies.recent}
           </h3>
-          <SampleBadge detail={m.sample.anomalies} />
+          {isSample('anomalies') ? <SampleBadge detail={m.sample.anomalies} /> : null}
         </span>
         <Link to="/anomalies" className="text-[14px] font-medium text-muted hover:text-ink">
           {m.anomalies.viewAll}
