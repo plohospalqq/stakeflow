@@ -1,6 +1,7 @@
 # Stakeflow
 
 [![CI](https://github.com/plohospalqq/stakeflow/actions/workflows/ci.yml/badge.svg)](https://github.com/plohospalqq/stakeflow/actions/workflows/ci.yml)
+[![Live demo](https://github.com/plohospalqq/stakeflow/actions/workflows/pages.yml/badge.svg)](https://plohospalqq.github.io/stakeflow/)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB)
 ![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6)
 ![dbt tests](https://img.shields.io/badge/dbt%20tests-68-FF694B)
@@ -13,6 +14,11 @@ owned each field on each day, and answers a question no public table answers dir
 did each company produce, month by month?**
 
 ![Stakeflow overview](frontend/docs/screenshots/overview-dark.png)
+
+**[Open the live demo →](https://plohospalqq.github.io/stakeflow/)** · [dbt docs and lineage graph](https://plohospalqq.github.io/stakeflow/dbt/) · [API reference](api/openapi.json)
+
+The demo is a static snapshot of the real API, rebuilt from live Sodir data on every push; it
+needs no backend. Run the full stack locally for live data (see Quick start).
 
 Built end to end as a data / ML engineering portfolio project: ingestion, orchestration, a tested
 dbt warehouse, a typed API and a web app. The later phases (forecasts, nowcasts, anomaly
@@ -219,6 +225,7 @@ Frontend details: [`frontend/README.md`](frontend/README.md).
 | dbt (68 tests) | o.e. matches Sodir for every field-month; attributed volumes sum back to field volumes; shares cover 100% while a field is owned; no overlapping ownership intervals; valid geometries; "Equinor (NCS only)" label; keys and relationships |
 | API | Products add up to o.e.; boe/d formula; 404/422 on bad input; literal (non-wildcard) search; reconciliation; ownership history; GeoJSON |
 | Frontend (109 tests) | Unit maths (boe/d, Sm³), components, every route rendering on mocked data, URL safety, Ask answers never dead-end and only use real tables |
+| Live demo | `pages.yml` builds the warehouse from live Sodir data (offline snapshot as fallback), runs every dbt test, exports the API's responses and deploys the app plus dbt docs to GitHub Pages |
 | CI | All of the above on every push: lint and tests per project; the warehouse job builds the full dbt project from a 385 KiB offline Sodir snapshot in a PostGIS service; OpenAPI and generated TypeScript types must match; Docker images build |
 
 Before release the stack was also tested by hand from an empty database (`make reset && make up`),
@@ -242,6 +249,9 @@ overflow), with negative API tests (bad parameters, SQL-injection attempts: only
 | OpenAPI snapshot committed, frontend types generated from it | The API/UI contract is checked in CI; drift fails the build. |
 | Real API where it exists, badged sample data elsewhere | The UI for later phases can be built and reviewed now, without ever passing a sample number off as real. |
 | Same-origin `/api` behind nginx | No CORS in production, one origin to secure; the Vite dev proxy mirrors it. |
+| Static snapshot demo on Pages, same mappers as the live API | Recruiters can click through without Docker, and the demo cannot drift from the API's types. |
+| Strict CSP, no inline scripts | `script-src 'self'`; only the map tile host is allowed out. Charts need inline style attributes only. |
+| Cache-Control + freshness ETag | Data changes monthly; browsers revalidate cheaply and get 304s until Sodir publishes. |
 | Untrusted URLs filtered twice | Links from third-party data are rendered only if https to a known host (frontend) and Sodir URLs are validated again in dbt staging. |
 | Nowcast reframed (see [docs/nowcast-feasibility.md](docs/nowcast-feasibility.md)) | Companies publish production 12–14 days after quarter end; Sodir field data lands 40–69 days after month end. Forecasts are therefore frozen at quarter end and scored against the trading update. |
 
