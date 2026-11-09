@@ -112,9 +112,11 @@ them publicly.
 (Euronext allows that for personal use) and loads it into **their own local database**:
 
 ```bash
-# Euronext: Historical Data → earliest "From" date → Download as **.xls** (the CSV download is
-# capped to a short window). Drop the file into data/share_prices/ as it is (data/ is gitignored):
+# Euronext: Historical Data → set "From" to the earliest date the form allows (about two years
+# back; the default window is only a few weeks) → Download as .xls or CSV. Drop the file into
+# data/share_prices/ as it is (data/ is gitignored):
 #   data/share_prices/EQUINOR_historical_price.xls
+#   data/share_prices/AKER BP_historical_price.csv
 make import-shares        # or: cd pipeline && uv run stakeflow-import-share-prices ../data/share_prices
 ```
 
