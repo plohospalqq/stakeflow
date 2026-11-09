@@ -53,6 +53,27 @@
         }
       }
     },
+    "/summary": {
+      "get": {
+        "tags": [
+          "summary"
+        ],
+        "summary": "Shelf Summary",
+        "operationId": "shelf_summary_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShelfSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/companies": {
       "get": {
         "tags": [
@@ -1613,6 +1634,164 @@
           "sourceUrl"
         ],
         "title": "QuarterReconciliation"
+      },
+      "ShelfSummary": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "boePerDay": {
+            "type": "number",
+            "title": "Boeperday"
+          },
+          "prevMonthBoePerDay": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prevmonthboeperday"
+          },
+          "yearAgoBoePerDay": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yearagoboeperday"
+          },
+          "oilShare": {
+            "type": "number",
+            "title": "Oilshare"
+          },
+          "gasShare": {
+            "type": "number",
+            "title": "Gasshare"
+          },
+          "nglCondensateShare": {
+            "type": "number",
+            "title": "Nglcondensateshare"
+          },
+          "producingFields": {
+            "type": "integer",
+            "title": "Producingfields"
+          },
+          "stateBoePerDay": {
+            "type": "number",
+            "title": "Stateboeperday"
+          },
+          "stateShare": {
+            "type": "number",
+            "title": "Stateshare"
+          },
+          "gasYear": {
+            "type": "integer",
+            "title": "Gasyear"
+          },
+          "gasYearBnSm3": {
+            "type": "number",
+            "title": "Gasyearbnsm3"
+          },
+          "topFields": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryField"
+            },
+            "type": "array",
+            "title": "Topfields"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryPoint"
+            },
+            "type": "array",
+            "title": "Series"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "boePerDay",
+          "prevMonthBoePerDay",
+          "yearAgoBoePerDay",
+          "oilShare",
+          "gasShare",
+          "nglCondensateShare",
+          "producingFields",
+          "stateBoePerDay",
+          "stateShare",
+          "gasYear",
+          "gasYearBnSm3",
+          "topFields",
+          "series"
+        ],
+        "title": "ShelfSummary"
+      },
+      "SummaryField": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "boePerDay": {
+            "type": "number",
+            "title": "Boeperday"
+          },
+          "yearAgoBoePerDay": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yearagoboeperday"
+          },
+          "oilShare": {
+            "type": "number",
+            "title": "Oilshare"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "boePerDay",
+          "yearAgoBoePerDay",
+          "oilShare"
+        ],
+        "title": "SummaryField"
+      },
+      "SummaryPoint": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "boePerDay": {
+            "type": "number",
+            "title": "Boeperday"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "boePerDay"
+        ],
+        "title": "SummaryPoint"
       },
       "ValidationError": {
         "properties": {

@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from stakeflow_api.db import make_pool
-from stakeflow_api.routers import companies, fields, meta
+from stakeflow_api.routers import companies, fields, meta, summary
 
 
 @asynccontextmanager
@@ -43,5 +43,6 @@ app.add_middleware(
 )
 
 app.include_router(meta.router)
+app.include_router(summary.router)
 app.include_router(companies.router)
 app.include_router(fields.router)

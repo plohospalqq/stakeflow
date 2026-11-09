@@ -74,3 +74,15 @@ def test_search_is_literal_not_a_like_pattern(client):
     assert client.get("/companies", params={"q": "%", "producing": "false"}).json() == []
     assert client.get("/fields", params={"q": "_"}).json() == []
     assert client.get("/fields", params={"q": "SVERDRUP"}).json()[0]["name"] == "JOHAN SVERDRUP"
+
+
+def test_summary_adds_up_and_matches_fields(client):
+    s = client.get("/summary").json()
+    assert s["oilShare"] + s["gasShare"] + s["nglCondensateShare"] == pytest.approx(1, abs=1e-9)
+    assert 0 < s["stateShare"] < 1
+    assert s["producingFields"] > 0
+    assert len(s["series"]) <= 24 and s["series"][-1]["month"] == s["month"]
+    assert s["series"][-1]["boePerDay"] == pytest.approx(s["boePerDay"], rel=1e-9)
+    assert [f["boePerDay"] for f in s["topFields"]] == sorted(
+        (f["boePerDay"] for f in s["topFields"]), reverse=True
+    )

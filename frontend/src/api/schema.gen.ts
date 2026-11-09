@@ -38,6 +38,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/summary': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Shelf Summary */
+    get: operations['shelf_summary_summary_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/companies': {
     parameters: {
       query?: never;
@@ -496,6 +513,63 @@ export interface components {
       /** Sourceurl */
       sourceUrl: string | null;
     };
+    /** ShelfSummary */
+    ShelfSummary: {
+      /**
+       * Month
+       * Format: date
+       */
+      month: string;
+      /** Boeperday */
+      boePerDay: number;
+      /** Prevmonthboeperday */
+      prevMonthBoePerDay: number | null;
+      /** Yearagoboeperday */
+      yearAgoBoePerDay: number | null;
+      /** Oilshare */
+      oilShare: number;
+      /** Gasshare */
+      gasShare: number;
+      /** Nglcondensateshare */
+      nglCondensateShare: number;
+      /** Producingfields */
+      producingFields: number;
+      /** Stateboeperday */
+      stateBoePerDay: number;
+      /** Stateshare */
+      stateShare: number;
+      /** Gasyear */
+      gasYear: number;
+      /** Gasyearbnsm3 */
+      gasYearBnSm3: number;
+      /** Topfields */
+      topFields: components['schemas']['SummaryField'][];
+      /** Series */
+      series: components['schemas']['SummaryPoint'][];
+    };
+    /** SummaryField */
+    SummaryField: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /** Boeperday */
+      boePerDay: number;
+      /** Yearagoboeperday */
+      yearAgoBoePerDay: number | null;
+      /** Oilshare */
+      oilShare: number;
+    };
+    /** SummaryPoint */
+    SummaryPoint: {
+      /**
+       * Month
+       * Format: date
+       */
+      month: string;
+      /** Boeperday */
+      boePerDay: number;
+    };
     /** ValidationError */
     ValidationError: {
       /** Location */
@@ -556,6 +630,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Freshness'];
+        };
+      };
+    };
+  };
+  shelf_summary_summary_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ShelfSummary'];
         };
       };
     };
