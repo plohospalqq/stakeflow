@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from stakeflow_api.db import make_pool
-from stakeflow_api.routers import companies, fields, meta
+from stakeflow_api.routers import anomalies, companies, fields, meta, prices, scenarios
 
 
 @asynccontextmanager
@@ -30,7 +30,9 @@ app = FastAPI(
     description=(
         "Source: Sodir (Norwegian Offshore Directorate), Norwegian Licence for Open Government "
         "Data (NLOD). Volumes are monthly Sm³ oil equivalent unless the field name says "
-        "otherwise. Equinor figures cover the Norwegian shelf only. Not investment advice."
+        "otherwise. Equinor figures cover the Norwegian shelf only. Prices: EIA (public "
+        "domain), ECB, World Bank (CC BY 4.0); share prices only where imported locally. "
+        "Scenarios are what-ifs, not forecasts. Not investment advice."
     ),
     lifespan=lifespan,
 )
@@ -45,3 +47,6 @@ app.add_middleware(
 app.include_router(meta.router)
 app.include_router(companies.router)
 app.include_router(fields.router)
+app.include_router(prices.router)
+app.include_router(scenarios.router)
+app.include_router(anomalies.router)
