@@ -53,3 +53,6 @@ data/
 !pipeline/tests/fixtures/**
 # dbt seeds are small curated reference data, not raw data
 !pipeline/dbt/seeds/*.csv
+
+# Local agent worktrees and tool state
+.claude/
