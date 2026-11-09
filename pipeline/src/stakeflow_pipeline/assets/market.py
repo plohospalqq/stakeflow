@@ -25,10 +25,10 @@ from stakeflow_pipeline.market.ingest import (
     LISTINGS_SEED,
     PUBLIC_SOURCES,
     PublicSource,
-    import_share_csv,
+    import_share_file,
     ingest_public_source,
     make_http_client,
-    share_csv_files,
+    share_price_files,
 )
 from stakeflow_pipeline.market.share_prices import load_listings
 from stakeflow_pipeline.market.store import SHARE_PRICES, MarketRun, MarketTable
@@ -80,12 +80,12 @@ def build_public_asset(source: PublicSource) -> AssetsDefinition:
     ),
 )
 def share_prices_asset(postgres: PostgresResource) -> MaterializeResult:
-    files = share_csv_files(share_prices_dir())
+    files = share_price_files(share_prices_dir())
     if not files:
         return MaterializeResult(metadata={"note": f"no CSV files in {share_prices_dir()}"})
     listings = load_listings(LISTINGS_SEED)
     with postgres.connect() as conn:
-        runs = [import_share_csv(conn, path, listings, date.today()) for path in files]
+        runs = [import_share_file(conn, path, listings, date.today()) for path in files]
     return MaterializeResult(metadata=_metadata(runs))
 
 

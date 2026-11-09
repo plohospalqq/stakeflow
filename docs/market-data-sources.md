@@ -112,14 +112,19 @@ them publicly.
 (Euronext allows that for personal use) and loads it into **their own local database**:
 
 ```bash
-# save the Euronext "Historical Data" CSV as data/share_prices/EQNR.csv (data/ is gitignored)
-cd pipeline && uv run stakeflow-import-share-prices ../data/share_prices
+# Euronext: Historical Data → earliest "From" date → Download as **.xls** (the CSV download is
+# capped to a short window). Drop the file into data/share_prices/ as it is (data/ is gitignored):
+#   data/share_prices/EQUINOR_historical_price.xls
+make import-shares        # or: cd pipeline && uv run stakeflow-import-share-prices ../data/share_prices
 ```
+
+Euronext files (`.xls` or CSV) carry the ISIN, so they are matched to the company by ISIN and keep
+whatever name Euronext gives them. A file named after one company but holding another's ISIN is
+rejected. Plain `date,close[,volume]` CSVs are matched by file name (`AKRBP.csv`).
 
 The Dagster asset `raw/market_share_prices` picks up the same folder (`SHARE_PRICES_DIR`) on
 each market run and does nothing when it is empty. The importer accepts the Euronext export
-(`;`-separated, ISIN checked against `dbt/seeds/share_listings.csv`, so a file saved under the
-wrong ticker is rejected) and a plain `date,close[,volume]` CSV from any source the user is
+(`.xls` or `;`-separated CSV, ISIN checked against `dbt/seeds/share_listings.csv`) and a plain `date,close[,volume]` CSV from any source the user is
 licensed for (a broker export, for example, with a longer history).
 
 Rules that follow from the terms:

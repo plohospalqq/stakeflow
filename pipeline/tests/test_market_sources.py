@@ -17,8 +17,11 @@ import pytest
 from stakeflow_pipeline.market.observations import MarketDataError, Observation, validate
 from stakeflow_pipeline.market.share_prices import (
     Listing,
+    finalise,
     load_listings,
     parse_share_csv,
+    read_share_file,
+    resolve_listing,
     ticker_from_filename,
 )
 from stakeflow_pipeline.market.sources import (
@@ -247,3 +250,53 @@ def test_listings_seed_covers_the_focus_companies():
         "VAR": "var-energi",
         "EQNR": "equinor",
     }
+
+
+# Euronext .xls exports (the only download that covers two years) and ISIN-based matching
+
+EQNR = Listing("equinor", "EQNR", "NO0010096985", "NOK")
+VAR = Listing("var-energi", "VAR", "NO0011202772", "NOK")
+LISTINGS = {listing.ticker: listing for listing in (AKRBP, EQNR, VAR)}
+XLS = FIXTURES / "euronext_format_synthetic.xls"
+
+
+def test_xls_export_is_parsed_with_dates_isin_and_volume():
+    parsed = read_share_file(XLS)
+    assert parsed.format == "euronext-xls"
+    assert parsed.isin == "NO0010096985"
+    by_date = {o.date: o for o in parsed.observations}
+    # The row without a close (5 Oct) is skipped; dates come from Excel serials
+    assert sorted(by_date) == [date(2026, 10, d) for d in (6, 7, 8, 9)]
+    assert by_date[date(2026, 10, 9)].value == 101.5
+    assert by_date[date(2026, 10, 9)].extra == {"volume": 1200}
+    assert by_date[date(2026, 10, 7)].extra == {"volume": None}
+
+
+def test_euronext_file_keeps_its_own_name_and_is_matched_by_isin(tmp_path):
+    path = tmp_path / "EQUINOR_historical_price.xls"
+    path.write_bytes(XLS.read_bytes())
+    listing = resolve_listing(path, read_share_file(path), LISTINGS)
+    assert listing is EQNR
+    final = finalise(read_share_file(path), listing, TODAY)
+    assert {o.series for o in final.observations} == {"EQNR"}
+
+
+def test_file_named_after_one_company_with_anothers_isin_is_rejected(tmp_path):
+    path = tmp_path / "AKRBP.xls"
+    path.write_bytes(XLS.read_bytes())
+    with pytest.raises(MarketDataError, match="named AKRBP but holds EQNR"):
+        resolve_listing(path, read_share_file(path), LISTINGS)
+
+
+def test_unknown_isin_is_rejected(tmp_path):
+    path = tmp_path / "export.xls"
+    path.write_bytes(XLS.read_bytes())
+    only_akrbp = {"AKRBP": AKRBP}
+    with pytest.raises(MarketDataError, match="not one of the listed companies"):
+        resolve_listing(path, read_share_file(path), only_akrbp)
+
+
+def test_plain_csv_is_still_matched_by_file_name(tmp_path):
+    path = tmp_path / "VAR.csv"
+    path.write_text("date,close\n2026-10-06,49.5\n")
+    assert resolve_listing(path, read_share_file(path), LISTINGS) is VAR

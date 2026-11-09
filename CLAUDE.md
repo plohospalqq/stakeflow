@@ -25,7 +25,7 @@ make reset   # stop and delete the DB volume
 make ingest  # without Dagster: download Sodir layers into raw.* (LAYERS="field profiles" for a subset)
 make dbt     # without Dagster: dbt build of the marts (excludes tag:ml)
 make market  # Brent (EIA), FX (ECB), TTF (World Bank)
-make import-shares # load share price CSVs from data/share_prices (local only)
+make import-shares # load Euronext .xls/CSV exports from data/share_prices (local only)
 make ml      # anomalies + share-price scenario models
 make forecast # Arps forecasts + nowcasts + predictions into ml.*, then the ml dbt models
 make web     # frontend dev server with hot reload on :5173
@@ -78,7 +78,7 @@ More commands get added here as each phase step lands.
   redistribution) in `data/share_prices`, loaded into the local database only. Never automate the
   download, never commit them, never put them in the static demo. Sources and terms:
   `docs/market-data-sources.md`.
-- Approved Python deps beyond Phase 1: numpy, scipy (pipeline), anthropic, sqlglot (api).
+- Approved Python deps beyond Phase 1: numpy, scipy, xlrd (pipeline), anthropic, sqlglot (api).
 - Frontend data source: `VITE_DATA_SOURCE=api|static` (`VITE_USE_MOCKS=true` wins). The static
   demo reads `frontend/public/data` (gitignored), exported by `api/scripts/export_static.py`.
 - Data endpoints send `Cache-Control` and a freshness `ETag` (`api/src/stakeflow_api/caching.py`).

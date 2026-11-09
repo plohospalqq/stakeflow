@@ -5,9 +5,13 @@ No free source we found lets an app download Oslo Børs prices automatically *an
 exports the CSV from live.euronext.com (or any source they are licensed for) and this module
 loads it into the local database only. The files and the data never go into git.
 
-Two formats are accepted:
-- Euronext "Historical Data" export (`;`-separated, dd/mm/yyyy, ISIN on line 3)
+Three formats are accepted:
+- Euronext "Historical Data" export as .xls (the only download that covers the full two years)
+- the same export as CSV (`;`-separated, dd/mm/yyyy, ISIN on line 3)
 - a plain CSV with a `date` (ISO) and `close` column and an optional `volume` column
+
+Euronext files carry the ISIN, so they are matched to a company by ISIN and can keep the name
+Euronext gives them ("EQUINOR_historical_price.xls"). Plain CSVs are matched by file name.
 """
 
 import csv
@@ -16,6 +20,8 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
+
+import xlrd
 
 from stakeflow_pipeline.market.observations import MarketDataError, Observation
 
@@ -51,10 +57,43 @@ def ticker_from_filename(path: Path) -> str:
     return re.split(r"[_\-. ]", path.stem, maxsplit=1)[0].upper()
 
 
+def read_share_file(path: Path) -> ShareCsv:
+    """Parse a user-supplied file without deciding yet which company it belongs to."""
+    if path.suffix.lower() == ".xls":
+        return _parse_euronext_xls(path.read_bytes())
+    return _parse_text(path.read_text(encoding="utf-8-sig"))
+
+
+def resolve_listing(path: Path, parsed: ShareCsv, listings: dict[str, Listing]) -> Listing:
+    """By ISIN when the file has one (Euronext exports), otherwise by file name.
+
+    A file named after one company but holding another company's ISIN is rejected: that is a
+    mix-up, not something to guess around.
+    """
+    named = listings.get(ticker_from_filename(path))
+    if parsed.isin is None:
+        if named is None:
+            raise MarketDataError(
+                f"{path.name}: unknown ticker; name the file after one of {list(listings)}"
+            )
+        return named
+    by_isin = {listing.isin: listing for listing in listings.values()}
+    listing = by_isin.get(parsed.isin)
+    if listing is None:
+        raise MarketDataError(f"{path.name}: ISIN {parsed.isin} is not one of the listed companies")
+    if named is not None and named is not listing:
+        raise MarketDataError(
+            f"{path.name}: named {named.ticker} but holds {listing.ticker}'s ISIN {parsed.isin}"
+        )
+    return listing
+
+
 def parse_share_csv(text: str, listing: Listing, today: date) -> ShareCsv:
-    text = text.lstrip("﻿")
-    first = text.lstrip().split("\n", 1)[0].strip().strip('"')
-    parsed = _parse_euronext(text) if first == "Historical Data" else _parse_plain(text)
+    return finalise(_parse_text(text), listing, today)
+
+
+def finalise(parsed: ShareCsv, listing: Listing, today: date) -> ShareCsv:
+    """Check the parsed file against its listing and stamp the ticker and currency on it."""
     if parsed.isin is not None and parsed.isin != listing.isin:
         raise MarketDataError(
             f"{listing.ticker}: file is for ISIN {parsed.isin}, expected {listing.isin}"
@@ -70,6 +109,51 @@ def parse_share_csv(text: str, listing: Listing, today: date) -> ShareCsv:
             for o in parsed.observations
         ],
     )
+
+
+def _parse_text(text: str) -> ShareCsv:
+    text = text.lstrip("\ufeff")
+    first = text.lstrip().split("\n", 1)[0].strip().strip('"')
+    return _parse_euronext(text) if first == "Historical Data" else _parse_plain(text)
+
+
+def _parse_euronext_xls(data: bytes) -> ShareCsv:
+    # Euronext's generator writes a compound file that xlrd's strict structure check rejects
+    # ("Workbook corruption: seen[2] == 4"); the worksheet stream itself reads fine.
+    book = xlrd.open_workbook(file_contents=data, ignore_workbook_corruption=True)
+    sheet = book.sheet_by_index(0)
+    first_column = [str(sheet.cell_value(r, 0)).strip() for r in range(sheet.nrows)]
+    isin = next((v for v in first_column[:5] if _ISIN.match(v)), None)
+    header_at = next((r for r, v in enumerate(first_column) if v == "Date"), None)
+    if header_at is None:
+        raise MarketDataError("Euronext .xls: no 'Date' header row")
+    header = [str(v).strip() for v in sheet.row_values(header_at)]
+    if "Close" not in header:
+        raise MarketDataError(f"Euronext .xls: no 'Close' column in {header}")
+    i_close = header.index("Close")
+    i_volume = header.index("Number of Shares") if "Number of Shares" in header else None
+    observations = []
+    for r in range(header_at + 1, sheet.nrows):
+        raw_date, close = sheet.cell_value(r, 0), sheet.cell_value(r, i_close)
+        if raw_date in ("", None) or close in ("", None):
+            continue
+        volume = sheet.cell_value(r, i_volume) if i_volume is not None else None
+        observations.append(
+            Observation(
+                "",
+                _xls_date(raw_date, book.datemode),
+                close if isinstance(close, float) else _number(str(close)),
+                "",
+                {"volume": int(volume) if isinstance(volume, float) else _volume(volume)},
+            )
+        )
+    return ShareCsv("euronext-xls", isin, observations)
+
+
+def _xls_date(value: object, datemode: int) -> date:
+    if isinstance(value, float):
+        return xlrd.xldate_as_datetime(value, datemode).date()
+    return datetime.strptime(str(value).strip(), "%d/%m/%Y").date()
 
 
 def _parse_euronext(text: str) -> ShareCsv:

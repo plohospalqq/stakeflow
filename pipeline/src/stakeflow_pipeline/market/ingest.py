@@ -17,12 +17,13 @@ from pathlib import Path
 import httpx
 import psycopg
 
-from stakeflow_pipeline.market.observations import MarketDataError, Observation
+from stakeflow_pipeline.market.observations import Observation
 from stakeflow_pipeline.market.share_prices import (
     Listing,
+    finalise,
     load_listings,
-    parse_share_csv,
-    ticker_from_filename,
+    read_share_file,
+    resolve_listing,
 )
 from stakeflow_pipeline.market.sources import (
     ECB_URL,
@@ -102,29 +103,28 @@ def ingest_public_source(
     return write_observations(conn, source.table, source.name, in_window, origin, start)
 
 
-def import_share_csv(
+def import_share_file(
     conn: psycopg.Connection, path: Path, listings: dict[str, Listing], today: date
 ) -> MarketRun:
-    ticker = ticker_from_filename(path)
-    listing = listings.get(ticker)
-    if listing is None:
-        raise MarketDataError(
-            f"{path.name}: unknown ticker {ticker!r}; name the file after one of {list(listings)}"
-        )
-    parsed = parse_share_csv(path.read_text(encoding="utf-8-sig"), listing, today)
+    raw = read_share_file(path)
+    listing = resolve_listing(path, raw, listings)
+    parsed = finalise(raw, listing, today)
     return write_observations(
         conn,
         SHARE_PRICES,
-        f"share_prices:{ticker}",
+        f"share_prices:{listing.ticker}",
         parsed.observations,
         f"{parsed.format}:{path.name}",
         min(o.date for o in parsed.observations) if parsed.observations else None,
     )
 
 
-def share_csv_files(target: Path) -> list[Path]:
+SHARE_FILE_SUFFIXES = (".csv", ".xls")
+
+
+def share_price_files(target: Path) -> list[Path]:
     if target.is_dir():
-        return sorted(p for p in target.iterdir() if p.suffix.lower() == ".csv")
+        return sorted(p for p in target.iterdir() if p.suffix.lower() in SHARE_FILE_SUFFIXES)
     return [target] if target.exists() else []
 
 
@@ -149,14 +149,14 @@ def main(argv: list[str] | None = None) -> int:
 def import_main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
     targets = [Path(a) for a in args] or [share_prices_dir()]
-    files = [f for t in targets for f in share_csv_files(t)]
+    files = [f for t in targets for f in share_price_files(t)]
     if not files:
         print(f"no CSV files found in {[str(t) for t in targets]}", file=sys.stderr)
         return 2
     listings = load_listings(LISTINGS_SEED)
     with psycopg.connect(database_conninfo()) as conn:
         for path in files:
-            _print_run(import_share_csv(conn, path, listings, date.today()))
+            _print_run(import_share_file(conn, path, listings, date.today()))
     return 0
 
 
