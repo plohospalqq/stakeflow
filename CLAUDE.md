@@ -45,8 +45,16 @@ More commands get added here as each phase step lands.
   UI. Never compare its attributed production with Equinor group totals (international,
   trading and renewables are out of scope). Same rule for any company that stops being
   NCS-only (watch Vår Energi + BlueNord).
-- **No stock price prediction.** Share prices may be shown for context at most. Core outputs:
-  production, revenue estimate, forecast accuracy.
+- **No stock price forecasts presented as predictions.** Allowed (decided 2026-11-09):
+  real share prices for context, and a **what-if scenario explorer** that shows how a share
+  price *might* respond to assumptions the user picks (Brent, TTF, production…), computed by a
+  transparent model whose historical fit, uncertainty band and coefficients are always shown,
+  with a "scenario, not a forecast; not investment advice" notice. An LLM may only translate a
+  user's free-text case into scenario parameters; it never produces the numbers itself.
+  Core outputs stay production, revenue estimate, forecast accuracy.
+- **Plain-language layer:** every screen must make sense to someone who knows nothing about
+  oil and gas (what it means in money, homes heated, how long a field lasts).
+- **Languages:** English, Ukrainian, Norwegian (Bokmål).
 - Nowcast scope is set by `docs/nowcast-feasibility.md` (companies publish production at
   T+12/14, Sodir field data lands at T+40–69).
 - Never commit secrets, `.env`, or raw data files.

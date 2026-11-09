@@ -8,7 +8,9 @@ detail, Track record, Anomalies, Ask, Mobile, Component kit). Every number in th
 
 - Product name is **Stakeflow** (the design predates the name "Shelf Ledger").
 - Equinor is always **"Equinor (NCS only)"**; never compared with group totals.
-- No stock price prediction anywhere. Core outputs: production, revenue estimate, forecast accuracy.
+- No stock price predictions. Real share prices for context and a what-if scenario explorer
+  (transparent model, fit and uncertainty shown, "scenario, not a forecast") are allowed since
+  2026-11-09. Core outputs: production, revenue estimate, forecast accuracy.
 - Sodir has a 4th product, NGL. The third product is shown as **"NGL + condensate"** in the
   `--cnd` colour, so oil + gas + NGL/condensate stack exactly to total o.e.
 - Nowcast framing (see `nowcast-feasibility.md`): forecasts are **frozen at quarter end and

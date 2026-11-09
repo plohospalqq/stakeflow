@@ -52,7 +52,8 @@ answers are a preview: every element showing them carries a **Sample data** badg
 - **In scope:** NCS production per field and per company, revenue estimates, forecast accuracy.
 - **NCS only:** company figures cover the Norwegian shelf only. Equinor is always shown as
   "Equinor (NCS only)" and is never compared with its group totals.
-- **Not in scope:** stock price prediction. Share prices may appear for context only.
+- **Not in scope:** stock price predictions. Share prices appear for context, and a what-if
+  scenario explorer shows modelled sensitivity to assumptions you choose, never a forecast.
 - Not investment advice.
 
 ## Quick start
