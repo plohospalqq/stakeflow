@@ -170,7 +170,7 @@ def test_model_sees_the_rows_it_must_answer_from():
 
 
 def test_runs_the_validated_sql_not_the_model_text():
-    sql = "select name from dim_field -- ; drop table marts.dim_field"
+    sql = "select name from marts.dim_field -- ; drop table marts.dim_field"
     client = FakeAnthropic(
         tool_call("run_sql", {"understanding": "Field names", "sql": sql}),
         tool_call("present_answer", PRESENT_GAS),

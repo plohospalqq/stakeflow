@@ -31,6 +31,9 @@ ALTER ROLE stakeflow_reader SET default_transaction_read_only = on;
 ALTER ROLE stakeflow_reader SET statement_timeout = '3s';
 ALTER ROLE stakeflow_reader SET lock_timeout = '1s';
 ALTER ROLE stakeflow_reader SET idle_in_transaction_session_timeout = '10s';
+-- Only the layers it may read; pg_catalog is still searched first, which is why the API also
+-- requires every table to be schema-qualified
+ALTER ROLE stakeflow_reader SET search_path = marts, ml;
 
 GRANT CONNECT ON DATABASE :"db_name" TO stakeflow_reader;
 GRANT USAGE ON SCHEMA marts, ml TO stakeflow_reader;

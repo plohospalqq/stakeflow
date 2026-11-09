@@ -60,7 +60,8 @@ def reader_conninfo_from_env() -> str:
         application_name="stakeflow-ask",
         # Same limits as the role's defaults: whichever is configured, both hold
         options=(
-            f"-c default_transaction_read_only=on -c statement_timeout={STATEMENT_TIMEOUT_MS}"
+            f"-c default_transaction_read_only=on -c statement_timeout={STATEMENT_TIMEOUT_MS} "
+            "-c search_path=marts,ml"
         ),
     )
 

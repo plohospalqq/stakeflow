@@ -116,6 +116,7 @@ def test_reader_role_defaults_apply_without_any_client_options(reader_conninfo):
     with psycopg.connect(make_conninfo(**params)) as conn:
         assert conn.execute("show statement_timeout").fetchone() == ("3s",)
         assert conn.execute("show default_transaction_read_only").fetchone() == ("on",)
+        assert conn.execute("show search_path").fetchone() == ("marts, ml",)
         attrs = conn.execute(
             "select rolsuper, rolcreaterole, rolcreatedb, rolbypassrls "
             "from pg_roles where rolname = current_user"
@@ -164,8 +165,8 @@ def test_catalog_lists_marts_with_descriptions_and_hides_geometry(owner_conn):
 def test_ask_end_to_end_with_a_fake_model(client, reader_conninfo):
     sql = (
         "select g.display_name as owner, sum(o.share_pct) as share_pct "
-        "from fct_field_ownership o join dim_field f using (field_id) "
-        "join dim_company_group g on g.group_id = o.group_id "
+        "from marts.fct_field_ownership o join marts.dim_field f using (field_id) "
+        "join marts.dim_company_group g on g.group_id = o.group_id "
         "where f.name = 'JOHAN SVERDRUP' and o.is_current group by 1 order by 2 desc"
     )
     fake = FakeAnthropic(
