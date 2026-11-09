@@ -68,9 +68,27 @@ jobs:
             echo "source=ci-fixture" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: dbt build (models + data tests)
+      - name: Load market prices (live EIA/ECB/World Bank, offline fixtures if unreachable)
         working-directory: pipeline
-        run: uv run dbt build --project-dir dbt --profiles-dir dbt
+        run: |
+          if ! uv run stakeflow-market; then
+            echo "::warning::A market source was unreachable; using the offline fixtures"
+            uv run stakeflow-load-market-fixtures tests/fixtures/market
+          fi
+      - name: dbt build of the marts (models + data tests)
+        working-directory: pipeline
+        run: uv run dbt build --project-dir dbt --profiles-dir dbt --exclude tag:ml
+      # Share prices are never loaded here (Euronext terms), so the scenario models report
+      # insufficient data and the demo's Scenarios page uses badged sample data.
+      - name: Anomalies and scenario models
+        working-directory: pipeline
+        run: uv run stakeflow-ml
+      - name: Forecasts, nowcasts and backtested predictions
+        working-directory: pipeline
+        run: uv run stakeflow-forecast
+      - name: dbt build of the ML marts (models + tests)
+        working-directory: pipeline
+        run: uv run dbt build --project-dir dbt --profiles-dir dbt --select tag:ml
 
       - name: dbt docs as one static page
         working-directory: pipeline
