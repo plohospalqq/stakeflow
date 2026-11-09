@@ -35,6 +35,12 @@ seeds:
       - unique_combination:
           arguments: {columns: [group_id, quarter_start]}
     columns:
+      - name: quarter_start
+        description: First day of the quarter.
+      - name: reported_kboe_d
+        description: Reported production, thousand boe per day (quarter average).
+      - name: published_on
+        description: Date the company published the figure.
       - name: group_id
         tests:
           - relationships:

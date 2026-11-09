@@ -21,7 +21,10 @@ models:
     marts:
       +schema: marts
       +materialized: table
+      # Descriptions become Postgres comments: the API's Ask feature reads them from the catalog
+      +persist_docs: {relation: true, columns: true}
 
 seeds:
   stakeflow:
     +schema: marts
+    +persist_docs: {relation: true, columns: true}
