@@ -1,0 +1,132 @@
+name: Freeze predictions
+
+# At each quarter end: ingest live Sodir data, forecast the quarter that is ending for each focus
+# company and commit the predictions as JSON (predictions/<YYYY>Q<n>/<company>.json, with
+# hashes). The commit is the public timestamp. The companies publish the real numbers 12-14
+# days later (docs/nowcast-feasibility.md), so anyone can check the prediction was made first.
+
+on:
+  schedule:
+    # GitHub cron runs in UTC; these are 23:00 Oslo time on the last day of each quarter.
+    # 31 Mar, 30 Jun and 30 Sep fall in summer time (UTC+2), 31 Dec in winter time (UTC+1).
+    - cron: "0 21 31 3 *"
+    - cron: "0 21 30 6,9 *"
+    - cron: "0 22 31 12 *"
+  workflow_dispatch:
+    inputs:
+      quarter:
+        description: "Quarter to freeze, e.g. 2026Q4 (empty: the quarter ending today, Oslo time)"
+        required: false
+        type: string
+      force:
+        description: "Replace a prediction already committed for this quarter"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: freeze-predictions
+  cancel-in-progress: false
+
+jobs:
+  freeze:
+    name: Forecast the quarter and commit it
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: stakeflow
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci -d stakeflow"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      # Throwaway database that lives for this job only, not a secret
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ci
+      POSTGRES_PASSWORD: ci
+      POSTGRES_DB: stakeflow
+      PGPASSWORD: ci
+      SODIR_BASE_URL: https://factmaps.sodir.no/api/rest/services/DataService/Data/FeatureServer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: pipeline/uv.lock
+
+      - name: Pick the quarter
+        id: quarter
+        env:
+          INPUT_QUARTER: ${{ inputs.quarter }}
+        run: |
+          if [ -n "$INPUT_QUARTER" ]; then
+            label="$INPUT_QUARTER"
+          else
+            # Scheduled runs can start hours late; looking 12 hours back keeps a late run on
+            # the quarter that just ended instead of the one that just began
+            day="$(TZ=Europe/Oslo date -d '12 hours ago' +%F)"
+            label="$(date -d "$day" +%Y)Q$(( ($(date -d "$day" +%-m) - 1) / 3 + 1 ))"
+          fi
+          if ! [[ "$label" =~ ^[0-9]{4}Q[1-4]$ ]]; then
+            echo "::error::quarter must look like 2026Q4, got '$label'"
+            exit 1
+          fi
+          echo "label=$label" >> "$GITHUB_OUTPUT"
+
+      - name: Create schemas
+        run: psql -h localhost -U ci -d stakeflow -v ON_ERROR_STOP=1 -f infra/postgres/init/01-schemas.sql
+
+      - name: Ingest live Sodir data
+        working-directory: pipeline
+        run: |
+          uv sync --frozen
+          uv run stakeflow-ingest
+
+      - name: Build the marts (dbt models + tests)
+        working-directory: pipeline
+        run: uv run dbt build --project-dir dbt --profiles-dir dbt --exclude tag:ml
+
+      - name: Forecast the quarter
+        working-directory: pipeline
+        env:
+          QUARTER: ${{ steps.quarter.outputs.label }}
+        run: uv run stakeflow-forecast --quarter "$QUARTER" --no-backfill
+
+      - name: Check the forecast outputs (dbt tests on the ml models)
+        working-directory: pipeline
+        run: uv run dbt build --project-dir dbt --profiles-dir dbt --select tag:ml
+
+      - name: Export the predictions as JSON
+        working-directory: pipeline
+        env:
+          QUARTER: ${{ steps.quarter.outputs.label }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          args=(--quarter "$QUARTER" --out ../predictions)
+          if [ "$FORCE" = "true" ]; then args+=(--force); fi
+          uv run stakeflow-export-predictions "${args[@]}"
+
+      - name: Commit (the public timestamp)
+        env:
+          QUARTER: ${{ steps.quarter.outputs.label }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898583+github-actions[bot]@users.noreply.github.com"
+          git add predictions/
+          if git diff --cached --quiet; then
+            echo "No new prediction to commit for $QUARTER"
+            exit 0
+          fi
+          git commit \
+            -m "chore(predictions): freeze $QUARTER production forecasts" \
+            -m "Made at quarter end from the Sodir data published so far, before the companies report. The commit time is the public timestamp; each file carries its input and prediction hashes."
+          git push
