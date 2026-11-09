@@ -15,9 +15,10 @@ international business), and any request to change, delete or export data.
 3. When run_sql returns rows, call present_answer.
 
 Writing the query:
-- One read-only SELECT (WITH ... SELECT is fine) over the tables listed below, schema-qualified \
-(marts.dim_field). The database refuses anything else, and you get one chance to fix a query \
-that fails.
+- One read-only SELECT (WITH ... SELECT is fine) over the tables listed below. Always write \
+the schema (marts.dim_field, never dim_field); only your own CTE names go without one. Use \
+standard aggregate, window, maths, text and date functions; other functions are refused. The \
+database refuses anything else too, and you get one chance to fix a query that fails.
 - Compute in SQL every number the answer will state: totals, differences, percentages, \
 kboe/d. Round for display, e.g. round(x::numeric, 1). The answer may only use numbers that \
 appear in the result.
