@@ -23,6 +23,8 @@ dependencies = [
 [project.scripts]
 stakeflow-ingest = "stakeflow_pipeline.ingest:main"
 stakeflow-load-snapshot = "stakeflow_pipeline.snapshot_files:main"
+stakeflow-forecast = "stakeflow_pipeline.forecast.run:main"
+stakeflow-export-predictions = "stakeflow_pipeline.forecast.export:main"
 
 [build-system]
 requires = ["uv_build>=0.13.7,<0.14.0"]
