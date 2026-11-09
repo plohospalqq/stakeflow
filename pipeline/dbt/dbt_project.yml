@@ -24,6 +24,12 @@ models:
     marts:
       +schema: marts
       +materialized: table
+    # The latest ML run, exposed to the API. Views, so they show a new run the moment the
+    # Python asset writes it; tag `ml` lets Dagster build them after the ML assets.
+    marts_ml:
+      +schema: marts
+      +materialized: view
+      +tags: [ml]
 
 seeds:
   stakeflow:

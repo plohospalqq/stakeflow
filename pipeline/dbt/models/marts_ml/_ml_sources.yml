@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: ml
+    schema: ml
+    description: >
+      Append-only outputs of the Python ML assets (stakeflow_pipeline/ml). Each run adds rows
+      under a new run_id; the views in this folder show the latest run. Asset keys are
+      ["ml", <table>], the same keys the Python assets produce.
+    tables:
+      - name: anomaly_runs
+      - name: anomaly_evaluations
+        description: Every judged field-month of a run, with expected value and band.

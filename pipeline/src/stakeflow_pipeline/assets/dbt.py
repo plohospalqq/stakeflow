@@ -2,6 +2,9 @@
 
 dbt sources are named `raw.sodir_<layer>`, the same keys the raw assets use, so every model sits
 downstream of the ingestion that feeds it.
+
+Two groups: the warehouse, and the views over the `ml` schema (tag `ml`). The Python ML assets
+read the first and feed the second; one dbt asset on both sides of them would be a cycle.
 """
 
 from collections.abc import Iterator, Mapping
@@ -32,6 +35,18 @@ class StakeflowDbtTranslator(DagsterDbtTranslator):
     manifest=dbt_project.manifest_path,
     project=dbt_project,
     dagster_dbt_translator=StakeflowDbtTranslator(),
+    exclude="tag:ml",
 )
 def stakeflow_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource) -> Iterator[Any]:
+    yield from dbt.cli(["build"], context=context).stream()
+
+
+@dbt_assets(
+    manifest=dbt_project.manifest_path,
+    project=dbt_project,
+    dagster_dbt_translator=StakeflowDbtTranslator(),
+    select="tag:ml",
+    name="stakeflow_dbt_ml_views",
+)
+def stakeflow_dbt_ml_views(context: AssetExecutionContext, dbt: DbtCliResource) -> Iterator[Any]:
     yield from dbt.cli(["build"], context=context).stream()

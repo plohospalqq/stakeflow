@@ -26,6 +26,15 @@ def test_sodir_refresh_never_downloads_market_data():
     assert AssetKey(["raw", "sodir_profiles"]) not in market
 
 
+def test_ml_views_sit_downstream_of_the_python_model_and_the_sodir_refresh_runs_it():
+    graph = defs.resolve_asset_graph()
+    anomalies = AssetKey(["ml", "anomaly_evaluations"])
+    assert AssetKey(["marts", "fct_field_production_monthly"]) in graph.get(anomalies).parent_keys
+    assert anomalies in graph.get(AssetKey(["marts", "fct_anomalies"])).parent_keys
+    sodir = defs.resolve_job_def("sodir_refresh").asset_layer.selected_asset_keys
+    assert {anomalies, AssetKey(["marts", "fct_anomalies"])} <= sodir
+
+
 def test_dbt_models_sit_downstream_of_raw_assets():
     graph = defs.resolve_asset_graph()
     staging_production = AssetKey(["staging", "stg_sodir__production_monthly"])

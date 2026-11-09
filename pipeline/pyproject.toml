@@ -11,6 +11,7 @@ dependencies = [
     "dbt-core>=1.10",
     "dbt-postgres>=1.9",
     "httpx>=0.28.1",
+    "numpy>=2.5.4",
     "psycopg[binary]>=3.3.8",
     "pydantic>=2.14.3",
     # SQLAlchemy 2.1 defaults postgresql:// to psycopg 3, which breaks dagster-postgres
@@ -23,6 +24,7 @@ stakeflow-ingest = "stakeflow_pipeline.ingest:main"
 stakeflow-load-snapshot = "stakeflow_pipeline.snapshot_files:main"
 stakeflow-market = "stakeflow_pipeline.market.ingest:main"
 stakeflow-import-share-prices = "stakeflow_pipeline.market.ingest:import_main"
+stakeflow-ml = "stakeflow_pipeline.ml.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.13.7,<0.14.0"]
