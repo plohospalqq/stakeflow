@@ -56,6 +56,23 @@ Dark and light themes, boe/d or Sm³ o.e., and a phone layout with a bottom tab 
 answers are a preview: every element showing them carries a **Sample data** badge
 ([details](frontend/README.md#real-data-and-sample-data)).
 
+## Ask the data (Claude)
+
+`POST /ask` turns a question into one read-only SQL query over the marts with Claude, runs it and
+answers in plain language; `POST /scenarios/parse` turns a free-text case ("What if Johan
+Sverdrup stops for two months?") into scenario parameters. Guardrails, in layers:
+
+1. the model's SQL is parsed with sqlglot: exactly one SELECT, only `marts.*`/`ml.*` tables
+   (CTE names resolved per scope), an allow-list of functions, re-rendered before it runs;
+2. it runs as `stakeflow_reader`: SELECT on marts/ml only, read-only transactions, 3 s timeout,
+   500-row cap;
+3. every number in the answer must trace back to a cell of the result;
+4. the scenario parser only extracts what the text says; the arithmetic is code over the data.
+
+An eval set (39 questions incl. refusals and a prompt injection, 11 scenario cases) scores result
+equivalence and safety: `make eval` with `ANTHROPIC_API_KEY` set. Without a key both endpoints
+answer 503 and the UI keeps its preview.
+
 ## Scope
 
 - **In scope:** NCS production per field and per company, revenue estimates, forecast accuracy.

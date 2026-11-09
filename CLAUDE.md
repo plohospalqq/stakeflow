@@ -26,6 +26,8 @@ make ingest  # without Dagster: download Sodir layers into raw.* (LAYERS="field 
 make dbt     # without Dagster: dbt build (models + tests)
 make web     # frontend dev server with hot reload on :5173
 make demo    # static demo like GitHub Pages (export running API → build for /stakeflow/)
+make reader-role # (re)create the read-only DB role for model-written SQL
+make eval    # score Ask + scenario parsing (needs ANTHROPIC_API_KEY; costs money)
 make test    # pipeline + api pytest, frontend vitest (DB tests skip when the DB is down)
 make lint    # ruff + eslint/prettier/tsc
 ```
@@ -59,6 +61,11 @@ More commands get added here as each phase step lands.
 - **Languages:** English, Ukrainian, Norwegian (Bokmål).
 - Nowcast scope is set by `docs/nowcast-feasibility.md` (companies publish production at
   T+12/14, Sodir field data lands at T+40–69).
+- LLM endpoints (`POST /ask`, `POST /scenarios/parse`) answer 503 without `ANTHROPIC_API_KEY`.
+  Model-written SQL is validated by `api/src/stakeflow_api/ask/sql_guard.py` (single SELECT,
+  schema-qualified marts/ml tables, function allow-list) and runs only as `stakeflow_reader`
+  (SELECT on marts/ml, read-only, 3 s timeout). The parser only extracts what the text says;
+  code does the arithmetic. Evals live in `api/evals/`; never run them in CI on every push.
 - Frontend data source: `VITE_DATA_SOURCE=api|static` (`VITE_USE_MOCKS=true` wins). The static
   demo reads `frontend/public/data` (gitignored), exported by `api/scripts/export_static.py`.
 - Data endpoints send `Cache-Control` and a freshness `ETag` (`api/src/stakeflow_api/caching.py`).

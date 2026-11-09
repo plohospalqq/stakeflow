@@ -56,3 +56,6 @@ data/
 
 # Local agent worktrees and tool state
 .claude/
+
+# Eval runs (api/evals/results/<timestamp>.json): local output, may hold model answers
+api/evals/results/

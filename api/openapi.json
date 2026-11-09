@@ -768,10 +768,342 @@
           }
         }
       }
+    },
+    "/ask": {
+      "post": {
+        "tags": [
+          "ask"
+        ],
+        "summary": "Ask",
+        "description": "Claude writes one read-only SQL query for the question, the API validates and runs it,\nand Claude explains the rows. Numbers in the answer come from the rows, never the model.",
+        "operationId": "ask_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskAnswer"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ask is off or cannot run: no ANTHROPIC_API_KEY (code llm_not_configured), no reader role password (reader_not_configured), the model or database cannot be reached (llm_unavailable, reader_unavailable) or no data is loaded (no_data)."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ask/tables": {
+      "get": {
+        "tags": [
+          "ask"
+        ],
+        "summary": "Ask Tables",
+        "description": "The tables Ask may query, with their descriptions (for the \"Data you can ask about\" list).",
+        "operationId": "ask_tables_ask_tables_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AskTable"
+                  },
+                  "type": "array",
+                  "title": "Response Ask Tables Ask Tables Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scenarios/parse": {
+      "post": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Parse",
+        "description": "Translate a what-if case (\"What if Johan Sverdrup stops for two months and oil goes to\n$90?\") into scenario parameters.\n\nClaude only reports what the text says; every number is computed here from the marts and the\nreference levels you send, range-checked and explained in `assumptions`. Snake_case on\npurpose: this is the scenario model's parameter contract.",
+        "operationId": "parse_scenarios_parse_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioParseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioParameters"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The text could not be turned into scenario parameters"
+          },
+          "503": {
+            "description": "No ANTHROPIC_API_KEY (llm_not_configured) or model unreachable"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AskAnswer": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/AskStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "sql": {
+            "type": "string",
+            "title": "Sql",
+            "description": "The SQL that ran: the validated, normalised form"
+          },
+          "durationMs": {
+            "type": "integer",
+            "title": "Durationms",
+            "description": "Query execution time"
+          },
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Columns"
+          },
+          "rows": {
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "chart": {
+            "items": {
+              "$ref": "#/components/schemas/AskChartPoint"
+            },
+            "type": "array",
+            "title": "Chart"
+          },
+          "chartUnit": {
+            "type": "string",
+            "title": "Chartunit"
+          },
+          "chartLegend": {
+            "$ref": "#/components/schemas/AskChartLegend"
+          },
+          "followUps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Followups"
+          },
+          "matched": {
+            "type": "boolean",
+            "title": "Matched",
+            "description": "False when the data cannot answer the question"
+          },
+          "chartType": {
+            "type": "string",
+            "enum": [
+              "bar",
+              "line",
+              "none"
+            ],
+            "title": "Charttype",
+            "default": "none"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated",
+            "description": "The 500-row cap was reached",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "steps",
+          "answer",
+          "sql",
+          "durationMs",
+          "columns",
+          "rows",
+          "chart",
+          "chartUnit",
+          "chartLegend",
+          "followUps",
+          "matched"
+        ],
+        "title": "AskAnswer"
+      },
+      "AskChartLegend": {
+        "properties": {
+          "current": {
+            "type": "string",
+            "title": "Current"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current",
+          "previous"
+        ],
+        "title": "AskChartLegend"
+      },
+      "AskChartPoint": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "value",
+          "previous"
+        ],
+        "title": "AskChartPoint"
+      },
+      "AskRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AskRequest"
+      },
+      "AskStep": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "detail"
+        ],
+        "title": "AskStep"
+      },
+      "AskTable": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description"
+        ],
+        "title": "AskTable"
+      },
       "CompanyDetail": {
         "properties": {
           "id": {
@@ -1634,6 +1966,142 @@
           "sourceUrl"
         ],
         "title": "QuarterReconciliation"
+      },
+      "ReferenceLevels": {
+        "properties": {
+          "brent_usd": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brent Usd",
+            "description": "Brent, USD per barrel"
+          },
+          "ttf_eur_mwh": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttf Eur Mwh",
+            "description": "TTF gas, EUR per MWh"
+          },
+          "eurusd": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eurusd",
+            "description": "EUR/USD rate (USD per EUR)"
+          }
+        },
+        "type": "object",
+        "title": "ReferenceLevels",
+        "description": "Today's levels, from the explorer's own price data. Needed to turn '$90' into a %."
+      },
+      "ScenarioParameters": {
+        "properties": {
+          "brent_change_pct": {
+            "type": "number",
+            "title": "Brent Change Pct",
+            "default": 0
+          },
+          "ttf_change_pct": {
+            "type": "number",
+            "title": "Ttf Change Pct",
+            "default": 0
+          },
+          "production_change_pct": {
+            "type": "number",
+            "title": "Production Change Pct",
+            "default": 0
+          },
+          "eurusd_change_pct": {
+            "type": "number",
+            "title": "Eurusd Change Pct",
+            "default": 0
+          },
+          "horizon_months": {
+            "type": "integer",
+            "title": "Horizon Months",
+            "default": 3
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assumptions"
+          },
+          "company_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "assumptions",
+          "company_id"
+        ],
+        "title": "ScenarioParameters"
+      },
+      "ScenarioParseRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "company_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Id",
+            "description": "Company the user is looking at; used when the text names none"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceLevels"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "ScenarioParseRequest"
       },
       "ShelfSummary": {
         "properties": {

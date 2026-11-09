@@ -1,5 +1,9 @@
 version: 2
 
+# Descriptions are persisted as Postgres comments (dbt_project.yml: persist_docs). The API's Ask
+# feature reads them from the catalog to describe the schema to the model, so keep them short and
+# say the unit of every number.
+
 models:
   - name: dim_company_group
     description: >
@@ -7,16 +11,26 @@ models:
       plus one group per remaining legal entity. Equinor's display_name always says "(NCS only)".
     columns:
       - name: group_id
+        description: Company key, e.g. 'equinor', 'aker-bp', 'var-energi', 'petoro'.
         tests: [unique, not_null]
       - name: display_name
+        description: Name to show, e.g. 'Equinor (NCS only)', 'Aker BP', 'Vår Energi'.
         tests: [not_null]
+      - name: is_focus
+        description: True for the companies the site follows closely.
+      - name: scope_note
+        description: What the group includes or excludes.
 
   - name: dim_company
     description: Legal entities from Sodir, each mapped to a group.
     columns:
       - name: company_id
+        description: Sodir company id of the legal entity.
         tests: [unique, not_null]
+      - name: name
+        description: Legal entity name, e.g. 'Aker BP ASA'.
       - name: group_id
+        description: Company group (dim_company_group.group_id).
         tests:
           - not_null
           - relationships:
@@ -26,11 +40,31 @@ models:
     description: Fields with status, operator, production span and geometry (MultiPolygon, EPSG:4326).
     columns:
       - name: field_id
+        description: Sodir field id.
         tests: [unique, not_null]
+      - name: name
+        description: Field name in upper case, e.g. 'JOHAN SVERDRUP', 'TROLL'.
+      - name: status
+        description: "Sodir status: 'Producing', 'Shut down' or 'Approved for production'."
+      - name: hc_type
+        description: "Main hydrocarbon type: 'OIL', 'GAS', 'OIL/GAS', 'GAS/CONDENSATE' or 'OIL/CONDENSATE'."
+      - name: main_area
+        description: "Sea area: 'North sea', 'Norwegian sea' or 'Barents sea'."
+      - name: discovery_year
+        description: Year the field was discovered.
+      - name: operator_company_id
+        description: Legal entity that operates the field (dim_company.company_id).
       - name: operator_group_id
+        description: Company group of the operator (dim_company_group.group_id).
         tests:
           - relationships:
               arguments: {to: ref('dim_company_group'), field: group_id}
+      - name: first_production_month
+        description: First month with production (first day of month).
+      - name: last_production_month
+        description: Latest month with production (first day of month).
+      - name: area_km2
+        description: Field outline area in km².
 
   - name: fct_field_ownership
     description: SCD Type 2 ownership per field and company. valid_to exclusive; 9999-12-31 = current.
@@ -45,9 +79,22 @@ models:
           - relationships:
               arguments: {to: ref('dim_field'), field: field_id}
       - name: company_id
+        description: Legal entity holding the share (dim_company.company_id).
         tests:
           - relationships:
               arguments: {to: ref('dim_company'), field: company_id}
+      - name: group_id
+        description: Company group of the legal entity.
+      - name: valid_from
+        description: First day the share applies.
+      - name: valid_to
+        description: Day the share stops applying (exclusive); 9999-12-31 while still current.
+      - name: share_pct
+        description: Share of the field in percent (0-100). Shares of one field add up to 100.
+      - name: sdfi_share_pct
+        description: Part of share_pct held for the state's direct interest (SDFI), in percent.
+      - name: is_current
+        description: True for shares that apply today.
 
   - name: fct_field_production_monthly
     description: >
@@ -61,7 +108,30 @@ models:
         tests:
           - relationships:
               arguments: {to: ref('dim_field'), field: field_id}
+      - name: month
+        description: First day of the month.
+      - name: days_in_month
+        description: Number of days in the month.
+      - name: oil_sm3
+        description: Net oil in Sm³ for the month.
+      - name: gas_sm3
+        description: Net gas in Sm³ of gas for the month (divide by 1e9 for billion Sm³).
+      - name: ngl_sm3
+        description: Net NGL in Sm³ for the month.
+      - name: condensate_sm3
+        description: Net condensate in Sm³ for the month.
+      - name: gas_oe_sm3
+        description: Gas in Sm³ oil equivalent (gas_sm3 / 1000).
+      - name: oe_sm3
+        description: All products in Sm³ oil equivalent (oil + NGL + condensate + gas/1000).
+      - name: oe_sm3_sodir
+        description: Sodir's own oil-equivalent figure, kept for validation.
+      - name: boe_per_day
+        description: Barrels of oil equivalent per day (oe_sm3 * 6.2898 / days_in_month).
+      - name: produced_water_sm3
+        description: Produced water in Sm³.
       - name: ownership_coverage_pct
+        description: Percent of the field with a known owner that month.
         tests:
           - dbt_expression_between:
               arguments: {min: 0, max: 100.01}
@@ -71,6 +141,19 @@ models:
     tests:
       - unique_combination:
           arguments: {columns: [company_id, field_id, month]}
+    columns:
+      - name: company_id
+        description: Legal entity (dim_company.company_id).
+      - name: group_id
+        description: Company group; sum over it for company-level numbers.
+      - name: month
+        description: First day of the month.
+      - name: effective_share_pct
+        description: Day-weighted share of the field that month, in percent (0-100).
+      - name: oe_sm3
+        description: Net to the company, Sm³ oil equivalent (same units as fct_field_production_monthly).
+      - name: boe_per_day
+        description: Net to the company, barrels of oil equivalent per day.
 
   - name: fct_group_production_monthly
     description: Monthly production per company group.
@@ -82,6 +165,14 @@ models:
         tests:
           - relationships:
               arguments: {to: ref('dim_company_group'), field: group_id}
+      - name: month
+        description: First day of the month.
+      - name: oe_sm3
+        description: Net to the company group, Sm³ oil equivalent.
+      - name: boe_per_day
+        description: Net to the company group, barrels of oil equivalent per day.
+      - name: producing_field_count
+        description: Fields with production net to the group that month.
 
   - name: fct_publication_lag
     description: Days between month end and the first snapshot containing that month (bounded by the previous snapshot).
@@ -96,9 +187,19 @@ models:
     tests:
       - unique_combination:
           arguments: {columns: [group_id, quarter_start]}
+    columns:
+      - name: quarter_start
+        description: First day of the quarter.
+      - name: attributed_kboe_d
+        description: Production attributed from Sodir data, thousand boe per day (quarter average).
+      - name: reported_kboe_d
+        description: Production the company reported, thousand boe per day; null if not collected.
+      - name: error_pct
+        description: (attributed - reported) / reported, in percent.
 
   - name: meta_data_freshness
     description: Single row with the newest production month and the last successful Sodir download.
     columns:
       - name: latest_month
+        description: Newest month with field production data (first day of month).
         tests: [not_null]

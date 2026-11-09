@@ -237,10 +237,158 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/ask': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Ask
+     * @description Claude writes one read-only SQL query for the question, the API validates and runs it,
+     *     and Claude explains the rows. Numbers in the answer come from the rows, never the model.
+     */
+    post: operations['ask_ask_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/ask/tables': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Ask Tables
+     * @description The tables Ask may query, with their descriptions (for the "Data you can ask about" list).
+     */
+    get: operations['ask_tables_ask_tables_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/scenarios/parse': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Parse
+     * @description Translate a what-if case ("What if Johan Sverdrup stops for two months and oil goes to
+     *     $90?") into scenario parameters.
+     *
+     *     Claude only reports what the text says; every number is computed here from the marts and the
+     *     reference levels you send, range-checked and explained in `assumptions`. Snake_case on
+     *     purpose: this is the scenario model's parameter contract.
+     */
+    post: operations['parse_scenarios_parse_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AskAnswer */
+    AskAnswer: {
+      /** Question */
+      question: string;
+      /** Steps */
+      steps: components['schemas']['AskStep'][];
+      /** Answer */
+      answer: string;
+      /**
+       * Sql
+       * @description The SQL that ran: the validated, normalised form
+       */
+      sql: string;
+      /**
+       * Durationms
+       * @description Query execution time
+       */
+      durationMs: number;
+      /** Columns */
+      columns: string[];
+      /** Rows */
+      rows: (string | number | null)[][];
+      /** Chart */
+      chart: components['schemas']['AskChartPoint'][];
+      /** Chartunit */
+      chartUnit: string;
+      chartLegend: components['schemas']['AskChartLegend'];
+      /** Followups */
+      followUps: string[];
+      /**
+       * Matched
+       * @description False when the data cannot answer the question
+       */
+      matched: boolean;
+      /**
+       * Charttype
+       * @default none
+       * @enum {string}
+       */
+      chartType: 'bar' | 'line' | 'none';
+      /**
+       * Truncated
+       * @description The 500-row cap was reached
+       * @default false
+       */
+      truncated: boolean;
+    };
+    /** AskChartLegend */
+    AskChartLegend: {
+      /** Current */
+      current: string;
+      /** Previous */
+      previous: string | null;
+    };
+    /** AskChartPoint */
+    AskChartPoint: {
+      /** Label */
+      label: string;
+      /** Value */
+      value: number;
+      /** Previous */
+      previous: number | null;
+    };
+    /** AskRequest */
+    AskRequest: {
+      /** Question */
+      question: string;
+    };
+    /** AskStep */
+    AskStep: {
+      /** Label */
+      label: string;
+      /** Detail */
+      detail: string;
+    };
+    /** AskTable */
+    AskTable: {
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+    };
     /** CompanyDetail */
     CompanyDetail: {
       /** Id */
@@ -512,6 +660,70 @@ export interface components {
       reportedOn: string | null;
       /** Sourceurl */
       sourceUrl: string | null;
+    };
+    /**
+     * ReferenceLevels
+     * @description Today's levels, from the explorer's own price data. Needed to turn '$90' into a %.
+     */
+    ReferenceLevels: {
+      /**
+       * Brent Usd
+       * @description Brent, USD per barrel
+       */
+      brent_usd?: number | null;
+      /**
+       * Ttf Eur Mwh
+       * @description TTF gas, EUR per MWh
+       */
+      ttf_eur_mwh?: number | null;
+      /**
+       * Eurusd
+       * @description EUR/USD rate (USD per EUR)
+       */
+      eurusd?: number | null;
+    };
+    /** ScenarioParameters */
+    ScenarioParameters: {
+      /**
+       * Brent Change Pct
+       * @default 0
+       */
+      brent_change_pct: number;
+      /**
+       * Ttf Change Pct
+       * @default 0
+       */
+      ttf_change_pct: number;
+      /**
+       * Production Change Pct
+       * @default 0
+       */
+      production_change_pct: number;
+      /**
+       * Eurusd Change Pct
+       * @default 0
+       */
+      eurusd_change_pct: number;
+      /**
+       * Horizon Months
+       * @default 3
+       */
+      horizon_months: number;
+      /** Assumptions */
+      assumptions: string[];
+      /** Company Id */
+      company_id: string | null;
+    };
+    /** ScenarioParseRequest */
+    ScenarioParseRequest: {
+      /** Text */
+      text: string;
+      /**
+       * Company Id
+       * @description Company the user is looking at; used when the text names none
+       */
+      company_id?: string | null;
+      reference?: components['schemas']['ReferenceLevels'] | null;
     };
     /** ShelfSummary */
     ShelfSummary: {
@@ -990,6 +1202,104 @@ export interface operations {
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
         };
+      };
+    };
+  };
+  ask_ask_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AskRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AskAnswer'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+      /** @description Ask is off or cannot run: no ANTHROPIC_API_KEY (code llm_not_configured), no reader role password (reader_not_configured), the model or database cannot be reached (llm_unavailable, reader_unavailable) or no data is loaded (no_data). */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ask_tables_ask_tables_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AskTable'][];
+        };
+      };
+    };
+  };
+  parse_scenarios_parse_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ScenarioParseRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioParameters'];
+        };
+      };
+      /** @description The text could not be turned into scenario parameters */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No ANTHROPIC_API_KEY (llm_not_configured) or model unreachable */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

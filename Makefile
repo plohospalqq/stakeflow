@@ -1,11 +1,12 @@
 .DEFAULT_GOAL := help
-.PHONY: help env up down reset psql logs ingest refresh dbt openapi web demo test lint
+.PHONY: help env up down reset psql logs ingest refresh dbt openapi web demo reader-role eval test lint
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
 
-env: ## Create .env from .env.example (with a random DB password) if missing
-	@test -f .env || sed "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$$(openssl rand -hex 16)/" .env.example > .env
+env: ## Create .env from .env.example (random DB and reader passwords) if missing
+	@test -f .env || sed -e "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$$(openssl rand -hex 16)/" \
+		-e "s/^STAKEFLOW_READER_PASSWORD=.*/STAKEFLOW_READER_PASSWORD=$$(openssl rand -hex 16)/" .env.example > .env
 
 up: env ## Build and start everything (app :3002, API :8000/docs, Dagster :3000)
 	docker compose up -d --build --wait
@@ -41,6 +42,12 @@ web: ## Frontend dev server with hot reload on :5173 (needs the API from make up
 demo: ## Static demo like GitHub Pages: export the running API, build for /stakeflow/
 	cd api && uv run python scripts/export_static.py ../frontend/public/data
 	cd frontend && pnpm install && pnpm build:pages
+
+reader-role: ## (Re)create the read-only role used for model-written SQL (existing databases)
+	docker compose exec db /docker-entrypoint-initdb.d/03-reader-role.sh
+
+eval: ## Score Ask and scenario parsing against the eval sets (needs ANTHROPIC_API_KEY; costs money)
+	cd api && uv run --env-file ../.env python -m stakeflow_api.evals.run
 
 test: ## Run pipeline, API and frontend tests (DB tests skip if the database is down)
 	cd pipeline && uv run --env-file ../.env pytest -q
