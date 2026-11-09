@@ -19,6 +19,8 @@ services:
     build: infra/postgres
     image: stakeflow-db:17
     env_file: .env
+    # Like the other services: come back after a Docker or machine restart
+    restart: unless-stopped
     ports:
       # Localhost only: never expose the database to the LAN
       - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
