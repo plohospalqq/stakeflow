@@ -1,0 +1,4 @@
+group_id,report_kind,report_lag_days,note
+aker-bp,trading update,14,"Quarterly trading update about two weeks after quarter end (Q3 2026: 14 Oct)."
+var-energi,trading update,12,"Quarterly trading update (Q3 2026: 12 Oct)."
+equinor,quarterly report,30,"No trading update; E&P Norway production comes with the quarterly report, roughly a month after quarter end."

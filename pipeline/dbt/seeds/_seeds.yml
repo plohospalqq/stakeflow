@@ -24,6 +24,23 @@ seeds:
         tests:
           - relationships:
               arguments: {to: ref('company_groups'), field: group_id}
+  - name: company_reporting
+    description: >
+      When each focus company first publishes quarterly production (docs/nowcast-feasibility.md):
+      days after quarter end and in which document. Sets expected_report_on for predictions.
+    config:
+      column_types: {group_id: text, report_kind: text, report_lag_days: integer, note: text}
+    columns:
+      - name: group_id
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments: {to: ref('company_groups'), field: group_id}
+      - name: report_kind
+        tests:
+          - accepted_values:
+              arguments: {values: [trading update, quarterly report]}
   - name: reported_quarterly_production
     description: >
       Production the companies themselves reported (kboe/d, quarterly average), copied by hand

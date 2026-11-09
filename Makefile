@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help env up down reset psql logs ingest refresh dbt openapi web demo reader-role eval test lint
+.PHONY: help env up down reset psql logs ingest refresh dbt forecast predictions openapi web demo reader-role eval test lint
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -29,8 +29,15 @@ refresh: ## Queue a full refresh (all Sodir layers + dbt) in the running Dagster
 ingest: ## Without Dagster: download all Sodir layers into the raw schema (or: make ingest LAYERS="field profiles")
 	cd pipeline && uv run --env-file ../.env stakeflow-ingest $(LAYERS)
 
-dbt: ## Without Dagster: dbt build (models + tests) against the local database
-	cd pipeline && uv run --env-file ../.env dbt build --project-dir dbt --profiles-dir dbt
+dbt: ## Without Dagster: dbt build of the marts (models + tests); `make forecast` builds the ml models
+	cd pipeline && uv run --env-file ../.env dbt build --project-dir dbt --profiles-dir dbt --exclude tag:ml
+
+forecast: ## Without Dagster: Arps forecasts, nowcasts and predictions into ml.*, then the ml dbt models
+	cd pipeline && uv run --env-file ../.env stakeflow-forecast
+	cd pipeline && uv run --env-file ../.env dbt build --project-dir dbt --profiles-dir dbt --select tag:ml
+
+predictions: ## Export a quarter's live predictions as JSON (make predictions Q=2026Q4)
+	cd pipeline && uv run --env-file ../.env stakeflow-export-predictions --quarter $(Q) --out ../predictions
 
 openapi: ## Write the API contract to api/openapi.json (frontend types are generated from it)
 	cd api && POSTGRES_HOST=x POSTGRES_PORT=1 POSTGRES_USER=x POSTGRES_PASSWORD=x POSTGRES_DB=x \

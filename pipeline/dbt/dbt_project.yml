@@ -23,6 +23,13 @@ models:
       +materialized: table
       # Descriptions become Postgres comments: the API's Ask feature reads them from the catalog
       +persist_docs: {relation: true, columns: true}
+    # API-facing views of the forecast run's output (ml schema). Built after the run, so they
+    # are tagged: `dbt build --exclude tag:ml`, forecast, then `dbt build --select tag:ml`
+    ml:
+      +schema: marts
+      +materialized: table
+      +tags: [ml]
+      +persist_docs: {relation: true, columns: true}
 
 seeds:
   stakeflow:

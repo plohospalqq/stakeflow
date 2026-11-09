@@ -303,6 +303,69 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/fields/{field_id}/forecast': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Field Forecast
+     * @description 36 months of p10 / p50 / p90 (Sm³ o.e. per month) and the model card.
+     *
+     *     The first point repeats the last actual month so a chart line continues from history.
+     *     Shut-down fields return their model card with no points.
+     */
+    get: operations['field_forecast_fields__field_id__forecast_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/nowcasts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Nowcasts
+     * @description Newest live prediction per focus company, for the latest quarter predicted (kboe/d).
+     */
+    get: operations['nowcasts_nowcasts_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/predictions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Predictions
+     * @description The prediction log: every live and backtest prediction, actuals, errors and hashes.
+     */
+    get: operations['predictions_predictions_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -463,6 +526,16 @@ export interface components {
       /** Currentowners */
       currentOwners: components['schemas']['Owner'][];
     };
+    /** FieldForecast */
+    FieldForecast: {
+      /** Fieldid */
+      fieldId: number;
+      /** Points */
+      points: components['schemas']['ForecastPoint'][];
+      model: components['schemas']['ModelCard'];
+      /** Events */
+      events: components['schemas']['ForecastEvent'][];
+    };
     /** FieldMonthlyForCompany */
     FieldMonthlyForCompany: {
       /** Fieldid */
@@ -499,6 +572,51 @@ export interface components {
       /** Lat */
       lat: number | null;
       latest: components['schemas']['LatestSummary'] | null;
+    };
+    /** FitWindow */
+    FitWindow: {
+      /**
+       * Start
+       * Format: date
+       */
+      start: string;
+      /**
+       * End
+       * Format: date
+       */
+      end: string;
+    };
+    /** ForecastEvent */
+    ForecastEvent: {
+      /**
+       * Month
+       * Format: date
+       */
+      month: string;
+      /** Label */
+      label: string;
+    };
+    /**
+     * ForecastPoint
+     * @description One month, Sm³ o.e. p10 is the low case, p90 the high (80% range).
+     */
+    ForecastPoint: {
+      /**
+       * Month
+       * Format: date
+       */
+      month: string;
+      /** P10 */
+      p10: number;
+      /** P50 */
+      p50: number;
+      /** P90 */
+      p90: number;
+      /**
+       * Isactual
+       * @default false
+       */
+      isActual: boolean;
     };
     /** Freshness */
     Freshness: {
@@ -561,6 +679,61 @@ export interface components {
       /** Factpageurl */
       factpageUrl: string | null;
     };
+    /** ModelCard */
+    ModelCard: {
+      /** Method */
+      method: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'arps' | 'plateau' | 'ramp_up' | 'too_short' | 'shut_down';
+      /** B */
+      b: number | null;
+      /**
+       * Initialdeclinepctperyear
+       * @description Effective decline over the first year of the fitted curve, percent.
+       */
+      initialDeclinePctPerYear: number | null;
+      /** Dinominalperyear */
+      diNominalPerYear: number | null;
+      /** Qism3Perday */
+      qiSm3PerDay: number | null;
+      fitWindow: components['schemas']['FitWindow'] | null;
+      /** Fitmonths */
+      fitMonths: number;
+      /** Seasonalswingpct */
+      seasonalSwingPct: number;
+      /**
+       * Backtesterrorpct
+       * @description Mean absolute % error over the 12 held-out months.
+       */
+      backtestErrorPct: number | null;
+      /** Backtestbiaspct */
+      backtestBiasPct: number | null;
+      /**
+       * Naiveerrorpct
+       * @description Same, for the last 3 months held flat.
+       */
+      naiveErrorPct: number | null;
+      /**
+       * Backtestcoveragepct
+       * @description Share of held-out months inside the 80% range.
+       */
+      backtestCoveragePct: number | null;
+      /**
+       * Runat
+       * Format: date-time
+       */
+      runAt: string;
+      /** Version */
+      version: string;
+      /**
+       * Datathrough
+       * Format: date
+       */
+      dataThrough: string;
+    };
     /** MonthlyPoint */
     MonthlyPoint: {
       /** Oilsm3 */
@@ -584,6 +757,60 @@ export interface components {
       month: string;
       /** Daysinmonth */
       daysInMonth: number;
+    };
+    /**
+     * Nowcast
+     * @description Quarterly production forecast (kboe/d), frozen at quarter end, scored vs the company.
+     */
+    Nowcast: {
+      /** Companyid */
+      companyId: string;
+      /** Companyname */
+      companyName: string;
+      /**
+       * Quarterstart
+       * Format: date
+       */
+      quarterStart: string;
+      /** Value */
+      value: number;
+      /** Lo */
+      lo: number;
+      /** Hi */
+      hi: number;
+      /**
+       * Madeat
+       * Format: date-time
+       */
+      madeAt: string;
+      /**
+       * Datathrough
+       * Format: date
+       */
+      dataThrough: string;
+      /** Monthsindata */
+      monthsInData: number;
+      /** Modelversion */
+      modelVersion: string;
+      /** Hash */
+      hash: string;
+      /** Inputhash */
+      inputHash: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'open' | 'resolved';
+      /**
+       * Expectedreporton
+       * Format: date
+       */
+      expectedReportOn: string;
+      /**
+       * Reportkind
+       * @enum {string}
+       */
+      reportKind: 'trading update' | 'quarterly report';
     };
     /** OperatorRef */
     OperatorRef: {
@@ -624,6 +851,104 @@ export interface components {
       validTo: string | null;
       /** Sharepct */
       sharePct: number;
+    };
+    /**
+     * PredictionRecord
+     * @description One row of the append-only prediction log (kboe/d), with what happened since.
+     */
+    PredictionRecord: {
+      /** Id */
+      id: string;
+      /** Companyid */
+      companyId: string;
+      /** Companyname */
+      companyName: string;
+      /**
+       * Quarterstart
+       * Format: date
+       */
+      quarterStart: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: 'live' | 'backtest';
+      /** Islatest */
+      isLatest: boolean;
+      /**
+       * Madeat
+       * Format: date-time
+       */
+      madeAt: string;
+      /**
+       * Asof
+       * Format: date
+       */
+      asOf: string;
+      /**
+       * Datathrough
+       * Format: date
+       */
+      dataThrough: string;
+      /** Monthsindata */
+      monthsInData: number;
+      /** Predicted */
+      predicted: number;
+      /** Lo */
+      lo: number;
+      /** Hi */
+      hi: number;
+      /** Modelversion */
+      modelVersion: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'open' | 'resolved';
+      /**
+       * Expectedreporton
+       * Format: date
+       */
+      expectedReportOn: string;
+      /**
+       * Reportkind
+       * @enum {string}
+       */
+      reportKind: 'trading update' | 'quarterly report';
+      /** Reportedon */
+      reportedOn: string | null;
+      /** Actual */
+      actual: number | null;
+      /** Errorpct */
+      errorPct: number | null;
+      /** Inrange */
+      inRange: boolean | null;
+      /**
+       * Baseline
+       * @description Naive guess: the company's reported figure for the quarter before.
+       */
+      baseline: number | null;
+      /** Baselineerrorpct */
+      baselineErrorPct: number | null;
+      /**
+       * Attributedactual
+       * @description Sodir-attributed production for the quarter, once all three months are in.
+       */
+      attributedActual: number | null;
+      /** Attributederrorpct */
+      attributedErrorPct: number | null;
+      /** Attributedinrange */
+      attributedInRange: boolean | null;
+      /** Attributedbaseline */
+      attributedBaseline: number | null;
+      /** Attributedbaselineerrorpct */
+      attributedBaselineErrorPct: number | null;
+      /** Hash */
+      hash: string;
+      /** Inputhash */
+      inputHash: string;
+      /** Commiturl */
+      commitUrl?: string | null;
     };
     /** PublicationLag */
     PublicationLag: {
@@ -1300,6 +1625,92 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  field_forecast_fields__field_id__forecast_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        field_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FieldForecast'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  nowcasts_nowcasts_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Nowcast'][];
+        };
+      };
+    };
+  };
+  predictions_predictions_get: {
+    parameters: {
+      query?: {
+        /** @description Company id */
+        company?: string | null;
+        kind?: ('live' | 'backtest') | null;
+        /** @description Only the newest prediction per quarter, kind and model */
+        latest?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PredictionRecord'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
       };
     };
   };

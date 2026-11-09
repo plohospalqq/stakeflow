@@ -75,9 +75,15 @@ jobs:
         run: |
           uv sync --frozen
           uv run stakeflow-load-snapshot tests/fixtures/ci_snapshot
-      - name: dbt build (models + 68 data tests)
+      - name: dbt build (models + data tests)
         working-directory: pipeline
-        run: uv run dbt build --project-dir dbt --profiles-dir dbt
+        run: uv run dbt build --project-dir dbt --profiles-dir dbt --exclude tag:ml
+      - name: Forecast run (Arps per field, live quarter, backtests from 2026Q2)
+        working-directory: pipeline
+        run: uv run stakeflow-forecast --backfill-from 2026Q2
+      - name: dbt build of the forecast marts (models + tests)
+        working-directory: pipeline
+        run: uv run dbt build --project-dir dbt --profiles-dir dbt --select tag:ml
       - name: Pipeline tests with database
         working-directory: pipeline
         run: uv run pytest -q

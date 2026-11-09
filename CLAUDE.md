@@ -23,7 +23,8 @@ make psql    # SQL shell
 make down    # stop (keeps data)
 make reset   # stop and delete the DB volume
 make ingest  # without Dagster: download Sodir layers into raw.* (LAYERS="field profiles" for a subset)
-make dbt     # without Dagster: dbt build (models + tests)
+make dbt     # without Dagster: dbt build of the marts (excludes tag:ml)
+make forecast # Arps forecasts + nowcasts + predictions into ml.*, then the ml dbt models
 make web     # frontend dev server with hot reload on :5173
 make demo    # static demo like GitHub Pages (export running API → build for /stakeflow/)
 make reader-role # (re)create the read-only DB role for model-written SQL
@@ -39,7 +40,11 @@ More commands get added here as each phase step lands.
 - Python 3.12, `uv`, type hints everywhere, `ruff`, `pytest`
 - TypeScript strict mode, no `any`, no `as` casts
 - Postgres layers: `raw` (jsonb payloads, append-only, keyed by `ingestion_run_id`),
-  `staging`, `marts`, `ml`. The API reads only from `marts`.
+  `staging`, `marts`, `ml`. The API reads only from `marts`. `ml` holds model outputs,
+  append-only enforced by triggers; Python owns its DDL (like raw); the API reads it only through
+  marts models tagged `ml`.
+- Bump `MODEL_VERSION` (field model) or `nowcast.MODEL_VERSION` on any change that can move a
+  number. `predictions/` is written only by the freeze workflow; never edit it by hand.
 - Sodir data: use the DataService REST API only (see `docs/phase-1-plan.md`). Never guess
   endpoints. Tests use recorded fixtures, never the live network.
 - Production uses **net (saleable)** volumes. Ownership attribution uses

@@ -877,6 +877,164 @@
           }
         }
       }
+    },
+    "/fields/{field_id}/forecast": {
+      "get": {
+        "tags": [
+          "forecasts"
+        ],
+        "summary": "Field Forecast",
+        "description": "36 months of p10 / p50 / p90 (Sm\u00b3 o.e. per month) and the model card.\n\nThe first point repeats the last actual month so a chart line continues from history.\nShut-down fields return their model card with no points.",
+        "operationId": "field_forecast_fields__field_id__forecast_get",
+        "parameters": [
+          {
+            "name": "field_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Field Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldForecast"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/nowcasts": {
+      "get": {
+        "tags": [
+          "forecasts"
+        ],
+        "summary": "Nowcasts",
+        "description": "Newest live prediction per focus company, for the latest quarter predicted (kboe/d).",
+        "operationId": "nowcasts_nowcasts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Nowcast"
+                  },
+                  "type": "array",
+                  "title": "Response Nowcasts Nowcasts Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predictions": {
+      "get": {
+        "tags": [
+          "forecasts"
+        ],
+        "summary": "Predictions",
+        "description": "The prediction log: every live and backtest prediction, actuals, errors and hashes.",
+        "operationId": "predictions_predictions_get",
+        "parameters": [
+          {
+            "name": "company",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Company id",
+              "title": "Company"
+            },
+            "description": "Company id"
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "live",
+                    "backtest"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "latest",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only the newest prediction per quarter, kind and model",
+              "default": false,
+              "title": "Latest"
+            },
+            "description": "Only the newest prediction per quarter, kind and model"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PredictionRecord"
+                  },
+                  "title": "Response Predictions Predictions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1400,6 +1558,39 @@
         ],
         "title": "FieldDetail"
       },
+      "FieldForecast": {
+        "properties": {
+          "fieldId": {
+            "type": "integer",
+            "title": "Fieldid"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelCard"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fieldId",
+          "points",
+          "model",
+          "events"
+        ],
+        "title": "FieldForecast"
+      },
       "FieldMonthlyForCompany": {
         "properties": {
           "fieldId": {
@@ -1531,6 +1722,80 @@
           "latest"
         ],
         "title": "FieldSummary"
+      },
+      "FitWindow": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "title": "End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "FitWindow"
+      },
+      "ForecastEvent": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "label"
+        ],
+        "title": "ForecastEvent"
+      },
+      "ForecastPoint": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "p10": {
+            "type": "number",
+            "title": "P10"
+          },
+          "p50": {
+            "type": "number",
+            "title": "P50"
+          },
+          "p90": {
+            "type": "number",
+            "title": "P90"
+          },
+          "isActual": {
+            "type": "boolean",
+            "title": "Isactual",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "p10",
+          "p50",
+          "p90"
+        ],
+        "title": "ForecastPoint",
+        "description": "One month, Sm\u00b3 o.e. p10 is the low case, p90 the high (80% range)."
       },
       "Freshness": {
         "properties": {
@@ -1696,6 +1961,169 @@
         ],
         "title": "LegalEntity"
       },
+      "ModelCard": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "arps",
+              "plateau",
+              "ramp_up",
+              "too_short",
+              "shut_down"
+            ],
+            "title": "Status"
+          },
+          "b": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B"
+          },
+          "initialDeclinePctPerYear": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initialdeclinepctperyear",
+            "description": "Effective decline over the first year of the fitted curve, percent."
+          },
+          "diNominalPerYear": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dinominalperyear"
+          },
+          "qiSm3PerDay": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qism3Perday"
+          },
+          "fitWindow": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FitWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fitMonths": {
+            "type": "integer",
+            "title": "Fitmonths"
+          },
+          "seasonalSwingPct": {
+            "type": "number",
+            "title": "Seasonalswingpct"
+          },
+          "backtestErrorPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backtesterrorpct",
+            "description": "Mean absolute % error over the 12 held-out months."
+          },
+          "backtestBiasPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backtestbiaspct"
+          },
+          "naiveErrorPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Naiveerrorpct",
+            "description": "Same, for the last 3 months held flat."
+          },
+          "backtestCoveragePct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backtestcoveragepct",
+            "description": "Share of held-out months inside the 80% range."
+          },
+          "runAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Runat"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "dataThrough": {
+            "type": "string",
+            "format": "date",
+            "title": "Datathrough"
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "status",
+          "b",
+          "initialDeclinePctPerYear",
+          "diNominalPerYear",
+          "qiSm3PerDay",
+          "fitWindow",
+          "fitMonths",
+          "seasonalSwingPct",
+          "backtestErrorPct",
+          "backtestBiasPct",
+          "naiveErrorPct",
+          "backtestCoveragePct",
+          "runAt",
+          "version",
+          "dataThrough"
+        ],
+        "title": "ModelCard"
+      },
       "MonthlyPoint": {
         "properties": {
           "oilSm3": {
@@ -1749,6 +2177,102 @@
           "daysInMonth"
         ],
         "title": "MonthlyPoint"
+      },
+      "Nowcast": {
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "title": "Companyid"
+          },
+          "companyName": {
+            "type": "string",
+            "title": "Companyname"
+          },
+          "quarterStart": {
+            "type": "string",
+            "format": "date",
+            "title": "Quarterstart"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "lo": {
+            "type": "number",
+            "title": "Lo"
+          },
+          "hi": {
+            "type": "number",
+            "title": "Hi"
+          },
+          "madeAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Madeat"
+          },
+          "dataThrough": {
+            "type": "string",
+            "format": "date",
+            "title": "Datathrough"
+          },
+          "monthsInData": {
+            "type": "integer",
+            "title": "Monthsindata"
+          },
+          "modelVersion": {
+            "type": "string",
+            "title": "Modelversion"
+          },
+          "hash": {
+            "type": "string",
+            "title": "Hash"
+          },
+          "inputHash": {
+            "type": "string",
+            "title": "Inputhash"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "resolved"
+            ],
+            "title": "Status"
+          },
+          "expectedReportOn": {
+            "type": "string",
+            "format": "date",
+            "title": "Expectedreporton"
+          },
+          "reportKind": {
+            "type": "string",
+            "enum": [
+              "trading update",
+              "quarterly report"
+            ],
+            "title": "Reportkind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "companyId",
+          "companyName",
+          "quarterStart",
+          "value",
+          "lo",
+          "hi",
+          "madeAt",
+          "dataThrough",
+          "monthsInData",
+          "modelVersion",
+          "hash",
+          "inputHash",
+          "status",
+          "expectedReportOn",
+          "reportKind"
+        ],
+        "title": "Nowcast",
+        "description": "Quarterly production forecast (kboe/d), frozen at quarter end, scored vs the company."
       },
       "OperatorRef": {
         "properties": {
@@ -1852,6 +2376,273 @@
           "sharePct"
         ],
         "title": "OwnershipPeriod"
+      },
+      "PredictionRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "companyId": {
+            "type": "string",
+            "title": "Companyid"
+          },
+          "companyName": {
+            "type": "string",
+            "title": "Companyname"
+          },
+          "quarterStart": {
+            "type": "string",
+            "format": "date",
+            "title": "Quarterstart"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "live",
+              "backtest"
+            ],
+            "title": "Kind"
+          },
+          "isLatest": {
+            "type": "boolean",
+            "title": "Islatest"
+          },
+          "madeAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Madeat"
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date",
+            "title": "Asof"
+          },
+          "dataThrough": {
+            "type": "string",
+            "format": "date",
+            "title": "Datathrough"
+          },
+          "monthsInData": {
+            "type": "integer",
+            "title": "Monthsindata"
+          },
+          "predicted": {
+            "type": "number",
+            "title": "Predicted"
+          },
+          "lo": {
+            "type": "number",
+            "title": "Lo"
+          },
+          "hi": {
+            "type": "number",
+            "title": "Hi"
+          },
+          "modelVersion": {
+            "type": "string",
+            "title": "Modelversion"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "resolved"
+            ],
+            "title": "Status"
+          },
+          "expectedReportOn": {
+            "type": "string",
+            "format": "date",
+            "title": "Expectedreporton"
+          },
+          "reportKind": {
+            "type": "string",
+            "enum": [
+              "trading update",
+              "quarterly report"
+            ],
+            "title": "Reportkind"
+          },
+          "reportedOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reportedon"
+          },
+          "actual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual"
+          },
+          "errorPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errorpct"
+          },
+          "inRange": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inrange"
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline",
+            "description": "Naive guess: the company's reported figure for the quarter before."
+          },
+          "baselineErrorPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baselineerrorpct"
+          },
+          "attributedActual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attributedactual",
+            "description": "Sodir-attributed production for the quarter, once all three months are in."
+          },
+          "attributedErrorPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attributederrorpct"
+          },
+          "attributedInRange": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attributedinrange"
+          },
+          "attributedBaseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attributedbaseline"
+          },
+          "attributedBaselineErrorPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attributedbaselineerrorpct"
+          },
+          "hash": {
+            "type": "string",
+            "title": "Hash"
+          },
+          "inputHash": {
+            "type": "string",
+            "title": "Inputhash"
+          },
+          "commitUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commiturl"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "companyId",
+          "companyName",
+          "quarterStart",
+          "kind",
+          "isLatest",
+          "madeAt",
+          "asOf",
+          "dataThrough",
+          "monthsInData",
+          "predicted",
+          "lo",
+          "hi",
+          "modelVersion",
+          "status",
+          "expectedReportOn",
+          "reportKind",
+          "reportedOn",
+          "actual",
+          "errorPct",
+          "inRange",
+          "baseline",
+          "baselineErrorPct",
+          "attributedActual",
+          "attributedErrorPct",
+          "attributedInRange",
+          "attributedBaseline",
+          "attributedBaselineErrorPct",
+          "hash",
+          "inputHash"
+        ],
+        "title": "PredictionRecord",
+        "description": "One row of the append-only prediction log (kboe/d), with what happened since."
       },
       "PublicationLag": {
         "properties": {

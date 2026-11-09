@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from stakeflow_api.caching import not_modified
 from stakeflow_api.db import make_pool
-from stakeflow_api.routers import ask, companies, fields, meta, scenarios, summary
+from stakeflow_api.routers import ask, companies, fields, forecasts, meta, scenarios, summary
 
 
 @asynccontextmanager
@@ -52,3 +52,4 @@ app.include_router(companies.router)
 app.include_router(fields.router)
 app.include_router(ask.router)
 app.include_router(scenarios.router)
+app.include_router(forecasts.router)

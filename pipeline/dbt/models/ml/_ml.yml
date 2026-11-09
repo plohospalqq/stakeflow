@@ -1,0 +1,90 @@
+version: 2
+
+sources:
+  - name: ml
+    schema: ml
+    description: >
+      Model outputs written by the forecast run (stakeflow_pipeline.forecast, Dagster asset
+      group "ml"). Append-only: a database trigger rejects UPDATE, DELETE and TRUNCATE.
+    tables:
+      - name: field_forecast_latest
+        description: View over ml.field_forecast, newest run only.
+        config:
+          meta: {dagster: {asset_key: ["ml", "field_forecast"]}}
+      - name: field_model_card_latest
+        description: View over ml.field_model_card, newest run only, with run time and version.
+        config:
+          meta: {dagster: {asset_key: ["ml", "field_model_card"]}}
+      - name: predictions
+        description: >
+          Every quarterly prediction ever made (kind live) or replayed (kind backtest), with its
+          input and prediction hashes. Revisions are new rows.
+        config:
+          meta: {dagster: {asset_key: ["ml", "predictions"]}}
+
+models:
+  - name: fct_field_forecast
+    description: >
+      Newest forecast per field: 36 months of p10 / p50 / p90 net production in Sm³ o.e.
+      (statistical convention: p10 is the low case). Shut-down fields have no rows.
+    tests:
+      - unique_combination:
+          arguments: {columns: [field_id, month]}
+    columns:
+      - name: field_id
+        tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_field'), field: field_id}
+
+  - name: fct_field_model_card
+    description: >
+      How each field was forecast in the newest run: status (arps, plateau, ramp_up, too_short,
+      shut_down), Arps parameters, fit window, seasonal swing and the 12-month backtest against
+      the naive "last 3 months held flat" baseline.
+    columns:
+      - name: field_id
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_field'), field: field_id}
+      - name: status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [arps, plateau, ramp_up, too_short, shut_down]}
+      - name: b
+        tests:
+          - dbt_expression_between:
+              arguments: {min: 0, max: 1.5}
+
+  - name: fct_prediction_scores
+    description: >
+      Every quarterly prediction with the company-reported and Sodir-attributed actuals, errors,
+      in-range flags and the "same as last quarter" baseline. is_latest marks the row that counts
+      when a quarter was predicted more than once.
+    columns:
+      - name: prediction_id
+        tests: [unique, not_null]
+      - name: prediction_hash
+        tests: [unique, not_null]
+      - name: kind
+        tests:
+          - accepted_values:
+              arguments: {values: [live, backtest]}
+      - name: group_id
+        tests:
+          - relationships:
+              arguments: {to: ref('dim_company_group'), field: group_id}
+      - name: expected_report_on
+        tests: [not_null]
+
+  - name: fct_prediction_accuracy
+    description: >
+      Track record per kind, model version and company ('all' = every focus company): mean
+      absolute error vs reported and vs Sodir-attributed actuals, bias, how often the actual
+      landed in the 80% range, and the same error for the naive baseline on the same quarters.
+    tests:
+      - unique_combination:
+          arguments: {columns: [kind, model_version, group_id]}
