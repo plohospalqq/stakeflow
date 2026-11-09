@@ -5,7 +5,6 @@ STAKEFLOW_READER_PASSWORD set; skips otherwise. The model is still a fake.
 """
 
 import time
-from collections.abc import Iterator
 
 import psycopg
 import pytest
@@ -21,21 +20,9 @@ from stakeflow_api.ask.executor import (
     reader_conninfo_from_env,
 )
 from stakeflow_api.ask.sql_guard import validate_sql
-from stakeflow_api.db import conninfo_from_env
 from stakeflow_api.deps import get_llm
 from stakeflow_api.main import app
 from tests.fakes import FakeAnthropic, tool_call
-
-
-@pytest.fixture(scope="module")
-def owner_conn() -> Iterator[psycopg.Connection]:
-    try:
-        conn = psycopg.connect(conninfo_from_env(), connect_timeout=3, autocommit=True)
-        conn.execute("select 1 from marts.meta_data_freshness")
-    except (KeyError, psycopg.Error) as exc:
-        pytest.skip(f"marts not available ({exc!r}); run `make up` and the pipeline")
-    with conn:
-        yield conn
 
 
 @pytest.fixture(scope="module")

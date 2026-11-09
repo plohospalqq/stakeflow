@@ -19,3 +19,15 @@ def client() -> Iterator[TestClient]:
 
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture(scope="session")
+def owner_conn() -> Iterator[psycopg.Connection]:
+    """A plain connection as the database owner, for checks the API itself would not run."""
+    try:
+        conn = psycopg.connect(conninfo_from_env(), connect_timeout=3, autocommit=True)
+        conn.execute("select 1 from marts.meta_data_freshness")
+    except (KeyError, psycopg.Error) as exc:
+        pytest.skip(f"marts not available ({exc!r}); run `make up` and the pipeline")
+    with conn:
+        yield conn
