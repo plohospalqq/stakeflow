@@ -40,3 +40,19 @@ describe('format', () => {
     expect(titleCaseName('OSEBERG SØR')).toBe('Oseberg Sør');
   });
 });
+
+describe('Ukrainian month names', () => {
+  it('keeps abbreviations that end in р. and drops only the year suffix', async () => {
+    const { setFormatLocale, formatMonthName, formatMonth } = await import('./format');
+    const { uk } = await import('@/i18n/uk');
+    const { en } = await import('@/i18n/en');
+    setFormatLocale('uk-UA', uk.format);
+    try {
+      expect(formatMonthName('2026-03-01')).toBe('бер.');
+      expect(formatMonthName('2026-09-01')).toBe('вер.');
+      expect(formatMonth('2026-08-01')).not.toMatch(/р\.$/);
+    } finally {
+      setFormatLocale('en-GB', en.format);
+    }
+  });
+});

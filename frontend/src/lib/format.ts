@@ -57,7 +57,8 @@ function withMinus(text: string): string {
 
 /** Ukrainian adds ' р.' (year) after dates; in a UI label it is noise. */
 function tidyDate(text: string): string {
-  return text.replace(/\s?р\.$/, '').replace('Sept', 'Sep');
+  // Ukrainian dates end in '2026 р.'; the space matters, or 'бер.' (March) loses its 'р.' too
+  return text.replace(/\sр\.$/, '').replace('Sept', 'Sep');
 }
 
 export function formatNumber(value: number, digits = 0): string {
