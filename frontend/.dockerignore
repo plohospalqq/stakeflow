@@ -6,3 +6,5 @@ coverage
 !.env.example
 docs/screenshots
 .playwright-mcp
+# Static demo snapshot, written by api/scripts/export_static.py
+public/data

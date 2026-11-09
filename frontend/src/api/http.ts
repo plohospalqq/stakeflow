@@ -1,7 +1,7 @@
 /**
  * Live API client. Calls relative /api/... (Vite dev proxy or nginx strip the prefix) and
  * maps the generated OpenAPI types into domain models, so the rest of the app never sees
- * wire formats.
+ * wire formats. The static demo (static.ts) reuses the same client over exported files.
  */
 import { titleCaseName } from '@/lib/format';
 import { safeExternalUrl } from '@/lib/safeUrl';
@@ -42,7 +42,10 @@ export function isNotFound(error: unknown): boolean {
 
 const BASE = '/api';
 
-type Query = Record<string, string | number | boolean | undefined>;
+export type Query = Record<string, string | number | boolean | undefined>;
+
+/** Reads one API resource as JSON, e.g. getJson('/fields', { status: 'Producing' }). */
+export type JsonGetter = <T>(path: string, query?: Query) => Promise<T>;
 
 async function get<T>(path: string, query: Query = {}, signal?: AbortSignal): Promise<T> {
   const params = new URLSearchParams();
@@ -204,7 +207,11 @@ export function parseOutlines(fc: Schemas['FeatureCollection']): FieldOutlines {
 
 const range = (r?: MonthRange): Query => ({ start: r?.start, end: r?.end });
 
-export const httpCore: CoreApi = {
+/**
+ * The CoreApi over any source that answers API paths with API JSON. Both the live API and the
+ * static demo go through the same mappers, so the domain types cannot drift between them.
+ */
+export const createCore = (get: JsonGetter): CoreApi => ({
   async freshness() {
     const f = await get<Schemas['Freshness']>('/meta/freshness');
     return {
@@ -276,4 +283,6 @@ export const httpCore: CoreApi = {
   async fieldOutlines() {
     return parseOutlines(await get<Schemas['FeatureCollection']>('/fields/geojson'));
   },
-};
+});
+
+export const httpCore: CoreApi = createCore(get);

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, useRoutes } from 'react-router';
+import { DemoNotice } from './components/DemoNotice';
 import { routes } from './routes';
 
 const queryClient = new QueryClient({
@@ -20,7 +21,9 @@ function AppRoutes() {
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      {/* BASE_URL is '/' normally and '/stakeflow/' on GitHub Pages (vite.config.ts) */}
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <DemoNotice />
         <AppRoutes />
       </BrowserRouter>
     </QueryClientProvider>

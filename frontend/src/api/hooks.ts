@@ -6,6 +6,8 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { addMonths } from '@/lib/dates';
 import { core, extras } from './index';
 import { isNotFound } from './http';
+import { IS_STATIC_DEMO } from './mode';
+import { staticSnapshotInfo } from './static';
 import type { FieldStatus, MonthRange } from './types';
 
 export const queryKeys = {
@@ -31,6 +33,7 @@ export const queryKeys = {
   prices: ['prices'] as const,
   forwardPrices: ['prices', 'forward'] as const,
   ask: (question: string) => ['ask', question] as const,
+  snapshotInfo: ['snapshot'] as const,
 };
 
 /** A 404 will not fix itself; anything else gets the default single retry. */
@@ -39,6 +42,16 @@ const retryUnlessNotFound = (failureCount: number, error: Error) =>
 
 export function useFreshness() {
   return useQuery({ queryKey: queryKeys.freshness, queryFn: () => core.freshness() });
+}
+
+/** When the static demo's data was exported; disabled outside the static demo. */
+export function useSnapshotInfo() {
+  return useQuery({
+    queryKey: queryKeys.snapshotInfo,
+    queryFn: staticSnapshotInfo,
+    enabled: IS_STATIC_DEMO,
+    staleTime: Infinity,
+  });
 }
 
 export function useCompanies(focus = false) {

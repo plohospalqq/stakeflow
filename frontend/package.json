@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pages": "VITE_DATA_SOURCE=static VITE_FEATURE_ASK=true STAKEFLOW_BASE_PATH=${STAKEFLOW_BASE_PATH:-/stakeflow/} pnpm build && cp dist/index.html dist/404.html",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint . --max-warnings 0",
