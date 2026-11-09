@@ -4,7 +4,7 @@
 [![Live demo](https://github.com/plohospalqq/stakeflow/actions/workflows/pages.yml/badge.svg)](https://plohospalqq.github.io/stakeflow/)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB)
 ![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6)
-![dbt tests](https://img.shields.io/badge/dbt%20tests-68-FF694B)
+![dbt tests](https://img.shields.io/badge/dbt%20tests-120-FF694B)
 [![Sodir data: NLOD](https://img.shields.io/badge/Sodir%20data-NLOD-2E7D32)](https://data.norge.no/nlod/en/2.0)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -42,8 +42,23 @@ Reported figures come from the companies' trading updates (sources in
 [`reported_quarterly_production.csv`](pipeline/dbt/seeds/reported_quarterly_production.csv)).
 Vår Energi's figures include fuel gas it burns rather than sells, so they run above Sodir's
 saleable volumes; its Q1 2024 gap (−10%) is the Neptune acquisition, which the company counted
-from 1 January while the licence transfer is dated 31 January. Field volumes match Sodir's own published numbers exactly (checked against the live
-Sodir API, and by a dbt test for every field and month).
+from 1 January while the licence transfer is dated 31 January. Field volumes match Sodir's own
+published numbers exactly (checked against the live Sodir API, and by a dbt test for every field
+and month).
+
+**Forecasts.** Quarterly production nowcasts (Arps decline per field × ownership), replayed for
+45 past quarters using only data Sodir had published by each quarter end, scored against the
+first figure each company published and against the simple guess "same as last quarter":
+
+| Company | Model error | Simple guess | Comment |
+|---|---:|---:|---|
+| Aker BP | **2.6%** | 3.5% | model better |
+| Equinor (E&P Norway) | **3.6%** | 4.7% | model better |
+| Vår Energi | 9.1% | 8.1% | worse: new fields (Balder X, Johan Castberg) are invisible to a decline model until they produce |
+
+The 80% ranges hold the actual figure 62% of the time, so they are too narrow, and the app says
+so. Live predictions are frozen at each quarter end and committed to `predictions/`
+by a GitHub Action ([freeze-predictions.yml](.github/workflows/freeze-predictions.yml)); the first one (Q4 2026) is scored when the January trading updates appear.
 
 ## What you can do in the app
 
@@ -52,6 +67,10 @@ Sodir API, and by a dbt test for every field and month).
 | **Company detail.** Net production by field with day-weighted ownership, Sodir vs reported by quarter, a revenue estimate with the formula visible. ![Company](frontend/docs/screenshots/company-aker-bp-dark.png) | **Field detail.** History by product, the full ownership timeline (e.g. Lundin → Aker BP, 30 Jun 2022), facts and a CSV export. ![Field](frontend/docs/screenshots/field-johan-sverdrup-dark.png) |
 | **Field map.** Every field on MapLibre: size = production, colour = oil vs gas, highlight a company's fields, keyboard-accessible list. ![Map](frontend/docs/screenshots/map-dark.png) | **Track record.** The Sodir-vs-reported comparison, and every quarterly nowcast scored against the company's report and a simple guess, live predictions and backtests kept apart. ![Track record](frontend/docs/screenshots/track-record-light.png) |
 
+Also: a **landing page** that explains the shelf in plain words, a **Scenarios** page (what a
+share price might do if oil, gas, production or the dollar moved: a transparent OLS model with
+its fit and uncertainty, never a forecast), **anomalies** (months a field produced far off its
+own trend), **English, Ukrainian and Norwegian**, and a **Simple words / Expert** switch.
 Dark and light themes, boe/d or Sm³ o.e., and a phone layout with a bottom tab bar
 ([all screenshots](frontend/docs/screenshots/)). With the local stack every number is live. The
 public demo carries the real forecasts, nowcasts, prediction log, anomalies and prices; share
@@ -119,14 +138,21 @@ flowchart LR
     subgraph Dagster
         S{{sensor: new month?<br/>every 6 h}} --> R[8 raw assets<br/>+ row-count / freshness checks]
         C{{monthly schedule<br/>fallback}} --> R
-        R --> D[dbt build<br/>19 models · 3 seeds · 68 tests]
+        M{{daily: Brent, TTF, FX,<br/>share price files}} --> R
+        R --> D[dbt build<br/>marts]
+        D --> ML[Python: Arps forecasts,<br/>nowcasts, anomalies,<br/>scenario models]
+        ML --> D2[dbt build<br/>ml marts · 120 tests total]
     end
 
     Sodir -->|paged GeoJSON, WGS84| R
     R --> RAW[(raw<br/>append-only snapshots)]
     D --> STG[(staging)]
     D --> MARTS[(marts)]
+    ML --> MLDB[(ml<br/>append-only)]
+    D2 --> MARTS
+    MLDB -.->|quarter end| GIT[predictions/ in Git]
     MARTS --> API[FastAPI<br/>read-only, OpenAPI]
+    API <-->|text to SQL,<br/>read-only role| LLM[Claude]
     API --> NGINX[nginx<br/>/api proxy]
     NGINX --> UI[React · ECharts · MapLibre]
 ```
@@ -242,9 +268,10 @@ Frontend details: [`frontend/README.md`](frontend/README.md).
 | Sodir client | Paging, offsets, HTML and `{"error"}` responses with HTTP 200, endless-loop guard; recorded real responses, no network |
 | Raw store | Append-only snapshots, all-or-nothing load when the row count does not match Sodir |
 | Dagster | Code location loads; dbt models sit downstream of the raw assets; row-drop and freshness checks |
-| dbt (68 tests) | o.e. matches Sodir for every field-month; attributed volumes sum back to field volumes; shares cover 100% while a field is owned; no overlapping ownership intervals; valid geometries; "Equinor (NCS only)" label; keys and relationships |
-| API | Products add up to o.e.; boe/d formula; 404/422 on bad input; literal (non-wildcard) search; reconciliation; ownership history; GeoJSON |
-| Frontend (227 tests) | Unit maths (boe/d, Sm³), components, every route rendering on mocked data, the live-API mappers on real response shapes, which data is sample in which mode, URL safety, Ask answers never dead-end and only use real tables |
+| dbt (120 tests) | o.e. matches Sodir for every field-month; attributed volumes sum back to field volumes; shares cover 100% while a field is owned; no overlapping ownership intervals; valid geometries; "Equinor (NCS only)" label; keys and relationships |
+| Pipeline (139 tests) | Arps fit recovers known parameters; interval coverage on synthetic data; prediction hashes are deterministic and rows append-only; anomaly rule; OLS recovers known coefficients; market and Euronext parsers on recorded files |
+| API (423 tests) | Products add up to o.e.; boe/d formula; 404/422 on bad input; literal search; reconciliation; ownership history; GeoJSON; caching/304; the SQL guard (DDL, multi-statement, CTE scoping, function allow-list) and the read-only role; scenario contract and clamping; Ask and parsing against a mocked Claude |
+| Frontend (228 tests) | Unit maths (boe/d, Sm³), components, every route rendering on mocked data, the live-API mappers on real response shapes, which data is sample in which mode, URL safety, Ask answers never dead-end and only use real tables |
 | Live demo | `pages.yml` builds the warehouse from live Sodir data (offline snapshot as fallback), runs every dbt test, exports the API's responses and deploys the app plus dbt docs to GitHub Pages |
 | CI | All of the above on every push: lint and tests per project; the warehouse job builds the full dbt project from a 385 KiB offline Sodir snapshot in a PostGIS service; OpenAPI and generated TypeScript types must match; Docker images build |
 
@@ -273,25 +300,33 @@ overflow), with negative API tests (bad parameters, SQL-injection attempts: only
 | Strict CSP, no inline scripts | `script-src 'self'`; only the map tile host is allowed out. Charts need inline style attributes only. |
 | Cache-Control + freshness ETag | Data changes monthly; browsers revalidate cheaply and get 304s until Sodir publishes. |
 | Untrusted URLs filtered twice | Links from third-party data are rendered only if https to a known host (frontend) and Sodir URLs are validated again in dbt staging. |
+| Forecast in Python, scoring in dbt, predictions append-only by trigger | Curve fitting needs scipy; scoring is plain SQL that should be reviewable. A database trigger, not a convention, keeps the prediction log honest; the Git commit is the public timestamp. |
+| Scenario model instead of share-price prediction | A transparent OLS on monthly returns shows sensitivity with its fit and uncertainty; an LLM may only turn free text into the model's inputs, never produce numbers. |
+| Share prices only from the user's own Euronext download | Euronext forbids robots and redistribution, so the pipeline never downloads them, and the public demo never contains them. |
+| Typed i18n dictionaries, no library | Three languages; a missing key is a compile error; plurals and numbers via `Intl`. |
 | Nowcast reframed (see [docs/nowcast-feasibility.md](docs/nowcast-feasibility.md)) | Companies publish production 12–14 days after quarter end; Sodir field data lands 40–69 days after month end. Forecasts are therefore frozen at quarter end and scored against the trading update. |
 
 ## Repository layout
 
 ```
-pipeline/   Dagster + dbt: Sodir client, raw snapshots, sensor, dbt models, seeds and tests
-api/        FastAPI (read-only on marts), OpenAPI contract
+pipeline/   Dagster + dbt: Sodir and market loaders, raw snapshots, sensor, dbt models, seeds,
+            forecasts (Arps, nowcasts), anomalies, scenario models, tests
+api/        FastAPI (read-only on marts), Ask/scenario parsing with Claude, evals, OpenAPI contract
 frontend/   React + TypeScript + Vite + Tailwind + ECharts + MapLibre, nginx image
 infra/      Postgres image (PostGIS) and init SQL
-docs/       Phase 1 plan, nowcast feasibility analysis, frontend spec
+docs/       plans, nowcast feasibility, forecasting method, market data sources and licences
+predictions/ quarter-end predictions committed by the freeze workflow (never edited by hand)
 ```
 
 ## Roadmap
 
-- **Phase 2:** Arps decline-curve forecasts per field and an ML model on top; quarterly
-  production and revenue forecasts for Aker BP and Vår Energi (Brent, TTF), with an
-  append-only predictions table recording when each prediction was made.
-- **Phase 3:** anomaly detection on field production; a text-to-SQL "ask the data" agent with
-  an evaluation set.
+Done: Phase 1 (pipeline, warehouse, API, app) and Phase 2 (forecasts, nowcasts, prediction log,
+prices, anomalies, scenario model, Ask, three languages, live demo). Next:
+
+- Calibrate the forecast ranges (80% nominal, about 62% actual) and detect fields that are about
+  to start producing.
+- Score the first live prediction (Q4 2026) against the January trading updates.
+- Run the Ask evaluation set against Claude once an API key is configured (`make eval`).
 
 ## Data licence
 
