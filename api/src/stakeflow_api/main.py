@@ -12,7 +12,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from stakeflow_api.caching import not_modified
 from stakeflow_api.db import make_pool
-from stakeflow_api.routers import ask, companies, fields, forecasts, meta, scenarios, summary
+from stakeflow_api.routers import (
+    anomalies,
+    ask,
+    companies,
+    fields,
+    forecasts,
+    market_scenarios,
+    meta,
+    prices,
+    scenarios,
+    summary,
+)
 
 
 @asynccontextmanager
@@ -31,7 +42,9 @@ app = FastAPI(
     description=(
         "Source: Sodir (Norwegian Offshore Directorate), Norwegian Licence for Open Government "
         "Data (NLOD). Volumes are monthly Sm³ oil equivalent unless the field name says "
-        "otherwise. Equinor figures cover the Norwegian shelf only. Not investment advice."
+        "otherwise. Equinor figures cover the Norwegian shelf only. Prices: EIA (public "
+        "domain), ECB, World Bank (CC BY 4.0); share prices only where imported locally. "
+        "Scenarios are what-ifs, not forecasts. Not investment advice."
     ),
     lifespan=lifespan,
 )
@@ -53,3 +66,6 @@ app.include_router(fields.router)
 app.include_router(ask.router)
 app.include_router(scenarios.router)
 app.include_router(forecasts.router)
+app.include_router(prices.router)
+app.include_router(market_scenarios.router)
+app.include_router(anomalies.router)

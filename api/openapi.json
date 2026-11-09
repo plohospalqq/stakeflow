@@ -3,7 +3,7 @@
   "info": {
     "title": "Stakeflow API",
     "summary": "Norwegian Continental Shelf production, attributed to the companies that own it.",
-    "description": "Source: Sodir (Norwegian Offshore Directorate), Norwegian Licence for Open Government Data (NLOD). Volumes are monthly Sm\u00b3 oil equivalent unless the field name says otherwise. Equinor figures cover the Norwegian shelf only. Not investment advice.",
+    "description": "Source: Sodir (Norwegian Offshore Directorate), Norwegian Licence for Open Government Data (NLOD). Volumes are monthly Sm\u00b3 oil equivalent unless the field name says otherwise. Equinor figures cover the Norwegian shelf only. Prices: EIA (public domain), ECB, World Bank (CC BY 4.0); share prices only where imported locally. Scenarios are what-ifs, not forecasts. Not investment advice.",
     "version": "0.1.0"
   },
   "paths": {
@@ -1035,10 +1035,728 @@
           }
         }
       }
+    },
+    "/prices": {
+      "get": {
+        "tags": [
+          "prices"
+        ],
+        "summary": "List Prices",
+        "description": "Each series at its native frequency: daily (Brent, FX) or monthly (TTF, dated the 1st).",
+        "operationId": "list_prices_prices_get",
+        "parameters": [
+          {
+            "name": "series",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "brent",
+                      "ttf",
+                      "eurusd",
+                      "usdnok"
+                    ],
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Series ids (default: all)",
+              "title": "Series"
+            },
+            "description": "Series ids (default: all)"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "First date (default: a year back)",
+              "title": "Start"
+            },
+            "description": "First date (default: a year back)"
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Last date (default: newest)",
+              "title": "End"
+            },
+            "description": "Last date (default: newest)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PriceSeries"
+                  },
+                  "title": "Response List Prices Prices Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prices/latest": {
+      "get": {
+        "tags": [
+          "prices"
+        ],
+        "summary": "Latest Prices",
+        "description": "Newest value of each series (spot, not forward). TTF is the latest monthly average.",
+        "operationId": "latest_prices_prices_latest_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestPrices"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{company_id}/share-price": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Share Price",
+        "description": "Daily closes for context. Empty when no prices were imported into this installation.",
+        "operationId": "share_price_companies__company_id__share_price_get",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "First day (default: a year back)",
+              "title": "Start"
+            },
+            "description": "First day (default: a year back)"
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Last day (default: newest)",
+              "title": "End"
+            },
+            "description": "Last day (default: newest)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharePriceSeries"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scenarios/presets": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Scenario Presets",
+        "description": "Ready-made scenarios in plain language, as parameters for /companies/{id}/scenario.",
+        "operationId": "scenario_presets_scenarios_presets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScenarioPreset"
+                  },
+                  "type": "array",
+                  "title": "Response Scenario Presets Scenarios Presets Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{company_id}/scenario": {
+      "get": {
+        "tags": [
+          "scenarios"
+        ],
+        "summary": "Company Scenario",
+        "description": "How the share price *might* respond to the changes you pick, with an 80% band.\n\nA scenario, not a forecast; not investment advice. The query parameters are the shared\nscenario contract: brent_change_pct, ttf_change_pct, production_change_pct,\neurusd_change_pct, horizon_months.",
+        "operationId": "company_scenario_companies__company_id__scenario_get",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          },
+          {
+            "name": "brent_change_pct",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 300,
+              "minimum": -90,
+              "description": "Brent, % change",
+              "default": 0,
+              "title": "Brent Change Pct"
+            },
+            "description": "Brent, % change"
+          },
+          {
+            "name": "ttf_change_pct",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 300,
+              "minimum": -90,
+              "description": "TTF gas, % change",
+              "default": 0,
+              "title": "Ttf Change Pct"
+            },
+            "description": "TTF gas, % change"
+          },
+          {
+            "name": "production_change_pct",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 100,
+              "minimum": -100,
+              "description": "Company's attributed production, % change",
+              "default": 0,
+              "title": "Production Change Pct"
+            },
+            "description": "Company's attributed production, % change"
+          },
+          {
+            "name": "eurusd_change_pct",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 100,
+              "minimum": -50,
+              "description": "EUR/USD, % change",
+              "default": 0,
+              "title": "Eurusd Change Pct"
+            },
+            "description": "EUR/USD, % change"
+          },
+          {
+            "name": "horizon_months",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 24,
+              "minimum": 1,
+              "description": "Months over which it happens",
+              "default": 3,
+              "title": "Horizon Months"
+            },
+            "description": "Months over which it happens"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/anomalies": {
+      "get": {
+        "tags": [
+          "anomalies"
+        ],
+        "summary": "List Anomalies",
+        "description": "Flagged months of the latest run (last 24 months), newest and largest first.",
+        "operationId": "list_anomalies_anomalies_get",
+        "parameters": [
+          {
+            "name": "severity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "high",
+                    "medium",
+                    "low"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "name": "field_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this field",
+              "title": "Field Id"
+            },
+            "description": "Only this field"
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only anomalies affecting this owner",
+              "title": "Company"
+            },
+            "description": "Only anomalies affecting this owner"
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "First month",
+              "title": "Since"
+            },
+            "description": "First month"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Anomaly"
+                  },
+                  "title": "Response List Anomalies Anomalies Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/anomalies/run": {
+      "get": {
+        "tags": [
+          "anomalies"
+        ],
+        "summary": "Anomaly Run",
+        "description": "When the latest run happened, what it looked at, and how it decides.",
+        "operationId": "anomaly_run_anomalies_run_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnomalyRun"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "Anomaly": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "fieldId": {
+            "type": "integer",
+            "title": "Fieldid"
+          },
+          "fieldName": {
+            "type": "string",
+            "title": "Fieldname"
+          },
+          "operatorName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operatorname"
+          },
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "pctVsExpected": {
+            "type": "number",
+            "title": "Pctvsexpected"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Severity"
+          },
+          "status": {
+            "type": "string",
+            "const": "new",
+            "title": "Status",
+            "default": "new"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "expected": {
+            "type": "number",
+            "title": "Expected"
+          },
+          "actual": {
+            "type": "number",
+            "title": "Actual"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/AnomalyPoint"
+            },
+            "type": "array",
+            "title": "Series"
+          },
+          "hits": {
+            "items": {
+              "$ref": "#/components/schemas/AnomalyHit"
+            },
+            "type": "array",
+            "title": "Hits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "fieldId",
+          "fieldName",
+          "operatorName",
+          "month",
+          "pctVsExpected",
+          "severity",
+          "note",
+          "expected",
+          "actual",
+          "series",
+          "hits"
+        ],
+        "title": "Anomaly",
+        "description": "Maps onto the frontend's Anomaly (pctVsExpected in percent, volumes in kboe/d)."
+      },
+      "AnomalyHit": {
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "title": "Companyid"
+          },
+          "companyName": {
+            "type": "string",
+            "title": "Companyname"
+          },
+          "isFocus": {
+            "type": "boolean",
+            "title": "Isfocus"
+          },
+          "sharePct": {
+            "type": "number",
+            "title": "Sharepct"
+          },
+          "kboed": {
+            "type": "number",
+            "title": "Kboed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "companyId",
+          "companyName",
+          "isFocus",
+          "sharePct",
+          "kboed"
+        ],
+        "title": "AnomalyHit",
+        "description": "Effect on one current owner, kboe/d (negative = lost), at today's share."
+      },
+      "AnomalyPoint": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "actual": {
+            "type": "number",
+            "title": "Actual"
+          },
+          "expected": {
+            "type": "number",
+            "title": "Expected"
+          },
+          "lo": {
+            "type": "number",
+            "title": "Lo"
+          },
+          "hi": {
+            "type": "number",
+            "title": "Hi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "actual",
+          "expected",
+          "lo",
+          "hi"
+        ],
+        "title": "AnomalyPoint",
+        "description": "One month of the mini chart, kboe/d."
+      },
+      "AnomalyRun": {
+        "properties": {
+          "runAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Runat"
+          },
+          "modelVersion": {
+            "type": "string",
+            "title": "Modelversion"
+          },
+          "latestMonth": {
+            "type": "string",
+            "format": "date",
+            "title": "Latestmonth"
+          },
+          "flaggedFrom": {
+            "type": "string",
+            "format": "date",
+            "title": "Flaggedfrom"
+          },
+          "fieldsEvaluated": {
+            "type": "integer",
+            "title": "Fieldsevaluated"
+          },
+          "anomalyCount": {
+            "type": "integer",
+            "title": "Anomalycount"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "params": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Params"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runAt",
+          "modelVersion",
+          "latestMonth",
+          "flaggedFrom",
+          "fieldsEvaluated",
+          "anomalyCount",
+          "method",
+          "params"
+        ],
+        "title": "AnomalyRun"
+      },
       "AskAnswer": {
         "properties": {
           "question": {
@@ -1261,6 +1979,141 @@
           "description"
         ],
         "title": "AskTable"
+      },
+      "Backtest": {
+        "properties": {
+          "quartersScored": {
+            "type": "integer",
+            "title": "Quartersscored"
+          },
+          "r2InSampleQuarterly": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "R2Insamplequarterly"
+          },
+          "r2OutOfSampleQuarterly": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "R2Outofsamplequarterly"
+          },
+          "bandCoverage80": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bandcoverage80"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "quarters": {
+            "items": {
+              "$ref": "#/components/schemas/BacktestQuarter"
+            },
+            "type": "array",
+            "title": "Quarters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quartersScored",
+          "r2InSampleQuarterly",
+          "r2OutOfSampleQuarterly",
+          "bandCoverage80",
+          "note",
+          "quarters"
+        ],
+        "title": "Backtest"
+      },
+      "BacktestQuarter": {
+        "properties": {
+          "quarterStart": {
+            "type": "string",
+            "format": "date",
+            "title": "Quarterstart"
+          },
+          "actualPct": {
+            "type": "number",
+            "title": "Actualpct"
+          },
+          "fittedPct": {
+            "type": "number",
+            "title": "Fittedpct"
+          },
+          "outOfSamplePct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outofsamplepct"
+          },
+          "outOfSampleLoPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outofsamplelopct"
+          },
+          "outOfSampleHiPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outofsamplehipct"
+          },
+          "trainMonths": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trainmonths"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quarterStart",
+          "actualPct",
+          "fittedPct",
+          "outOfSamplePct",
+          "outOfSampleLoPct",
+          "outOfSampleHiPct",
+          "trainMonths"
+        ],
+        "title": "BacktestQuarter",
+        "description": "Quarterly share return, actual vs explained by the drivers (in %)."
       },
       "CompanyDetail": {
         "properties": {
@@ -1856,6 +2709,127 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "LatestPrices": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "spot",
+            "title": "Kind",
+            "default": "spot"
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date",
+            "title": "Asof"
+          },
+          "brentUsdPerBbl": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brentusdperbbl"
+          },
+          "brentDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brentdate"
+          },
+          "ttfEurPerMwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttfeurpermwh"
+          },
+          "ttfMonth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttfmonth"
+          },
+          "eurUsd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eurusd"
+          },
+          "eurUsdDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eurusddate"
+          },
+          "usdNok": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usdnok"
+          },
+          "usdNokDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usdnokdate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "asOf",
+          "brentUsdPerBbl",
+          "brentDate",
+          "ttfEurPerMwh",
+          "ttfMonth",
+          "eurUsd",
+          "eurUsdDate",
+          "usdNok",
+          "usdNokDate"
+        ],
+        "title": "LatestPrices",
+        "description": "Newest spot values, in the field names of the frontend's ForwardPrices.\n\nThese are spot (last observation), not forward prices: no free source with display rights\npublishes Brent or TTF forwards."
+      },
       "LatestSummary": {
         "properties": {
           "month": {
@@ -2123,6 +3097,39 @@
           "dataThrough"
         ],
         "title": "ModelCard"
+      },
+      "ModelCoefficient": {
+        "properties": {
+          "term": {
+            "type": "string",
+            "title": "Term"
+          },
+          "estimate": {
+            "type": "number",
+            "title": "Estimate"
+          },
+          "stdError": {
+            "type": "number",
+            "title": "Stderror"
+          },
+          "tStat": {
+            "type": "number",
+            "title": "Tstat"
+          },
+          "significant": {
+            "type": "boolean",
+            "title": "Significant"
+          }
+        },
+        "type": "object",
+        "required": [
+          "term",
+          "estimate",
+          "stdError",
+          "tStat",
+          "significant"
+        ],
+        "title": "ModelCoefficient"
       },
       "MonthlyPoint": {
         "properties": {
@@ -2644,6 +3651,92 @@
         "title": "PredictionRecord",
         "description": "One row of the append-only prediction log (kboe/d), with what happened since."
       },
+      "PricePoint": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "value"
+        ],
+        "title": "PricePoint"
+      },
+      "PriceSeries": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "brent",
+              "ttf",
+              "eurusd",
+              "usdnok"
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "frequency": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "monthly"
+            ],
+            "title": "Frequency"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "sourceUrl": {
+            "type": "string",
+            "title": "Sourceurl"
+          },
+          "licence": {
+            "type": "string",
+            "title": "Licence"
+          },
+          "attribution": {
+            "type": "string",
+            "title": "Attribution"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/PricePoint"
+            },
+            "type": "array",
+            "title": "Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "unit",
+          "frequency",
+          "source",
+          "sourceUrl",
+          "licence",
+          "attribution",
+          "points"
+        ],
+        "title": "PriceSeries",
+        "description": "Maps onto the frontend's PriceSeries; monthly series are dated the 1st of the month."
+      },
       "PublicationLag": {
         "properties": {
           "month": {
@@ -2804,6 +3897,163 @@
         "title": "ReferenceLevels",
         "description": "Today's levels, from the explorer's own price data. Needed to turn '$90' into a %."
       },
+      "ScenarioBand": {
+        "properties": {
+          "loChangePct": {
+            "type": "number",
+            "title": "Lochangepct"
+          },
+          "hiChangePct": {
+            "type": "number",
+            "title": "Hichangepct"
+          },
+          "loPrice": {
+            "type": "number",
+            "title": "Loprice"
+          },
+          "hiPrice": {
+            "type": "number",
+            "title": "Hiprice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loChangePct",
+          "hiChangePct",
+          "loPrice",
+          "hiPrice"
+        ],
+        "title": "ScenarioBand"
+      },
+      "ScenarioBase": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "close": {
+            "type": "number",
+            "title": "Close"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "close"
+        ],
+        "title": "ScenarioBase"
+      },
+      "ScenarioContribution": {
+        "properties": {
+          "driver": {
+            "type": "string",
+            "enum": [
+              "brent",
+              "ttf",
+              "production",
+              "eurusd"
+            ],
+            "title": "Driver"
+          },
+          "inputChangePct": {
+            "type": "number",
+            "title": "Inputchangepct"
+          },
+          "coefficient": {
+            "type": "number",
+            "title": "Coefficient"
+          },
+          "contributionPct": {
+            "type": "number",
+            "title": "Contributionpct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "driver",
+          "inputChangePct",
+          "coefficient",
+          "contributionPct"
+        ],
+        "title": "ScenarioContribution"
+      },
+      "ScenarioModelCard": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "runAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Runat"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "windowStart": {
+            "type": "string",
+            "format": "date",
+            "title": "Windowstart"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date",
+            "title": "Windowend"
+          },
+          "nObs": {
+            "type": "integer",
+            "title": "Nobs"
+          },
+          "r2": {
+            "type": "number",
+            "title": "R2"
+          },
+          "adjR2": {
+            "type": "number",
+            "title": "Adjr2"
+          },
+          "residualSdMonthlyPct": {
+            "type": "number",
+            "title": "Residualsdmonthlypct"
+          },
+          "coefficients": {
+            "items": {
+              "$ref": "#/components/schemas/ModelCoefficient"
+            },
+            "type": "array",
+            "title": "Coefficients"
+          },
+          "excludedMonths": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Excludedmonths"
+          },
+          "backtest": {
+            "$ref": "#/components/schemas/Backtest"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "runAt",
+          "method",
+          "windowStart",
+          "windowEnd",
+          "nObs",
+          "r2",
+          "adjR2",
+          "residualSdMonthlyPct",
+          "coefficients",
+          "excludedMonths",
+          "backtest"
+        ],
+        "title": "ScenarioModelCard"
+      },
       "ScenarioParameters": {
         "properties": {
           "brent_change_pct": {
@@ -2857,6 +4107,54 @@
         ],
         "title": "ScenarioParameters"
       },
+      "ScenarioParams": {
+        "properties": {
+          "brent_change_pct": {
+            "type": "number",
+            "maximum": 300.0,
+            "minimum": -90.0,
+            "title": "Brent Change Pct",
+            "description": "Brent, % change",
+            "default": 0
+          },
+          "ttf_change_pct": {
+            "type": "number",
+            "maximum": 300.0,
+            "minimum": -90.0,
+            "title": "Ttf Change Pct",
+            "description": "TTF gas, % change",
+            "default": 0
+          },
+          "production_change_pct": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": -100.0,
+            "title": "Production Change Pct",
+            "description": "Company's attributed production, % change",
+            "default": 0
+          },
+          "eurusd_change_pct": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": -50.0,
+            "title": "Eurusd Change Pct",
+            "description": "EUR/USD, % change",
+            "default": 0
+          },
+          "horizon_months": {
+            "type": "integer",
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "Horizon Months",
+            "description": "Months over which it happens",
+            "default": 3
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ScenarioParams",
+        "description": "The scenario contract shared with the free-text parser. Names are fixed (snake_case).\n\nUnknown names are rejected (422), so a typo never silently becomes \"no change\"."
+      },
       "ScenarioParseRequest": {
         "properties": {
           "text": {
@@ -2893,6 +4191,231 @@
           "text"
         ],
         "title": "ScenarioParseRequest"
+      },
+      "ScenarioPathPoint": {
+        "properties": {
+          "monthOffset": {
+            "type": "integer",
+            "title": "Monthoffset"
+          },
+          "changePct": {
+            "type": "number",
+            "title": "Changepct"
+          },
+          "loChangePct": {
+            "type": "number",
+            "title": "Lochangepct"
+          },
+          "hiChangePct": {
+            "type": "number",
+            "title": "Hichangepct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "monthOffset",
+          "changePct",
+          "loChangePct",
+          "hiChangePct"
+        ],
+        "title": "ScenarioPathPoint"
+      },
+      "ScenarioPreset": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "params": {
+            "$ref": "#/components/schemas/ScenarioParams"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "params"
+        ],
+        "title": "ScenarioPreset"
+      },
+      "ScenarioResponse": {
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "title": "Companyid"
+          },
+          "companyName": {
+            "type": "string",
+            "title": "Companyname"
+          },
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/ScenarioParams"
+          },
+          "base": {
+            "$ref": "#/components/schemas/ScenarioBase"
+          },
+          "changePct": {
+            "type": "number",
+            "title": "Changepct"
+          },
+          "price": {
+            "type": "number",
+            "title": "Price"
+          },
+          "band80": {
+            "$ref": "#/components/schemas/ScenarioBand"
+          },
+          "varianceFromCoefficients": {
+            "type": "number",
+            "title": "Variancefromcoefficients"
+          },
+          "path": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioPathPoint"
+            },
+            "type": "array",
+            "title": "Path"
+          },
+          "contributions": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioContribution"
+            },
+            "type": "array",
+            "title": "Contributions"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ScenarioModelCard"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Caveats"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "companyId",
+          "companyName",
+          "ticker",
+          "currency",
+          "scenario",
+          "base",
+          "changePct",
+          "price",
+          "band80",
+          "varianceFromCoefficients",
+          "path",
+          "contributions",
+          "model",
+          "caveats",
+          "notice"
+        ],
+        "title": "ScenarioResponse"
+      },
+      "SharePricePoint": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "close": {
+            "type": "number",
+            "title": "Close"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "close",
+          "volume"
+        ],
+        "title": "SharePricePoint"
+      },
+      "SharePriceSeries": {
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "title": "Companyid"
+          },
+          "companyName": {
+            "type": "string",
+            "title": "Companyname"
+          },
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "isin": {
+            "type": "string",
+            "title": "Isin"
+          },
+          "exchange": {
+            "type": "string",
+            "title": "Exchange"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/SharePricePoint"
+            },
+            "type": "array",
+            "title": "Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "companyId",
+          "companyName",
+          "ticker",
+          "isin",
+          "exchange",
+          "currency",
+          "note",
+          "points"
+        ],
+        "title": "SharePriceSeries"
       },
       "ShelfSummary": {
         "properties": {

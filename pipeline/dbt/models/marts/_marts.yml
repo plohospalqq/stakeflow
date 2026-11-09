@@ -203,3 +203,47 @@ models:
       - name: latest_month
         description: Newest month with field production data (first day of month).
         tests: [not_null]
+
+  - name: fct_prices
+    description: >
+      Every price series at its native frequency (brent, eurusd, usdnok daily; ttf monthly,
+      dated the 1st). Units, source and licence per series in the price_series seed.
+    tests:
+      - unique_combination:
+          arguments: {columns: [series_id, date]}
+    columns:
+      - name: series_id
+        tests:
+          - accepted_values:
+              arguments: {values: ["brent", "ttf", "eurusd", "usdnok"]}
+      - name: value
+        tests:
+          - not_null
+          - dbt_expression_between:
+              arguments: {min: 0.0001, max: 1000}
+
+  - name: fct_prices_monthly
+    description: >
+      Monthly averages of Brent (EIA), EUR/USD and USD/NOK (ECB), and TTF (World Bank, from
+      2015-04) in USD/MMBtu and EUR/MWh. Input to the scenario model.
+    columns:
+      - name: month
+        tests: [unique, not_null]
+      - name: ttf_eur_mwh
+        tests:
+          - dbt_expression_between:
+              arguments: {min: 1, max: 500}
+
+  - name: fct_share_prices_daily
+    description: >
+      Daily closes (NOK, adjusted for corporate actions) of the focus companies' shares. Only
+      present where the user imported CSVs locally; never part of a public build.
+    tests:
+      - unique_combination:
+          arguments: {columns: [ticker, date]}
+    columns:
+      - name: group_id
+        tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_company_group'), field: group_id}

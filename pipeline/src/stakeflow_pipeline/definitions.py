@@ -8,21 +8,32 @@ from stakeflow_pipeline.assets.dbt import (
     stakeflow_dbt_assets,
     stakeflow_dbt_ml_assets,
 )
+from stakeflow_pipeline.assets.market import market_checks, market_raw_assets
+from stakeflow_pipeline.assets.market_ml import ml_assets as market_ml_assets
 from stakeflow_pipeline.assets.ml import forecast_run
 from stakeflow_pipeline.assets.raw import raw_assets, raw_checks
 from stakeflow_pipeline.resources import PostgresResource, SodirResource
 from stakeflow_pipeline.sensors import (
+    market_daily_schedule,
+    market_job,
     monthly_fallback_schedule,
     refresh_job,
     sodir_new_month_sensor,
 )
 
 defs = Definitions(
-    assets=[*raw_assets, stakeflow_dbt_assets, forecast_run, stakeflow_dbt_ml_assets],
-    asset_checks=raw_checks,
-    jobs=[refresh_job],
+    assets=[
+        *raw_assets,
+        *market_raw_assets,
+        stakeflow_dbt_assets,
+        forecast_run,
+        *market_ml_assets,
+        stakeflow_dbt_ml_assets,
+    ],
+    asset_checks=[*raw_checks, *market_checks],
+    jobs=[refresh_job, market_job],
     sensors=[sodir_new_month_sensor],
-    schedules=[monthly_fallback_schedule],
+    schedules=[monthly_fallback_schedule, market_daily_schedule],
     resources={
         "dbt": DbtCliResource(project_dir=dbt_project),
         "sodir": SodirResource(base_url=EnvVar("SODIR_BASE_URL")),

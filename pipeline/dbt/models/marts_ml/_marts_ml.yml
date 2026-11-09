@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: meta_anomaly_run
+    description: The latest anomaly run (empty until the anomalies asset has run once).
+  - name: fct_anomaly_evaluations
+    description: >
+      Every field-month the latest run judged, flagged or not: actual, expected and the band
+      [lo, hi] in boe/d. A point outside the band is exactly a flagged month.
+    tests:
+      - unique_combination:
+          arguments: {columns: [field_id, month]}
+    columns:
+      - name: lo_boe_d
+        tests:
+          - dbt_expression_between:
+              arguments: {min: 0, max: 10000000}
+  - name: fct_anomalies
+    description: >
+      Months more than 10% and more than 3 robust sigmas from the field's expected production,
+      in the last 24 months of the latest run.
+    columns:
+      - name: anomaly_id
+        tests: [unique, not_null]
+      - name: severity
+        tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ["high", "medium", "low"]}
+  - name: fct_anomaly_impacts
+    description: Effect of each anomaly on each current owner, kboe/d (negative = lost).
+    tests:
+      - unique_combination:
+          arguments: {columns: [anomaly_id, group_id]}
+  - name: fct_share_price_models
+    description: >
+      Latest scenario model per focus company. Coefficients are monthly log-return
+      sensitivities with standard errors; covariance gives the coefficient uncertainty band.
+    columns:
+      - name: group_id
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_company_group'), field: group_id}
+      - name: status
+        tests:
+          - accepted_values:
+              arguments: {values: ["ok", "insufficient_data"]}
+      - name: r2
+        tests:
+          - dbt_expression_between:
+              arguments: {min: 0, max: 1}
+  - name: fct_share_price_backtest
+    description: Quarterly actual vs explained share log returns (in and out of sample).
+    tests:
+      - unique_combination:
+          arguments: {columns: [group_id, quarter_start]}

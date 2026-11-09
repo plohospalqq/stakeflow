@@ -366,10 +366,261 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/prices': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Prices
+     * @description Each series at its native frequency: daily (Brent, FX) or monthly (TTF, dated the 1st).
+     */
+    get: operations['list_prices_prices_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/prices/latest': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Latest Prices
+     * @description Newest value of each series (spot, not forward). TTF is the latest monthly average.
+     */
+    get: operations['latest_prices_prices_latest_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/companies/{company_id}/share-price': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Share Price
+     * @description Daily closes for context. Empty when no prices were imported into this installation.
+     */
+    get: operations['share_price_companies__company_id__share_price_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/scenarios/presets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Scenario Presets
+     * @description Ready-made scenarios in plain language, as parameters for /companies/{id}/scenario.
+     */
+    get: operations['scenario_presets_scenarios_presets_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/companies/{company_id}/scenario': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Company Scenario
+     * @description How the share price *might* respond to the changes you pick, with an 80% band.
+     *
+     *     A scenario, not a forecast; not investment advice. The query parameters are the shared
+     *     scenario contract: brent_change_pct, ttf_change_pct, production_change_pct,
+     *     eurusd_change_pct, horizon_months.
+     */
+    get: operations['company_scenario_companies__company_id__scenario_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/anomalies': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Anomalies
+     * @description Flagged months of the latest run (last 24 months), newest and largest first.
+     */
+    get: operations['list_anomalies_anomalies_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/anomalies/run': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Anomaly Run
+     * @description When the latest run happened, what it looked at, and how it decides.
+     */
+    get: operations['anomaly_run_anomalies_run_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /**
+     * Anomaly
+     * @description Maps onto the frontend's Anomaly (pctVsExpected in percent, volumes in kboe/d).
+     */
+    Anomaly: {
+      /** Id */
+      id: string;
+      /** Fieldid */
+      fieldId: number;
+      /** Fieldname */
+      fieldName: string;
+      /** Operatorname */
+      operatorName: string | null;
+      /**
+       * Month
+       * Format: date
+       */
+      month: string;
+      /** Pctvsexpected */
+      pctVsExpected: number;
+      /**
+       * Severity
+       * @enum {string}
+       */
+      severity: 'high' | 'medium' | 'low';
+      /**
+       * Status
+       * @default new
+       * @constant
+       */
+      status: 'new';
+      /** Note */
+      note: string;
+      /** Expected */
+      expected: number;
+      /** Actual */
+      actual: number;
+      /** Series */
+      series: components['schemas']['AnomalyPoint'][];
+      /** Hits */
+      hits: components['schemas']['AnomalyHit'][];
+    };
+    /**
+     * AnomalyHit
+     * @description Effect on one current owner, kboe/d (negative = lost), at today's share.
+     */
+    AnomalyHit: {
+      /** Companyid */
+      companyId: string;
+      /** Companyname */
+      companyName: string;
+      /** Isfocus */
+      isFocus: boolean;
+      /** Sharepct */
+      sharePct: number;
+      /** Kboed */
+      kboed: number;
+    };
+    /**
+     * AnomalyPoint
+     * @description One month of the mini chart, kboe/d.
+     */
+    AnomalyPoint: {
+      /**
+       * Month
+       * Format: date
+       */
+      month: string;
+      /** Actual */
+      actual: number;
+      /** Expected */
+      expected: number;
+      /** Lo */
+      lo: number;
+      /** Hi */
+      hi: number;
+    };
+    /** AnomalyRun */
+    AnomalyRun: {
+      /**
+       * Runat
+       * Format: date-time
+       */
+      runAt: string;
+      /** Modelversion */
+      modelVersion: string;
+      /**
+       * Latestmonth
+       * Format: date
+       */
+      latestMonth: string;
+      /**
+       * Flaggedfrom
+       * Format: date
+       */
+      flaggedFrom: string;
+      /** Fieldsevaluated */
+      fieldsEvaluated: number;
+      /** Anomalycount */
+      anomalyCount: number;
+      /** Method */
+      method: string;
+      /** Params */
+      params: {
+        [key: string]: number;
+      };
+    };
     /** AskAnswer */
     AskAnswer: {
       /** Question */
@@ -451,6 +702,44 @@ export interface components {
       name: string;
       /** Description */
       description: string;
+    };
+    /** Backtest */
+    Backtest: {
+      /** Quartersscored */
+      quartersScored: number;
+      /** R2Insamplequarterly */
+      r2InSampleQuarterly: number | null;
+      /** R2Outofsamplequarterly */
+      r2OutOfSampleQuarterly: number | null;
+      /** Bandcoverage80 */
+      bandCoverage80: number | null;
+      /** Note */
+      note: string;
+      /** Quarters */
+      quarters: components['schemas']['BacktestQuarter'][];
+    };
+    /**
+     * BacktestQuarter
+     * @description Quarterly share return, actual vs explained by the drivers (in %).
+     */
+    BacktestQuarter: {
+      /**
+       * Quarterstart
+       * Format: date
+       */
+      quarterStart: string;
+      /** Actualpct */
+      actualPct: number;
+      /** Fittedpct */
+      fittedPct: number;
+      /** Outofsamplepct */
+      outOfSamplePct: number | null;
+      /** Outofsamplelopct */
+      outOfSampleLoPct: number | null;
+      /** Outofsamplehipct */
+      outOfSampleHiPct: number | null;
+      /** Trainmonths */
+      trainMonths: number | null;
     };
     /** CompanyDetail */
     CompanyDetail: {
@@ -646,6 +935,42 @@ export interface components {
       /** Detail */
       detail?: components['schemas']['ValidationError'][];
     };
+    /**
+     * LatestPrices
+     * @description Newest spot values, in the field names of the frontend's ForwardPrices.
+     *
+     *     These are spot (last observation), not forward prices: no free source with display rights
+     *     publishes Brent or TTF forwards.
+     */
+    LatestPrices: {
+      /**
+       * Kind
+       * @default spot
+       * @constant
+       */
+      kind: 'spot';
+      /**
+       * Asof
+       * Format: date
+       */
+      asOf: string;
+      /** Brentusdperbbl */
+      brentUsdPerBbl: number | null;
+      /** Brentdate */
+      brentDate: string | null;
+      /** Ttfeurpermwh */
+      ttfEurPerMwh: number | null;
+      /** Ttfmonth */
+      ttfMonth: string | null;
+      /** Eurusd */
+      eurUsd: number | null;
+      /** Eurusddate */
+      eurUsdDate: string | null;
+      /** Usdnok */
+      usdNok: number | null;
+      /** Usdnokdate */
+      usdNokDate: string | null;
+    };
     /** LatestSummary */
     LatestSummary: {
       /**
@@ -733,6 +1058,19 @@ export interface components {
        * Format: date
        */
       dataThrough: string;
+    };
+    /** ModelCoefficient */
+    ModelCoefficient: {
+      /** Term */
+      term: string;
+      /** Estimate */
+      estimate: number;
+      /** Stderror */
+      stdError: number;
+      /** Tstat */
+      tStat: number;
+      /** Significant */
+      significant: boolean;
     };
     /** MonthlyPoint */
     MonthlyPoint: {
@@ -950,6 +1288,46 @@ export interface components {
       /** Commiturl */
       commitUrl?: string | null;
     };
+    /** PricePoint */
+    PricePoint: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Value */
+      value: number;
+    };
+    /**
+     * PriceSeries
+     * @description Maps onto the frontend's PriceSeries; monthly series are dated the 1st of the month.
+     */
+    PriceSeries: {
+      /**
+       * Id
+       * @enum {string}
+       */
+      id: 'brent' | 'ttf' | 'eurusd' | 'usdnok';
+      /** Name */
+      name: string;
+      /** Unit */
+      unit: string;
+      /**
+       * Frequency
+       * @enum {string}
+       */
+      frequency: 'daily' | 'monthly';
+      /** Source */
+      source: string;
+      /** Sourceurl */
+      sourceUrl: string;
+      /** Licence */
+      licence: string;
+      /** Attribution */
+      attribution: string;
+      /** Points */
+      points: components['schemas']['PricePoint'][];
+    };
     /** PublicationLag */
     PublicationLag: {
       /**
@@ -1007,6 +1385,78 @@ export interface components {
        */
       eurusd?: number | null;
     };
+    /** ScenarioBand */
+    ScenarioBand: {
+      /** Lochangepct */
+      loChangePct: number;
+      /** Hichangepct */
+      hiChangePct: number;
+      /** Loprice */
+      loPrice: number;
+      /** Hiprice */
+      hiPrice: number;
+    };
+    /** ScenarioBase */
+    ScenarioBase: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Close */
+      close: number;
+    };
+    /** ScenarioContribution */
+    ScenarioContribution: {
+      /**
+       * Driver
+       * @enum {string}
+       */
+      driver: 'brent' | 'ttf' | 'production' | 'eurusd';
+      /** Inputchangepct */
+      inputChangePct: number;
+      /** Coefficient */
+      coefficient: number;
+      /** Contributionpct */
+      contributionPct: number;
+    };
+    /** ScenarioModelCard */
+    ScenarioModelCard: {
+      /** Version */
+      version: string;
+      /**
+       * Runat
+       * Format: date-time
+       */
+      runAt: string;
+      /** Method */
+      method: string;
+      /**
+       * Windowstart
+       * Format: date
+       */
+      windowStart: string;
+      /**
+       * Windowend
+       * Format: date
+       */
+      windowEnd: string;
+      /** Nobs */
+      nObs: number;
+      /** R2 */
+      r2: number;
+      /** Adjr2 */
+      adjR2: number;
+      /** Residualsdmonthlypct */
+      residualSdMonthlyPct: number;
+      /** Coefficients */
+      coefficients: components['schemas']['ModelCoefficient'][];
+      /** Excludedmonths */
+      excludedMonths: {
+        [key: string]: string;
+      };
+      backtest: components['schemas']['Backtest'];
+    };
     /** ScenarioParameters */
     ScenarioParameters: {
       /**
@@ -1039,6 +1489,44 @@ export interface components {
       /** Company Id */
       company_id: string | null;
     };
+    /**
+     * ScenarioParams
+     * @description The scenario contract shared with the free-text parser. Names are fixed (snake_case).
+     *
+     *     Unknown names are rejected (422), so a typo never silently becomes "no change".
+     */
+    ScenarioParams: {
+      /**
+       * Brent Change Pct
+       * @description Brent, % change
+       * @default 0
+       */
+      brent_change_pct: number;
+      /**
+       * Ttf Change Pct
+       * @description TTF gas, % change
+       * @default 0
+       */
+      ttf_change_pct: number;
+      /**
+       * Production Change Pct
+       * @description Company's attributed production, % change
+       * @default 0
+       */
+      production_change_pct: number;
+      /**
+       * Eurusd Change Pct
+       * @description EUR/USD, % change
+       * @default 0
+       */
+      eurusd_change_pct: number;
+      /**
+       * Horizon Months
+       * @description Months over which it happens
+       * @default 3
+       */
+      horizon_months: number;
+    };
     /** ScenarioParseRequest */
     ScenarioParseRequest: {
       /** Text */
@@ -1049,6 +1537,87 @@ export interface components {
        */
       company_id?: string | null;
       reference?: components['schemas']['ReferenceLevels'] | null;
+    };
+    /** ScenarioPathPoint */
+    ScenarioPathPoint: {
+      /** Monthoffset */
+      monthOffset: number;
+      /** Changepct */
+      changePct: number;
+      /** Lochangepct */
+      loChangePct: number;
+      /** Hichangepct */
+      hiChangePct: number;
+    };
+    /** ScenarioPreset */
+    ScenarioPreset: {
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      params: components['schemas']['ScenarioParams'];
+    };
+    /** ScenarioResponse */
+    ScenarioResponse: {
+      /** Companyid */
+      companyId: string;
+      /** Companyname */
+      companyName: string;
+      /** Ticker */
+      ticker: string;
+      /** Currency */
+      currency: string;
+      scenario: components['schemas']['ScenarioParams'];
+      base: components['schemas']['ScenarioBase'];
+      /** Changepct */
+      changePct: number;
+      /** Price */
+      price: number;
+      band80: components['schemas']['ScenarioBand'];
+      /** Variancefromcoefficients */
+      varianceFromCoefficients: number;
+      /** Path */
+      path: components['schemas']['ScenarioPathPoint'][];
+      /** Contributions */
+      contributions: components['schemas']['ScenarioContribution'][];
+      model: components['schemas']['ScenarioModelCard'];
+      /** Caveats */
+      caveats: string[];
+      /** Notice */
+      notice: string;
+    };
+    /** SharePricePoint */
+    SharePricePoint: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string;
+      /** Close */
+      close: number;
+      /** Volume */
+      volume: number | null;
+    };
+    /** SharePriceSeries */
+    SharePriceSeries: {
+      /** Companyid */
+      companyId: string;
+      /** Companyname */
+      companyName: string;
+      /** Ticker */
+      ticker: string;
+      /** Isin */
+      isin: string;
+      /** Exchange */
+      exchange: string;
+      /** Currency */
+      currency: string;
+      /** Note */
+      note: string;
+      /** Points */
+      points: components['schemas']['SharePricePoint'][];
     };
     /** ShelfSummary */
     ShelfSummary: {
@@ -1710,6 +2279,218 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_prices_prices_get: {
+    parameters: {
+      query?: {
+        /** @description Series ids (default: all) */
+        series?: ('brent' | 'ttf' | 'eurusd' | 'usdnok')[] | null;
+        /** @description First date (default: a year back) */
+        start?: string | null;
+        /** @description Last date (default: newest) */
+        end?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PriceSeries'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  latest_prices_prices_latest_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LatestPrices'];
+        };
+      };
+    };
+  };
+  share_price_companies__company_id__share_price_get: {
+    parameters: {
+      query?: {
+        /** @description First day (default: a year back) */
+        start?: string | null;
+        /** @description Last day (default: newest) */
+        end?: string | null;
+      };
+      header?: never;
+      path: {
+        company_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SharePriceSeries'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  scenario_presets_scenarios_presets_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioPreset'][];
+        };
+      };
+    };
+  };
+  company_scenario_companies__company_id__scenario_get: {
+    parameters: {
+      query?: {
+        /** @description Brent, % change */
+        brent_change_pct?: number;
+        /** @description TTF gas, % change */
+        ttf_change_pct?: number;
+        /** @description Company's attributed production, % change */
+        production_change_pct?: number;
+        /** @description EUR/USD, % change */
+        eurusd_change_pct?: number;
+        /** @description Months over which it happens */
+        horizon_months?: number;
+      };
+      header?: never;
+      path: {
+        company_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScenarioResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_anomalies_anomalies_get: {
+    parameters: {
+      query?: {
+        severity?: ('high' | 'medium' | 'low') | null;
+        /** @description Only this field */
+        field_id?: number | null;
+        /** @description Only anomalies affecting this owner */
+        company?: string | null;
+        /** @description First month */
+        since?: string | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Anomaly'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  anomaly_run_anomalies_run_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AnomalyRun'];
         };
       };
     };

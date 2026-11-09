@@ -10,6 +10,9 @@ test-paths: ["tests"]
 target-path: target
 clean-targets: [target, dbt_packages]
 
+on-run-start:
+  - "{{ create_external_tables() }}"
+
 models:
   stakeflow:
     staging:
@@ -30,6 +33,12 @@ models:
       +materialized: table
       +tags: [ml]
       +persist_docs: {relation: true, columns: true}
+    # The latest ML run, exposed to the API. Views, so they show a new run the moment the
+    # Python asset writes it; tag `ml` lets Dagster build them after the ML assets.
+    marts_ml:
+      +schema: marts
+      +materialized: view
+      +tags: [ml]
 
 seeds:
   stakeflow:

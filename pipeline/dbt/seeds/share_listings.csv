@@ -1,0 +1,4 @@
+group_id,ticker,isin,exchange,currency,listed_on,note
+aker-bp,AKRBP,NO0010345853,XOSL,NOK,2007-06-25,"ISIN carried over from Det norske oljeselskap, renamed Aker BP in 2016."
+var-energi,VAR,NO0011202772,XOSL,NOK,2022-02-16,"Listed on Oslo Børs on 2022-02-16."
+equinor,EQNR,NO0010096985,XOSL,NOK,2001-06-18,"Equinor ASA (Statoil until 2018). The share prices the whole group, not only the Norwegian shelf."

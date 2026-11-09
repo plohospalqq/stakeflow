@@ -9,6 +9,10 @@ x-pipeline: &pipeline
     POSTGRES_HOST: db
     POSTGRES_PORT: "5432"
     DAGSTER_PG_DB: dagster
+    # Share price CSVs you downloaded yourself (Euronext terms: personal use, no robots)
+    SHARE_PRICES_DIR: /app/data/share_prices
+  volumes:
+    - ./data/share_prices:/app/data/share_prices:ro
   depends_on:
     db:
       condition: service_healthy

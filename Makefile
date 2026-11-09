@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help env up down reset psql logs ingest refresh dbt forecast predictions openapi web demo reader-role eval test lint
+.PHONY: help env up down reset psql logs ingest refresh refresh-market market import-shares ml dbt forecast predictions openapi web demo reader-role eval test lint
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -25,6 +25,18 @@ logs: ## Follow service logs
 
 refresh: ## Queue a full refresh (all Sodir layers + dbt) in the running Dagster
 	docker compose exec dagster-daemon dagster job launch -j sodir_refresh -w /opt/dagster/home/workspace.yaml
+
+refresh-market: ## Queue the market job (Brent, TTF, FX, share CSVs + dependent models) in Dagster
+	docker compose exec dagster-daemon dagster job launch -j market_refresh -w /opt/dagster/home/workspace.yaml
+
+market: ## Without Dagster: download Brent (EIA), FX (ECB) and TTF (World Bank)
+	cd pipeline && uv run --env-file ../.env stakeflow-market
+
+import-shares: ## Load the share price CSVs you downloaded into data/share_prices (local only)
+	cd pipeline && uv run --env-file ../.env stakeflow-import-share-prices ../data/share_prices
+
+ml: ## Without Dagster: anomaly detection and the share-price scenario models
+	cd pipeline && uv run --env-file ../.env stakeflow-ml
 
 ingest: ## Without Dagster: download all Sodir layers into the raw schema (or: make ingest LAYERS="field profiles")
 	cd pipeline && uv run --env-file ../.env stakeflow-ingest $(LAYERS)

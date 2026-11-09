@@ -75,13 +75,19 @@ jobs:
         run: |
           uv sync --frozen
           uv run stakeflow-load-snapshot tests/fixtures/ci_snapshot
+      - name: Load the offline market fixtures (no network)
+        working-directory: pipeline
+        run: uv run stakeflow-load-market-fixtures tests/fixtures/market
       - name: dbt build (models + data tests)
         working-directory: pipeline
         run: uv run dbt build --project-dir dbt --profiles-dir dbt --exclude tag:ml
+      - name: Anomalies and share-price scenario models
+        working-directory: pipeline
+        run: uv run stakeflow-ml
       - name: Forecast run (Arps per field, live quarter, backtests from 2026Q2)
         working-directory: pipeline
         run: uv run stakeflow-forecast --backfill-from 2026Q2
-      - name: dbt build of the forecast marts (models + tests)
+      - name: dbt build of the ML marts (forecasts, anomalies, scenarios; models + tests)
         working-directory: pipeline
         run: uv run dbt build --project-dir dbt --profiles-dir dbt --select tag:ml
       - name: Pipeline tests with database

@@ -30,6 +30,8 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "ANN"]
 ignore = ["ANN401", "B008"]
+# User-facing text (scenario presets, caveats) uses the typographic minus, like the UI does
+allowed-confusables = ["−"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN"]

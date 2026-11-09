@@ -293,6 +293,9 @@ docs/       Phase 1 plan, nowcast feasibility analysis, frontend spec
 ## Data licence
 
 Contains data under the [Norwegian Licence for Open Government Data (NLOD)](https://data.norge.no/nlod/en/2.0)
-made available by Sodir. Code under the [MIT licence](LICENSE). Not investment advice.
+made available by Sodir. Brent prices: U.S. Energy Information Administration (public domain).
+Exchange rates: European Central Bank. European gas (TTF) prices: World Bank Commodity Price Data
+(Pink Sheet), CC BY 4.0. Share prices are never redistributed: you download them yourself for
+local use (see [docs/market-data-sources.md](docs/market-data-sources.md)). Code under the [MIT licence](LICENSE). Not investment advice.
 
 This is a personal project.

@@ -2,19 +2,18 @@
 
 dbt sources are named `raw.sodir_<layer>`, the same keys the raw assets use, so every model sits
 downstream of the ingestion that feeds it.
+
+Two groups: the warehouse, and the views over the `ml` schema (tag `ml`). The Python ML assets
+read the first and feed the second; one dbt asset on both sides of them would be a cycle.
 """
 
-import os
 from collections.abc import Iterator, Mapping
-from pathlib import Path
 from typing import Any
 
 from dagster import AssetExecutionContext, AssetKey
 from dagster_dbt import DagsterDbtTranslator, DbtCliResource, DbtProject, dbt_assets
 
-# pipeline/src/stakeflow_pipeline/assets/dbt.py → pipeline/dbt (also /app/dbt in the image)
-_DEFAULT_DBT_DIR = Path(__file__).resolve().parents[3] / "dbt"
-DBT_PROJECT_DIR = Path(os.environ.get("DBT_PROJECT_DIR", _DEFAULT_DBT_DIR))
+from stakeflow_pipeline.settings import DBT_PROJECT_DIR
 
 dbt_project = DbtProject(project_dir=DBT_PROJECT_DIR, profiles_dir=DBT_PROJECT_DIR)
 

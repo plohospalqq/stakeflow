@@ -64,3 +64,24 @@ seeds:
         tests:
           - relationships:
               arguments: {to: ref('company_groups'), field: group_id}
+  - name: share_listings
+    description: >
+      Where each focus company's share trades. The share importer checks a file's ISIN against
+      this list, so a CSV saved under the wrong ticker is rejected.
+    config:
+      column_types: {group_id: text, ticker: text, isin: text, exchange: text, currency: text, listed_on: date, note: text}
+    columns:
+      - name: ticker
+        tests: [unique, not_null]
+      - name: group_id
+        tests:
+          - unique
+          - relationships:
+              arguments: {to: ref('company_groups'), field: group_id}
+  - name: price_series
+    description: Catalogue of price series served by /prices, with unit, source and licence.
+    config:
+      column_types: {series_id: text, name: text, unit: text, frequency: text, source: text, source_url: text, licence: text, attribution: text}
+    columns:
+      - name: series_id
+        tests: [unique, not_null]
