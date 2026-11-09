@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from psycopg import Connection
 
+from stakeflow_api.caching import data_cache_headers
 from stakeflow_api.db import fetch_all, fetch_one, get_conn
 from stakeflow_api.schemas import Freshness, PublicationLag
 
@@ -18,7 +19,12 @@ def health(conn: Conn) -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.get("/meta/freshness", response_model=Freshness, response_model_by_alias=True)
+@router.get(
+    "/meta/freshness",
+    response_model=Freshness,
+    response_model_by_alias=True,
+    dependencies=[Depends(data_cache_headers)],
+)
 def freshness(conn: Conn) -> Freshness:
     row = fetch_one(conn, "select latest_month, last_refresh_at from marts.meta_data_freshness")
     if row is None or row["latest_month"] is None:

@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from psycopg import Connection
 
+from stakeflow_api.caching import data_cache_headers
 from stakeflow_api.db import fetch_all, fetch_one, get_conn
 from stakeflow_api.ranges import MonthRange, month_range
 from stakeflow_api.schemas import (
@@ -23,7 +24,9 @@ from stakeflow_api.summaries import (
     to_latest_summary,
 )
 
-router = APIRouter(prefix="/companies", tags=["companies"])
+router = APIRouter(
+    prefix="/companies", tags=["companies"], dependencies=[Depends(data_cache_headers)]
+)
 Conn = Annotated[Connection, Depends(get_conn)]
 
 COMPANY_SQL = f"""
