@@ -33,3 +33,70 @@ models:
           arguments: {columns: [field_id, month]}
   - name: stg_sodir__ingestion_runs
   - name: stg_sodir__production_snapshots
+
+  - name: stg_market__brent_daily
+    description: EIA Brent spot FOB, USD per barrel, newest value per trading day.
+    tests:
+      - max_gap_days:
+          arguments: {column_name: date, max_days: 7}
+    columns:
+      - name: date
+        tests: [unique, not_null]
+      - name: unit
+        tests:
+          - accepted_values:
+              arguments: {values: ["$/BBL"]}
+      - name: brent_usd_bbl
+        tests:
+          - not_null
+          - dbt_expression_between:
+              arguments: {min: 5, max: 400}
+  - name: stg_market__fx_daily
+    description: ECB EUR/USD and EUR/NOK reference rates; USD/NOK is our cross rate.
+    tests:
+      - max_gap_days:
+          arguments: {column_name: date, max_days: 7}
+    columns:
+      - name: date
+        tests: [unique, not_null]
+      - name: eurusd
+        tests:
+          - dbt_expression_between:
+              arguments: {min: 0.5, max: 2}
+      - name: usdnok
+        tests:
+          - dbt_expression_between:
+              arguments: {min: 4, max: 25}
+  - name: stg_market__pink_sheet_monthly
+    description: World Bank monthly Natural gas Europe (TTF from 2015-04) and Brent, USD.
+    tests:
+      - max_gap_days:
+          arguments: {column_name: month, max_days: 31}
+    columns:
+      - name: month
+        tests: [unique, not_null]
+      - name: ttf_unit
+        tests:
+          - accepted_values:
+              arguments: {values: ["$/mmbtu"]}
+      - name: brent_unit
+        tests:
+          - accepted_values:
+              arguments: {values: ["$/bbl"]}
+  - name: stg_market__share_prices_daily
+    description: User-imported daily closes (local only).
+    tests:
+      - unique_combination:
+          arguments: {columns: [ticker, date]}
+      - max_gap_days:
+          arguments: {column_name: date, max_days: 7, partition_by: [ticker]}
+    columns:
+      - name: currency
+        tests:
+          - accepted_values:
+              arguments: {values: ["NOK"]}
+      - name: close
+        tests:
+          - not_null
+          - dbt_expression_between:
+              arguments: {min: 0.01, max: 100000}

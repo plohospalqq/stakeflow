@@ -1,0 +1,5 @@
+series_id,name,unit,frequency,source,source_url,licence,attribution
+brent,Brent crude (spot FOB),USD/bbl,daily,U.S. Energy Information Administration,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,Public domain (U.S. government work),"Source: U.S. Energy Information Administration (EIA), Europe Brent Spot Price FOB."
+ttf,European natural gas (TTF),EUR/MWh,monthly,World Bank Commodity Price Data (The Pink Sheet),https://www.worldbank.org/en/research/commodity-markets,CC BY 4.0,"Source: World Bank Commodity Price Data (The Pink Sheet), Natural gas Europe (TTF), CC BY 4.0. Converted by Stakeflow from USD/MMBtu to EUR/MWh with the monthly average ECB EUR/USD rate."
+eurusd,EUR/USD reference rate,USD per EUR,daily,European Central Bank,https://data.ecb.europa.eu/data/datasets/EXR,Free reuse with attribution (ECB statistics reuse policy),"Source: ECB statistics, euro foreign exchange reference rates."
+usdnok,USD/NOK,NOK per USD,daily,European Central Bank (derived by Stakeflow),https://data.ecb.europa.eu/data/datasets/EXR,Free reuse with attribution (ECB statistics reuse policy),"Source: ECB statistics. Cross rate computed by Stakeflow as EUR/NOK divided by EUR/USD."

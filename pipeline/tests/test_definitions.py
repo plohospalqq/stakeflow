@@ -2,6 +2,7 @@
 
 from dagster import AssetKey
 
+from stakeflow_pipeline.assets.market import market_raw_assets
 from stakeflow_pipeline.definitions import defs
 
 
@@ -11,6 +12,18 @@ def test_definitions_load(monkeypatch):
     monkeypatch.setenv("POSTGRES_PORT", "5432")
     defs.validate_loadable(defs)
     assert defs.resolve_sensor_def("sodir_new_month_sensor")
+
+
+def test_sodir_refresh_never_downloads_market_data():
+    sodir = defs.resolve_job_def("sodir_refresh").asset_layer.selected_asset_keys
+    market = defs.resolve_job_def("market_refresh").asset_layer.selected_asset_keys
+    downloads = {key for asset in market_raw_assets for key in asset.keys}
+
+    assert len(downloads) == 4
+    assert not downloads & sodir
+    assert downloads <= market
+    assert AssetKey(["marts", "fct_prices"]) in market
+    assert AssetKey(["raw", "sodir_profiles"]) not in market
 
 
 def test_dbt_models_sit_downstream_of_raw_assets():

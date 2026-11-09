@@ -15,3 +15,17 @@ sources:
       - name: sodir_profiles
       - name: sodir_licence
       - name: sodir_licence_licensee_hst
+      - name: market_ingestion_runs
+        description: >
+          One row per market data load (public sources and imported share CSVs). Kept apart
+          from ingestion_runs so a price load never counts as a Sodir refresh.
+      - name: market_eia_brent
+        description: EIA API v2, Europe Brent spot price FOB (RBRTE), daily. Public domain.
+      - name: market_ecb_fx
+        description: ECB euro reference rates EUR/USD and EUR/NOK, daily. Free reuse, cite ECB.
+      - name: market_worldbank_pink_sheet
+        description: World Bank CMO monthly prices (Natural gas Europe = TTF, Brent). CC BY 4.0.
+      - name: market_share_prices
+        description: >
+          Daily closes imported from CSVs the user downloads (e.g. Euronext). Local only: never
+          committed, never in CI fixtures or a public build (see docs/market-data-sources.md).
