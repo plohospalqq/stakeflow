@@ -53,3 +53,6 @@ data/
 !pipeline/tests/fixtures/**
 # dbt seeds are small curated reference data, not raw data
 !pipeline/dbt/seeds/*.csv
+
+# Eval runs (api/evals/results/<timestamp>.json): local output, may hold model answers
+api/evals/results/

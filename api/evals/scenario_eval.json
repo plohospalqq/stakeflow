@@ -1,0 +1,80 @@
+{
+  "description": "Eval set for POST /scenarios/parse. `expect` gives an inclusive [low, high] range per parameter (parameters not listed must be 0, horizon_months must be 3 unless listed). A `from_data` range is computed when the eval runs: the field's share of the company's net production over the 12 latest months (independent reference SQL in run.py) times change_pct times months / horizon, plus or minus `tolerance` percentage points.",
+  "items": [
+    {
+      "id": "example-sverdrup-outage-and-brent",
+      "text": "What if Johan Sverdrup stops for two months and oil goes to $90?",
+      "company_id": "aker-bp",
+      "reference": {"brent_usd": 65},
+      "expect": {
+        "brent_change_pct": [38.4, 38.5],
+        "company_id": "aker-bp"
+      },
+      "from_data": {
+        "production_change_pct": {"field": "JOHAN SVERDRUP", "company": "aker-bp", "change_pct": -100, "months": 2, "horizon": 3, "tolerance": 1.0}
+      },
+      "assumptions_mention": ["Johan Sverdrup", "Aker BP"]
+    },
+    {
+      "id": "brent-fall-six-months",
+      "text": "Brent falls 20% over the next six months.",
+      "expect": {"brent_change_pct": [-20, -20], "horizon_months": [6, 6]}
+    },
+    {
+      "id": "gas-doubles-for-a-year",
+      "text": "What if European gas prices double for a year?",
+      "expect": {"ttf_change_pct": [100, 100], "horizon_months": [12, 12]}
+    },
+    {
+      "id": "ttf-and-eurusd-levels",
+      "text": "TTF at 25 euros per MWh and EUR/USD at 1.20.",
+      "reference": {"ttf_eur_mwh": 35, "eurusd": 1.10},
+      "expect": {"ttf_change_pct": [-28.6, -28.5], "eurusd_change_pct": [9.0, 9.1]}
+    },
+    {
+      "id": "var-production-down-next-quarter",
+      "text": "Vår Energi's production drops 10% next quarter.",
+      "expect": {"production_change_pct": [-10, -10], "horizon_months": [3, 3], "company_id": "var-energi"}
+    },
+    {
+      "id": "brent-clamped",
+      "text": "Oil prices go up 500%!",
+      "expect": {"brent_change_pct": [300, 300]},
+      "assumptions_mention": ["outside what the model supports"]
+    },
+    {
+      "id": "castberg-doubles-for-var",
+      "text": "What if Johan Castberg doubles its output for Vår Energi over the next year?",
+      "expect": {"horizon_months": [12, 12], "company_id": "var-energi"},
+      "from_data": {
+        "production_change_pct": {"field": "JOHAN CASTBERG", "company": "var-energi", "change_pct": 100, "months": 12, "horizon": 12, "tolerance": 1.0}
+      }
+    },
+    {
+      "id": "not-a-scenario",
+      "text": "What's the weather like in Stavanger?",
+      "expect": {},
+      "not_understood_ok": true
+    },
+    {
+      "id": "brent-target-without-reference",
+      "text": "Oil goes to $120 within three months.",
+      "expect": {"horizon_months": [3, 3]},
+      "assumptions_mention": ["no current level"]
+    },
+    {
+      "id": "equinor-loses-troll-one-month",
+      "text": "Equinor loses Troll for one month; look 12 months ahead.",
+      "expect": {"horizon_months": [12, 12], "company_id": "equinor"},
+      "from_data": {
+        "production_change_pct": {"field": "TROLL", "company": "equinor", "change_pct": -100, "months": 1, "horizon": 12, "tolerance": 0.5}
+      }
+    },
+    {
+      "id": "dollar-strengthens-and-rates",
+      "text": "The dollar strengthens 5% against the euro and interest rates rise.",
+      "expect": {"eurusd_change_pct": [-5.5, -4.5]},
+      "assumptions_mention": ["interest rates"]
+    }
+  ]
+}
