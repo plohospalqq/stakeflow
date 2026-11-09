@@ -23,7 +23,7 @@ make psql    # SQL shell
 make down    # stop (keeps data)
 make reset   # stop and delete the DB volume
 make ingest  # without Dagster: download Sodir layers into raw.* (LAYERS="field profiles" for a subset)
-make dbt     # without Dagster: dbt build of the marts (excludes tag:ml)
+make dbt     # without Dagster: dbt build of the marts, then the ml-tagged views (CASCADE drops them)
 make market  # Brent (EIA), FX (ECB), TTF (World Bank)
 make import-shares # load Euronext .xls/CSV exports from data/share_prices (local only)
 make ml      # anomalies + share-price scenario models

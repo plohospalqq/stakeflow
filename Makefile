@@ -41,8 +41,11 @@ ml: ## Without Dagster: anomaly detection and the share-price scenario models
 ingest: ## Without Dagster: download all Sodir layers into the raw schema (or: make ingest LAYERS="field profiles")
 	cd pipeline && uv run --env-file ../.env stakeflow-ingest $(LAYERS)
 
-dbt: ## Without Dagster: dbt build of the marts (models + tests); `make forecast` builds the ml models
+dbt: ## Without Dagster: dbt build of the marts (models + tests); `make forecast` builds the ml tables
 	cd pipeline && uv run --env-file ../.env dbt build --project-dir dbt --profiles-dir dbt --exclude tag:ml
+	@# Rebuilding a marts table drops the old one with CASCADE, and the ml-tagged views over it go
+	@# with it. Those views read tables that always exist, so recreate them right away.
+	cd pipeline && uv run --env-file ../.env dbt build --project-dir dbt --profiles-dir dbt --select "tag:ml,config.materialized:view"
 
 forecast: ## Without Dagster: Arps forecasts, nowcasts and predictions into ml.*, then the ml dbt models
 	cd pipeline && uv run --env-file ../.env stakeflow-forecast
