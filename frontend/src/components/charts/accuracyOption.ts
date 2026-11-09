@@ -17,7 +17,8 @@ export interface AccuracyPoint {
   label: string;
   quarterName: string;
   model: number;
-  baseline: number;
+  /** Null when there was no previous quarter to repeat. */
+  baseline: number | null;
 }
 
 /** Below this average error a quarter counts as on target. */
@@ -57,7 +58,11 @@ export function buildAccuracyOption(
         return (
           tooltipTitle(p.quarterName) +
           tooltipRow(t.forecast, m.track.ourModel, formatPct(p.model)) +
-          tooltipRow(baselineColor, m.track.simpleGuess, formatPct(p.baseline))
+          tooltipRow(
+            baselineColor,
+            m.track.simpleGuess,
+            p.baseline === null ? '–' : formatPct(p.baseline),
+          )
         );
       },
     },

@@ -30,6 +30,10 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly path: string,
+    /** Machine-readable reason the API sent, e.g. 'llm_not_configured'. */
+    readonly code: string | null = null,
+    /** The API's own explanation (English), when it sent one. */
+    readonly detail: string | null = null,
   ) {
     super(`API ${status} on ${path}`);
     this.name = 'ApiError';
@@ -40,23 +44,74 @@ export function isNotFound(error: unknown): boolean {
   return error instanceof ApiError && error.status === 404;
 }
 
+/** 503: the server works but this part is off (no AI key, no model, nothing loaded). */
+export function isUnavailable(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 503;
+}
+
 const BASE = '/api';
 
-export type Query = Record<string, string | number | boolean | undefined>;
+export type Query = Record<string, string | number | boolean | string[] | undefined>;
 
 /** Reads one API resource as JSON, e.g. getJson('/fields', { status: 'Producing' }). */
 export type JsonGetter = <T>(path: string, query?: Query) => Promise<T>;
 
-async function get<T>(path: string, query: Query = {}, signal?: AbortSignal): Promise<T> {
+/** Sends a JSON body and reads JSON back, e.g. postJson('/ask', { question }). */
+export type JsonPoster = <T>(path: string, body: unknown) => Promise<T>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * FastAPI errors are {detail: "text"} or {detail: {code, message}} (503s the UI can explain).
+ * Anything else (a proxy's HTML page, a validation list) leaves code and detail empty.
+ */
+export function parseErrorBody(body: unknown): { code: string | null; detail: string | null } {
+  const detail = isRecord(body) ? body.detail : undefined;
+  if (typeof detail === 'string') return { code: null, detail };
+  if (isRecord(detail)) {
+    return {
+      code: typeof detail.code === 'string' ? detail.code : null,
+      detail: typeof detail.message === 'string' ? detail.message : null,
+    };
+  }
+  return { code: null, detail: null };
+}
+
+async function toApiError(res: Response, path: string): Promise<ApiError> {
+  const body: unknown = await res.json().catch(() => null);
+  const { code, detail } = parseErrorBody(body);
+  return new ApiError(res.status, path, code, detail);
+}
+
+/** Repeated keys for lists: ?series=brent&series=ttf. */
+export function queryString(query: Query): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
-    if (value !== undefined) params.set(key, String(value));
+    if (value === undefined) continue;
+    for (const v of Array.isArray(value) ? value : [value]) params.append(key, String(v));
   }
   const qs = params.toString();
-  const url = `${BASE}${path}${qs ? `?${qs}` : ''}`;
-  const res = await fetch(url, { headers: { Accept: 'application/json' }, signal });
-  if (!res.ok) throw new ApiError(res.status, path);
+  return qs ? `?${qs}` : '';
+}
+
+export async function getJson<T>(path: string, query: Query = {}): Promise<T> {
+  const res = await fetch(`${BASE}${path}${queryString(query)}`, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!res.ok) throw await toApiError(res, path);
   // The response shape is guaranteed by the OpenAPI contract the types are generated from.
+  return (await res.json()) as T; // eslint-disable-line @typescript-eslint/consistent-type-assertions -- JSON boundary: fetch returns untyped data
+}
+
+export async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw await toApiError(res, path);
   return (await res.json()) as T; // eslint-disable-line @typescript-eslint/consistent-type-assertions -- JSON boundary: fetch returns untyped data
 }
 
@@ -148,10 +203,6 @@ export function mapQuarter(q: Schemas['QuarterReconciliation']): ReportedQuarter
     reportedOn: q.reportedOn,
     sourceUrl: safeExternalUrl(q.sourceUrl),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isRing(value: unknown): value is number[][] {
@@ -285,4 +336,4 @@ export const createCore = (get: JsonGetter): CoreApi => ({
   },
 });
 
-export const httpCore: CoreApi = createCore(get);
+export const httpCore: CoreApi = createCore(getJson);

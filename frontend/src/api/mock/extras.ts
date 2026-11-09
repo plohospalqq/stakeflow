@@ -1,8 +1,8 @@
 /**
- * Sample data for what the backend does not serve yet: forecasts, nowcasts, the
- * prediction log, anomalies, prices and Ask answers. Deterministic, and anchored to the
- * active core data where that keeps charts continuous (a forecast starts where the real
- * history ends). Everything here is shown with a "Sample data" badge.
+ * Sample data for the extras: forecasts, nowcasts, the prediction log, anomalies, prices and
+ * Ask answers. Used in mocks mode (tests, CI) and, for what the static demo may not carry,
+ * there too. Deterministic, and anchored to the active core data where that keeps charts
+ * continuous (a forecast starts where the history ends). Shown with a "Sample data" badge.
  */
 import { arpsRate } from '@/lib/arps';
 import { addDays, addMonths, daysInMonth, monthRange, quarterMonths, quarterOf } from '@/lib/dates';
@@ -14,17 +14,19 @@ import type {
   AnomalyStatus,
   FieldForecast,
   Forecast,
+  ModelCard,
   Nowcast,
   Prediction,
   PriceSeries,
   Severity,
 } from '../types';
-import { answerQuestion } from './ask';
+import { answerQuestion, ASK_TABLES } from './ask';
 import { FOCUS_IDS } from './core';
 import { mockScenarioApi } from './scenario';
 import { SEED_FIELDS, SEED_GROUPS } from './seedFields';
 
 const MODEL_RUN_AT = '2026-11-02T04:00:00Z';
+const DATA_THROUGH = '2026-08-01';
 const FORECAST_MONTHS = 36;
 
 /** Public milestones worth marking on a field chart. */
@@ -92,12 +94,17 @@ function predictionLog(): Prediction[] {
       const id = `${companyId}-${quarterStart}`;
       rows.push({
         id,
+        // Past quarters are replayed, like the backend's backtests; only the open one is live.
+        kind: 'backtest',
         companyId,
         companyName: COMPANY_NAMES[companyId] ?? companyId,
         quarterStart,
         madeAt: `${quarterEnd(quarterStart)}T23:59:00Z`,
+        asOf: quarterEnd(quarterStart),
+        dataThrough: addMonths(quarterStart, -1),
         reportedOn: reportDate(companyId, quarterStart),
         expectedReportOn: reportDate(companyId, quarterStart),
+        reportKind: REPORTING[companyId]?.kind ?? 'quarterly report',
         predicted,
         // ±1.2% is roughly the 80% band of the sample errors above, so about 8 in 10
         // actuals land inside, as an honest range should.
@@ -115,12 +122,16 @@ function predictionLog(): Prediction[] {
     const id = `${companyId}-${OPEN_QUARTER}`;
     rows.push({
       id,
+      kind: 'live',
       companyId,
       companyName: COMPANY_NAMES[companyId] ?? companyId,
       quarterStart: OPEN_QUARTER,
       madeAt: MODEL_RUN_AT,
+      asOf: MODEL_RUN_AT.slice(0, 10),
+      dataThrough: DATA_THROUGH,
       reportedOn: null,
       expectedReportOn: reportDate(companyId, OPEN_QUARTER),
+      reportKind: REPORTING[companyId]?.kind ?? 'quarterly report',
       predicted: value,
       lo,
       hi,
@@ -236,6 +247,8 @@ function anomalies(): Anomaly[] {
           .map(([groupId, share]) => ({
             companyId: groupId,
             companyName: SEED_GROUPS[groupId] ?? groupId,
+            isFocus: true,
+            sharePct: share,
             kboed: ((actual - a.expected) * share) / 100,
           })),
       },
@@ -253,25 +266,63 @@ function tradingDays(end: string, count: number): string[] {
   return days.reverse();
 }
 
-function priceSeries(
-  id: PriceSeries['id'],
-  name: string,
-  unit: string,
-  last: number,
-  vol: number,
-): PriceSeries {
-  const days = tradingDays('2026-11-06', 64);
-  const rand = seededRandom(`price-${id}`);
-  const values = new Array<number>(days.length);
-  values[days.length - 1] = last;
-  for (let i = days.length - 2; i >= 0; i--) {
+/** A random walk ending at `last`, oldest first. */
+function walk(dates: string[], seed: string, last: number, vol: number) {
+  const rand = seededRandom(seed);
+  const values = new Array<number>(dates.length);
+  values[dates.length - 1] = last;
+  for (let i = dates.length - 2; i >= 0; i--) {
     values[i] = (values[i + 1] ?? last) / (1 + (rand() - 0.5) * vol);
   }
+  return dates.map((date, i) => ({ date, value: Math.round((values[i] ?? last) * 100) / 100 }));
+}
+
+const SAMPLE_PRICE_SOURCE = {
+  source: 'Sample data',
+  sourceUrl: null,
+  licence: 'Generated',
+  attribution: 'Generated sample prices.',
+};
+
+/** Like the real feeds: Brent daily for a year, TTF one monthly average per month. */
+function samplePrices(): PriceSeries[] {
+  return [
+    {
+      id: 'brent',
+      name: 'Brent',
+      unit: 'USD/bbl',
+      frequency: 'daily',
+      ...SAMPLE_PRICE_SOURCE,
+      points: walk(tradingDays('2026-11-06', 252), 'price-brent', 68.4, 0.03),
+    },
+    {
+      id: 'ttf',
+      name: 'TTF gas',
+      unit: 'EUR/MWh',
+      frequency: 'monthly',
+      ...SAMPLE_PRICE_SOURCE,
+      points: walk(monthRange('2025-11-01', '2026-10-01'), 'price-ttf', 31.2, 0.12),
+    },
+  ];
+}
+
+function sampleModelCard(id: number, history: { month: string }[]): ModelCard {
+  const rand = seededRandom(`forecast-${id}`);
   return {
-    id,
-    name,
-    unit,
-    points: days.map((date, i) => ({ date, value: Math.round((values[i] ?? last) * 100) / 100 })),
+    status: 'arps',
+    method: 'Arps hyperbolic decline',
+    b: Math.round((0.4 + rand() * 0.5) * 100) / 100,
+    initialDeclinePctPerYear: null,
+    fitWindow:
+      history.length > 0
+        ? { start: history[0]?.month ?? '', end: history[history.length - 1]?.month ?? '' }
+        : null,
+    backtestErrorPct: Math.round((3 + rand() * 5) * 10) / 10,
+    naiveErrorPct: Math.round((5 + rand() * 5) * 10) / 10,
+    backtestCoveragePct: 75,
+    dataThrough: history[history.length - 1]?.month ?? DATA_THROUGH,
+    runAt: MODEL_RUN_AT,
+    version: 'arps-0.3.1',
   };
 }
 
@@ -281,18 +332,11 @@ export function createMockExtras(core: CoreApi): ExtrasApi {
       const history = await core.fieldProduction(id);
       const last = history[history.length - 1];
       const events = FIELD_EVENTS[id] ?? [];
-      const rand = seededRandom(`forecast-${id}`);
-      const b = Math.round((0.4 + rand() * 0.5) * 100) / 100;
-      const model = {
-        method: 'Arps hyperbolic decline',
-        b,
-        initialDeclinePctPerYear: 0,
-        fitWindow: { start: history[0]?.month ?? '', end: last?.month ?? '' },
-        backtestErrorPct: Math.round((3 + rand() * 5) * 10) / 10,
-        runAt: MODEL_RUN_AT,
-        version: 'arps-0.3.1',
-      };
-      if (!last || last.oeSm3 <= 0) return { fieldId: id, points: [], model, events };
+      const card = sampleModelCard(id, history);
+      const b = card.b ?? 0.5;
+      if (!last || last.oeSm3 <= 0) {
+        return { fieldId: id, points: [], model: { ...card, status: 'shut_down' }, events };
+      }
 
       // Decline rate from the field's own last year, kept in a sane band.
       const recent = history.slice(-3);
@@ -306,7 +350,7 @@ export function createMockExtras(core: CoreApi): ExtrasApi {
       const qi = perDay(recent);
       const ratio = yearAgo.length ? qi / Math.max(1, perDay(yearAgo)) : 0.9;
       const di = Math.min(0.35, Math.max(0.05, -Math.log(ratio)));
-      model.initialDeclinePctPerYear = Math.round(di * 1000) / 10;
+      const model: ModelCard = { ...card, initialDeclinePctPerYear: Math.round(di * 1000) / 10 };
 
       const points: Forecast[] = [
         { month: last.month, p10: last.oeSm3, p50: last.oeSm3, p90: last.oeSm3 },
@@ -336,6 +380,7 @@ export function createMockExtras(core: CoreApi): ExtrasApi {
           lo,
           hi,
           madeAt: MODEL_RUN_AT,
+          dataThrough: freshness.latestMonth,
           modelVersion: 'nowcast-0.2.0',
           hash: sampleHash(`${companyId}-${OPEN_QUARTER}`),
           status: 'open',
@@ -350,20 +395,21 @@ export function createMockExtras(core: CoreApi): ExtrasApi {
 
     anomalies: async () => anomalies(),
 
-    prices: async () => [
-      priceSeries('brent', 'Brent', 'USD/bbl', 68.4, 0.03),
-      priceSeries('ttf', 'TTF gas', 'EUR/MWh', 31.2, 0.045),
-    ],
+    prices: async () => samplePrices(),
 
-    forwardPrices: async () => ({
+    latestPrices: async () => ({
       asOf: '2026-11-06',
-      quarterStart: OPEN_QUARTER,
-      brentUsdPerBbl: 67.9,
-      ttfEurPerMwh: 32.4,
+      brentUsdPerBbl: 68.4,
+      brentDate: '2026-11-06',
+      ttfEurPerMwh: 31.2,
+      ttfMonth: '2026-10-01',
       eurUsd: 1.16,
+      eurUsdDate: '2026-11-06',
     }),
 
-    ask: async (question) => answerQuestion(question),
+    ask: async (question) => answerQuestion(question, 'offline'),
+
+    askTables: async () => ASK_TABLES,
 
     ...mockScenarioApi,
   };

@@ -11,6 +11,8 @@ import { formatMonth, formatPct } from '@/lib/format';
 import { kboedToSm3 } from '@/lib/units';
 import { AnomalyChart } from './AnomalyChart';
 
+const MAX_HITS = 4;
+
 interface AnomalyItemProps {
   anomaly: Anomaly;
   /** Status after any change made in this tab. */
@@ -37,6 +39,8 @@ export function AnomalyItem({
   // The series is kboe/d per month; Sm³ mode needs that month's real length.
   const inUnit = (kboed: number, month: string) =>
     units.fromMonth(kboedToSm3(kboed, daysInMonth(month)), month);
+  // The feed lists every owner, focus companies first; the biggest effects say enough.
+  const shownHits = a.hits.slice(0, MAX_HITS);
   const below = a.pctVsExpected < 0;
   const tail = below ? 'var(--dn)' : 'var(--up)';
   const settled = status === 'explained' || status === 'resolved';
@@ -68,7 +72,9 @@ export function AnomalyItem({
             <DeltaBadge value={a.pctVsExpected} digits={0} />
             <span className="lbl">{m.anomalies.vsExpected}</span>
           </span>
-          <span className="lbl">{t(m.anomalies.operator, { name: a.operatorName })}</span>
+          {a.operatorName ? (
+            <span className="lbl">{t(m.anomalies.operator, { name: a.operatorName })}</span>
+          ) : null}
         </div>
         {/* Notes come from the data feed; they are in English until it serves translations. */}
         <p lang="en" className="m-0 text-[14px] text-muted">
@@ -120,7 +126,7 @@ export function AnomalyItem({
           <span className="lbl">{m.anomalies.noFocus}</span>
         ) : (
           <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-            {a.hits.map((h) => (
+            {shownHits.map((h) => (
               <li
                 key={h.companyId}
                 className="flex flex-wrap items-center justify-between gap-x-3 text-[13px]"
@@ -137,6 +143,11 @@ export function AnomalyItem({
                 />
               </li>
             ))}
+            {a.hits.length > shownHits.length ? (
+              <li className="lbl">
+                {plural(m.anomalies.moreOwners, a.hits.length - shownHits.length)}
+              </li>
+            ) : null}
           </ul>
         )}
         <div className="mt-1 flex flex-wrap gap-2">

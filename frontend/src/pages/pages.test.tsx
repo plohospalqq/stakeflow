@@ -14,11 +14,11 @@ describe('Company detail', () => {
     expect(within(nowcast).getByText('Sample data')).toBeInTheDocument();
   });
 
-  it('recomputes the revenue estimate from the sliders and resets to forward prices', async () => {
+  it('recomputes the revenue estimate from the sliders and resets to the latest prices', async () => {
     renderWithProviders(<div />, { routes, route: '/companies/aker-bp' });
     const brent = await screen.findByRole('slider', { name: 'Brent oil price' });
     const card = screen.getByRole('region', { name: /revenue estimate/i });
-    const reset = within(card).getByRole('button', { name: 'Reset to forward prices' });
+    const reset = within(card).getByRole('button', { name: 'Reset to latest prices' });
     expect(reset).toBeDisabled();
     // The headline total is the first dollar amount in the card; the split and maths follow.
     const total = () => within(card).getAllByText(/^\$[\d.,]+ (bn|m)$/)[0]?.textContent;

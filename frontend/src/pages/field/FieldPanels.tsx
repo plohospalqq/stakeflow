@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { isSample } from '@/api/mode';
 import type { FieldDetail as Field, FieldForecast, FieldMonthly } from '@/api/types';
 import { SampleBadge } from '@/components/SampleBadge';
 import { Skeleton } from '@/components/Skeleton';
@@ -12,69 +13,105 @@ import { formatMonth, formatNumber, formatPct, formatUtc } from '@/lib/format';
 import type { Plateau } from '@/lib/fieldStats';
 import type { LatestView } from '@/lib/latest';
 
+/** Model card numbers can be missing (no curve, too little history): a dash, never "NaN". */
+const orDash = (value: number | null, format: (v: number) => string) =>
+  value === null ? '–' : format(value);
+
 export function ForecastExplainer({
   forecast,
   history,
+  missing,
 }: {
   forecast: FieldForecast | undefined;
   history: FieldMonthly[];
+  /** The field has no model card (nothing produced in the last two years). */
+  missing: boolean;
 }) {
   const { m, t } = useI18n();
   const units = useUnits();
   const model = forecast?.model;
+  const status = model?.status ?? 'arps';
   const next12 = forecast?.points.slice(1, 13) ?? [];
   const last12 = history.slice(-12);
   const avg = (values: number[]) => values.reduce((s, v) => s + v, 0) / Math.max(1, values.length);
   const nextAvg = avg(next12.map((p) => units.fromMonth(p.p50, p.month)));
   const lastAvg = avg(last12.map((h) => units.fromMonth(h.oeSm3, h.month)));
+  const curve = status === 'arps';
+  const howText =
+    status === 'arps' || status === 'shut_down' ? m.field.how1 : m.field.howFlat[status];
 
   return (
     <aside className="card enter flex min-w-0 flex-col gap-3.5 p-5" aria-labelledby="hw-h">
       <h2 id="hw-h" className="display m-0 text-h2 font-semibold">
         {m.field.howTitle}
       </h2>
-      <p className="m-0 text-[14px] text-muted">
-        <Rich
-          text={m.field.how1}
-          strong={(c, k) => (
-            <Term key={k} id="decline">
-              <strong className="font-semibold text-ink">{c}</strong>
-            </Term>
-          )}
-        />
-      </p>
-      <p className="m-0 text-[14px] text-muted">
-        <Rich text={m.field.how2} />
-      </p>
+      {missing || status === 'shut_down' ? (
+        <p className="m-0 text-[14px] text-muted">{m.field.noForecastText}</p>
+      ) : (
+        <>
+          <p className="m-0 text-[14px] text-muted">
+            <Rich
+              text={howText}
+              strong={(c, k) => (
+                <Term key={k} id={curve ? 'decline' : 'plateau'}>
+                  <strong className="font-semibold text-ink">{c}</strong>
+                </Term>
+              )}
+            />
+          </p>
+          <p className="m-0 text-[14px] text-muted">
+            <Rich text={m.field.how2} />
+          </p>
+        </>
+      )}
       <div className="flex flex-col gap-2 border-t border-line pt-3">
         <span className="flex items-center gap-2">
           <span className="cap">{m.field.model}</span>
-          <SampleBadge detail={m.sample.forecast} />
+          {isSample('forecast') ? <SampleBadge detail={m.sample.forecast} /> : null}
         </span>
         {model ? (
-          <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-[14px] [&_dd]:m-0 [&_dd]:text-right [&_dt]:text-muted">
+          <dl className="m-0 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2.5 text-[14px] [&_dd]:m-0 [&_dd]:text-right [&_dt]:text-muted">
             <dt>{m.field.method}</dt>
-            <dd>{m.field.methodArps}</dd>
-            <dt>{m.field.bFactor}</dt>
-            <dd className="num">{formatNumber(model.b, 2)}</dd>
-            <dt>{m.field.initialDecline}</dt>
-            <dd className="num">
-              {t(m.field.perYear, { v: formatNumber(model.initialDeclinePctPerYear, 1) })}
-            </dd>
-            <dt>{m.field.fittedOn}</dt>
-            <dd>
-              {model.fitWindow.start
-                ? `${formatMonth(model.fitWindow.start)} – ${formatMonth(model.fitWindow.end)}`
-                : '–'}
-            </dd>
+            <dd>{m.field.methodBy[status]}</dd>
+            {curve ? (
+              <>
+                <dt>{m.field.bFactor}</dt>
+                <dd className="num">{orDash(model.b, (v) => formatNumber(v, 2))}</dd>
+                <dt>{m.field.initialDecline}</dt>
+                <dd className="num">
+                  {orDash(model.initialDeclinePctPerYear, (v) =>
+                    t(m.field.perYear, { v: formatNumber(v, 1) }),
+                  )}
+                </dd>
+                <dt>{m.field.fittedOn}</dt>
+                <dd>
+                  {model.fitWindow
+                    ? `${formatMonth(model.fitWindow.start)} – ${formatMonth(model.fitWindow.end)}`
+                    : '–'}
+                </dd>
+              </>
+            ) : null}
             <dt>{m.field.backtest}</dt>
-            <dd className="num">{formatPct(model.backtestErrorPct, 1)}</dd>
+            <dd className="num">{orDash(model.backtestErrorPct, (v) => formatPct(v, 1))}</dd>
+            <dt>{m.field.naive}</dt>
+            <dd className="num">{orDash(model.naiveErrorPct, (v) => formatPct(v, 1))}</dd>
+            <dt>
+              <Term id="range80">{m.field.coverage}</Term>
+            </dt>
+            <dd className="num">{orDash(model.backtestCoveragePct, (v) => formatPct(v, 0))}</dd>
+            <dt>{m.field.dataThrough}</dt>
+            <dd className="num">{formatMonth(model.dataThrough)}</dd>
             <dt>{m.field.modelRun}</dt>
             <dd className="num">{formatUtc(model.runAt)}</dd>
           </dl>
+        ) : missing ? (
+          <p className="m-0 text-[14px] text-muted">{m.field.noForecast}</p>
         ) : (
           <Skeleton height={120} />
         )}
+        {model && model.backtestErrorPct !== null ? (
+          <p className="lbl m-0">{m.field.backtestNote}</p>
+        ) : null}
       </div>
       {next12.length > 0 && last12.length > 0 ? (
         <div className="rounded-2xl bg-surface2 px-4 py-3 text-[13px] text-muted">

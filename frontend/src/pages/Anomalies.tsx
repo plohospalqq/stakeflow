@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAnomalies, useFreshness } from '@/api/hooks';
+import { isSample } from '@/api/mode';
 import type { AnomalyStatus } from '@/api/types';
 import { ErrorState } from '@/components/ErrorState';
 import { Page } from '@/components/layout/Page';
@@ -16,7 +17,10 @@ type Filter = 'all' | AnomalyStatus;
 
 const FILTERS: Filter[] = ['all', 'new', 'investigating', 'explained', 'resolved'];
 
-/** Changes a reader makes here. Kept in memory only until anomalies have a backend. */
+/** A real run flags about 200 field-months; the rest is one click away. */
+const PAGE = 30;
+
+/** Changes a reader makes here. The backend stores no status, so they stay in this tab. */
 interface LocalEdits {
   status?: AnomalyStatus;
   notes: string[];
@@ -27,7 +31,9 @@ export default function Anomalies() {
   const anomalies = useAnomalies();
   const freshness = useFreshness();
   const [filter, setFilter] = useState<Filter>('all');
+  const [showAll, setShowAll] = useState(false);
   const [edits, setEdits] = useState<Record<string, LocalEdits>>({});
+  const sample = isSample('anomalies');
 
   const items = useMemo(
     () =>
@@ -62,7 +68,8 @@ export default function Anomalies() {
     label: value === 'all' ? m.anomalies.all : m.anomalies.status[value],
     count: value === 'all' ? items.length : items.filter((i) => i.status === value).length,
   }));
-  const shown = items.filter((i) => filter === 'all' || i.status === filter);
+  const matching = items.filter((i) => filter === 'all' || i.status === filter);
+  const shown = showAll ? matching : matching.slice(0, PAGE);
 
   const edit = (id: string, change: (e: LocalEdits) => LocalEdits) =>
     setEdits((all) => ({ ...all, [id]: change(all[id] ?? { notes: [] }) }));
@@ -78,7 +85,7 @@ export default function Anomalies() {
             <h2 id="what-h" className="display m-0 text-h2 font-semibold">
               {m.anomalies.whatTitle}
             </h2>
-            <SampleBadge detail={m.sample.anomalies} />
+            {sample ? <SampleBadge detail={m.sample.anomalies} /> : null}
           </div>
           <p className="m-0 text-[14px] text-muted">{m.anomalies.whatText}</p>
         </div>
@@ -98,7 +105,10 @@ export default function Anomalies() {
         <SegmentedControl
           label={m.anomalies.filter}
           value={filter}
-          onChange={setFilter}
+          onChange={(next) => {
+            setFilter(next);
+            setShowAll(false);
+          }}
           options={options}
         />
         <span className="lbl">{m.anomalies.order}</span>
@@ -138,7 +148,12 @@ export default function Anomalies() {
             ))}
           </ul>
         )}
-        <p className="lbl m-0">{m.anomalies.foot}</p>
+        {matching.length > PAGE ? (
+          <button type="button" className="btn self-center" onClick={() => setShowAll((s) => !s)}>
+            {showAll ? m.common.showFewer : t(m.common.showAll, { n: matching.length })}
+          </button>
+        ) : null}
+        <p className="lbl m-0">{sample ? m.anomalies.footSample : m.anomalies.foot}</p>
       </section>
     </Page>
   );

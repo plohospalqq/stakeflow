@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { isSample } from '@/api/mode';
 import type { Prediction } from '@/api/types';
 import { ChartCard, type ChartState } from '@/components/ChartCard';
 import { ErrorChip } from '@/components/Chips';
@@ -10,11 +11,11 @@ import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useUnits } from '@/hooks/useUnits';
 import { useI18n } from '@/i18n/useI18n';
 import { formatQuarter, formatQuarterShort } from '@/lib/format';
-import { errorPct } from '@/lib/trackRecord';
+import { errorPct, latestPerQuarter } from '@/lib/trackRecord';
 
 const SHOWN = 8;
 
-/** Sample data end to end: the nowcast model is not in the backend yet. */
+/** Our quarterly estimate against what the company reported: backtests, then the open quarter. */
 export function NowcastCard({
   companyName,
   predictions,
@@ -32,28 +33,28 @@ export function NowcastCard({
   const isDesktop = useIsDesktop();
   const digits = units.unit === 'boe' ? 1 : 3;
 
-  const points = useMemo<NowcastPoint[]>(() => {
-    // Latest row per quarter: revisions are new rows, the newest one counts.
-    const byQuarter = new Map<string, Prediction>();
-    for (const p of [...predictions].sort((a, b) => a.madeAt.localeCompare(b.madeAt))) {
-      byQuarter.set(p.quarterStart, p);
-    }
-    return [...byQuarter.values()]
-      .sort((a, b) => a.quarterStart.localeCompare(b.quarterStart))
-      .slice(-SHOWN)
-      .map((p) => {
-        const conv = (v: number) => units.fromQuarterRate(v, p.quarterStart);
-        return {
-          label: formatQuarterShort(p.quarterStart),
-          quarterName: formatQuarter(p.quarterStart),
-          predicted: conv(p.predicted),
-          lo: conv(p.lo),
-          hi: conv(p.hi),
-          actual: p.actual === null ? null : conv(p.actual),
-          errorPct: p.actual === null ? null : errorPct(p.predicted, p.actual),
-        };
-      });
-  }, [predictions, units]);
+  const points = useMemo<NowcastPoint[]>(
+    () =>
+      latestPerQuarter(predictions)
+        .slice(-SHOWN)
+        .map((p) => {
+          const conv = (v: number) => units.fromQuarterRate(v, p.quarterStart);
+          return {
+            label: formatQuarterShort(p.quarterStart),
+            quarterName: formatQuarter(p.quarterStart),
+            predicted: conv(p.predicted),
+            lo: conv(p.lo),
+            hi: conv(p.hi),
+            actual: p.actual === null ? null : conv(p.actual),
+            errorPct: p.actual === null ? null : errorPct(p.predicted, p.actual),
+            backtest: p.kind === 'backtest',
+          };
+        }),
+    // m: quarter labels follow the language.
+    [predictions, units, m], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const sample = isSample('predictions');
+  const hasBacktests = points.some((p) => p.backtest);
 
   const option = useMemo(
     () =>
@@ -72,15 +73,21 @@ export function NowcastCard({
     <ChartCard
       className="min-w-0 flex-[3_1_560px]"
       title={m.nowcastCard.title}
-      subtitle={tr(m.nowcastCard.sub, { unit: units.label })}
+      subtitle={`${tr(m.nowcastCard.sub, { unit: units.label })}${
+        hasBacktests ? ` · ${m.nowcastCard.subBacktest}` : ''
+      }`}
       info={m.nowcastCard.info}
-      sample={m.sample.nowcastAll}
+      sample={sample ? m.sample.nowcastAll : undefined}
       legend={[
         { label: m.nowcastCard.legendReported, color: 'var(--f4)' },
-        { label: m.nowcastCard.legendNowcast, color: 'var(--fc)', kind: 'line' },
+        {
+          label: hasBacktests ? m.nowcastCard.legendBacktest : m.nowcastCard.legendNowcast,
+          color: 'var(--fc)',
+          kind: 'line',
+        },
         { label: m.nowcastCard.legendOpen, color: 'var(--fc)', kind: 'dashed' },
       ]}
-      source={{ label: m.common.sampleSource }}
+      source={{ label: sample ? m.common.sampleSource : m.nowcastCard.source }}
       state={state === 'ready' && points.length === 0 ? 'empty' : state}
       message={tr(m.nowcastCard.notNowcast, { company: companyName })}
       onRetry={onRetry}
@@ -93,6 +100,11 @@ export function NowcastCard({
           rowKey={(p) => p.quarterName}
           columns={[
             { id: 'q', header: m.common.quarter, value: (p) => p.quarterName },
+            {
+              id: 'kind',
+              header: m.track.colKind,
+              value: (p) => (p.backtest ? m.track.kind.backtest : m.track.kind.live),
+            },
             {
               id: 'pred',
               header: m.nowcastCard.colNowcast,

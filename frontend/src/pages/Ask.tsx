@@ -7,10 +7,13 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from 'react';
-import { ASK_TABLES, GOOD_FIRST_QUESTIONS } from '@/api/mock/ask';
+import { useAskTables } from '@/api/hooks';
+import { GOOD_FIRST_QUESTIONS } from '@/api/mock/ask';
+import { DATA_SOURCE } from '@/api/mode';
 import type { AskAnswer } from '@/api/types';
 import { Icon } from '@/components/Icon';
 import { Page } from '@/components/layout/Page';
+import { Skeleton } from '@/components/Skeleton';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useI18n } from '@/i18n/useI18n';
 import { AnswerCard } from './ask/AnswerCard';
@@ -20,9 +23,14 @@ interface Turn {
   question: string;
 }
 
-/** Ask (preview, behind VITE_FEATURE_ASK): a chat over the marts with canned answers for now. */
+/**
+ * Ask (beta, behind VITE_FEATURE_ASK): a chat over the marts. The live API answers with an AI
+ * that writes read-only SQL; without an AI key, and in the static demo and mocks, prepared
+ * examples answer, each saying why.
+ */
 export default function Ask() {
   const { m } = useI18n();
+  const tables = useAskTables();
   const [turns, setTurns] = useState<Turn[]>(() => [
     { id: 0, question: GOOD_FIRST_QUESTIONS[0] ?? 'Top 10 gas fields in 2025' },
   ]);
@@ -127,7 +135,7 @@ export default function Ask() {
               <Icon name="send" />
             </button>
           </form>
-          <p className="lbl m-0">{m.ask.foot}</p>
+          <p className="lbl m-0">{DATA_SOURCE === 'api' ? m.ask.foot : m.ask.footPreview}</p>
           <p className="lbl m-0">{m.ask.examplesNote}</p>
         </div>
 
@@ -152,16 +160,26 @@ export default function Ask() {
             <h2 id="tb-h" className="display m-0 text-h2 font-semibold">
               {m.ask.tables}
             </h2>
-            <dl className="m-0 flex flex-col">
-              {ASK_TABLES.map((t) => (
-                <div key={t.name} className="flex flex-col gap-0.5 border-t border-line py-2">
-                  <dt className="mono break-all text-[12px]">{t.name}</dt>
-                  <dd lang="en" className="lbl m-0">
-                    {t.description}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+            {tables.data ? (
+              <dl className="m-0 flex flex-col">
+                {tables.data.map((t) => (
+                  <div key={t.name} className="flex flex-col gap-0.5 border-t border-line py-2">
+                    <dt className="mono break-all text-[12px]">{t.name}</dt>
+                    <dd lang="en" className="lbl m-0">
+                      {t.description}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : tables.isError ? (
+              <p className="lbl m-0">{m.ask.tablesFailed}</p>
+            ) : (
+              <div className="flex flex-col gap-2" aria-busy="true">
+                <Skeleton width="60%" />
+                <Skeleton />
+                <Skeleton width="60%" />
+              </div>
+            )}
           </section>
         </aside>
       </div>

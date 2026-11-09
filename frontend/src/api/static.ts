@@ -1,16 +1,18 @@
 /**
- * Static demo source (VITE_DATA_SOURCE=static): the CoreApi over JSON files exported from the
- * real API at build time (api/scripts/export_static.py), served next to the app on GitHub
- * Pages. Each API path maps to one file holding that endpoint's exact response, so http.ts
- * maps them into domain models unchanged. Query parameters that only narrow a list (month
- * range, status, limit, since) are applied here, with the API's own rules.
+ * Static demo source (VITE_DATA_SOURCE=static): the CoreApi and the public extras over JSON
+ * files exported from the real API at build time (api/scripts/export_static.py), served next
+ * to the app on GitHub Pages. Each API path maps to one file holding that endpoint's exact
+ * response, so http.ts and extras.ts map them into domain models unchanged. Query parameters
+ * that only narrow a list (month range, status, limit, since, series) are applied here, with
+ * the API's own rules. Share prices and scenario results are never exported (Euronext data).
  */
 import type { components } from './schema.gen';
 import { mapSummary } from './summary';
 import type { ShelfSummary } from './types.summary';
 import { addMonths, monthStart } from '@/lib/dates';
-import { ApiError, createCore, type Query } from './http';
-import type { CoreApi } from './source';
+import { createExtras } from './extras';
+import { ApiError, createCore, type JsonPoster, type Query } from './http';
+import type { CoreApi, ExtrasApi } from './source';
 
 /** meta/snapshot.json: written by the exporter next to the API responses. */
 export interface SnapshotInfo {
@@ -35,6 +37,8 @@ export interface StaticRoute {
   status?: string;
   /** /companies/{id}/quarters?since= */
   since?: string;
+  /** /prices?series=brent&series=ttf: keep only these ids. */
+  ids?: string[];
   limit?: number;
 }
 
@@ -44,6 +48,8 @@ const FIELD_ID = /^[0-9]+$/;
 
 const str = (v: Query[string]): string | undefined => (typeof v === 'string' ? v : undefined);
 const num = (v: Query[string]): number | undefined => (typeof v === 'number' ? v : undefined);
+const list = (v: Query[string]): string[] | undefined =>
+  Array.isArray(v) ? v : typeof v === 'string' ? [v] : undefined;
 
 /** Which file answers an API path (as http.ts builds it), or null for an unknown path. */
 export function staticRoute(path: string, query: Query = {}): StaticRoute | null {
@@ -52,6 +58,16 @@ export function staticRoute(path: string, query: Query = {}): StaticRoute | null
 
   if (root === 'meta' && id === 'freshness' && !sub) return { file: 'meta/freshness.json' };
   if (root === 'summary' && !id) return { file: 'meta/summary.json' };
+
+  // Models and markets: one file each, exported as the API answers them.
+  if (root === 'nowcasts' && !id) return { file: 'models/nowcasts.json' };
+  // Only the newest row per quarter is exported, the way every page asks for it.
+  if (root === 'predictions' && !id && query.latest === true) {
+    return { file: 'models/predictions.json' };
+  }
+  if (root === 'anomalies' && !id) return { file: 'anomalies/all.json', limit: num(query.limit) };
+  if (root === 'prices' && !id) return { file: 'prices/series.json', ids: list(query.series) };
+  if (root === 'prices' && id === 'latest' && !sub) return { file: 'prices/latest.json' };
 
   if (root === 'companies') {
     if (!id) {
@@ -85,6 +101,7 @@ export function staticRoute(path: string, query: Query = {}): StaticRoute | null
     if (!sub) return { file: `fields/${id}/detail.json` };
     if (sub === 'production') return { file: `fields/${id}/production.json`, series: 'field' };
     if (sub === 'ownership') return { file: `fields/${id}/ownership.json` };
+    if (sub === 'forecast') return { file: `fields/${id}/forecast.json` };
   }
   return null;
 }
@@ -123,8 +140,9 @@ export function narrow(
       (r) => isRecord(r) && typeof r.month === 'string' && r.month >= start && r.month <= end,
     );
   }
-  const { status, since } = route;
+  const { status, since, ids } = route;
   if (status) out = out.filter((r) => isRecord(r) && r.status === status);
+  if (ids) out = out.filter((r) => isRecord(r) && typeof r.id === 'string' && ids.includes(r.id));
   if (since) {
     out = out.filter(
       (r) => isRecord(r) && typeof r.quarterStart === 'string' && r.quarterStart >= since,
@@ -169,6 +187,15 @@ async function getStatic<T>(path: string, query: Query = {}): Promise<T> {
 }
 
 export const staticCore: CoreApi = createCore(getStatic);
+
+/** There is no server behind the demo to send a question to. */
+const postStatic: JsonPoster = (path) => Promise.reject(new ApiError(404, path));
+
+/**
+ * Every extra over the exported files. Only the public ones are used (mode.ts,
+ * STATIC_REAL_EXTRAS); index.ts takes the rest from the mock layer.
+ */
+export const staticExtras: ExtrasApi = createExtras(getStatic, postStatic);
 
 /** The landing page's shelf summary from the snapshot (same mapper as the live API). */
 export async function staticSummary(): Promise<ShelfSummary> {

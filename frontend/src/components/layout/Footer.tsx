@@ -1,6 +1,29 @@
-import { USE_MOCKS } from '@/api/mode';
+import { DATA_SOURCE } from '@/api/mode';
 import { useI18n } from '@/i18n/useI18n';
 import { LogoMark } from './Logo';
+
+/** Which numbers are real in this build, and where every number comes from. */
+function DataNote() {
+  const { m } = useI18n();
+  if (DATA_SOURCE === 'mocks') {
+    return (
+      <>
+        <strong className="font-semibold text-warn-ink">{m.footer.mockLabel}</strong>{' '}
+        {m.footer.mockText}
+      </>
+    );
+  }
+  if (DATA_SOURCE === 'static') {
+    return (
+      <>
+        {m.footer.staticLive}{' '}
+        <strong className="font-semibold text-ink">{m.footer.sampleLabel}</strong>{' '}
+        {m.footer.staticSample}
+      </>
+    );
+  }
+  return <>{m.footer.live}</>;
+}
 
 export function Footer() {
   const { m } = useI18n();
@@ -21,20 +44,15 @@ export function Footer() {
             {after}
           </span>
         </p>
-        <p className="m-0 max-w-[520px]">
-          {USE_MOCKS ? (
-            <>
-              <strong className="font-semibold text-warn-ink">{m.footer.mockLabel}</strong>{' '}
-              {m.footer.mockText}
-            </>
-          ) : (
-            <>
-              {m.footer.live}{' '}
-              <strong className="font-semibold text-ink">{m.footer.sampleLabel}</strong>{' '}
-              {m.footer.sampleParts}
-            </>
-          )}
-        </p>
+        <div className="flex max-w-[520px] flex-col gap-2">
+          <p className="m-0">
+            <DataNote />
+          </p>
+          <p className="m-0">
+            <strong className="font-semibold text-ink">{m.footer.sourcesLabel}</strong>{' '}
+            {m.footer.sources} {m.footer.shares}
+          </p>
+        </div>
       </div>
     </footer>
   );

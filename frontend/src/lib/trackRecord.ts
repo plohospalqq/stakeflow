@@ -1,6 +1,6 @@
 /** Scoring of the prediction log: the numbers behind the track-record page. */
 import type { Prediction, ReportedQuarter } from '@/api/types';
-import { diffDays } from './dates';
+import { diffDays, quarterOf } from './dates';
 
 /** Signed error in percent: (predicted − actual) / actual. */
 export function errorPct(predicted: number, actual: number): number {
@@ -11,10 +11,12 @@ export interface ModelStats {
   resolved: number;
   /** Mean absolute % error of the model. */
   modelError: number;
-  /** Mean absolute % error of "same as last quarter". */
-  baselineError: number;
-  /** How many times smaller the model error is. */
-  improvement: number;
+  /**
+   * Mean absolute % error of "same as last quarter", and how many times smaller the model's
+   * error is, both on the quarters that have a previous figure; null when none does.
+   */
+  baselineError: number | null;
+  improvement: number | null;
   /** Actuals inside the 80% range. */
   inRange: number;
   /** Mean signed error: positive = predictions run high. */
@@ -24,28 +26,57 @@ export interface ModelStats {
   lastQuarter: string;
 }
 
+type Scored = Prediction & { actual: number };
+
+const isScored = (p: Prediction): p is Scored => p.status === 'resolved' && p.actual !== null;
+
+const mean = (values: number[]) => values.reduce((s, v) => s + v, 0) / values.length;
+
+/** Call it per kind: live and backtest rows are never pooled. */
 export function modelStats(log: Prediction[]): ModelStats | null {
-  const done = log.filter(
-    (p): p is Prediction & { actual: number } => p.status === 'resolved' && p.actual !== null,
-  );
+  const done = log.filter(isScored);
   if (done.length === 0) return null;
-  const mean = (values: number[]) => values.reduce((s, v) => s + v, 0) / values.length;
   const model = done.map((p) => errorPct(p.predicted, p.actual));
-  const baseline = done.map((p) => errorPct(p.baseline, p.actual));
+  const paired = done.filter((p): p is Scored & { baseline: number } => p.baseline !== null);
   const quarters = [...new Set(done.map((p) => p.quarterStart))].sort();
-  const modelError = mean(model.map(Math.abs));
-  const baselineError = mean(baseline.map(Math.abs));
+  const pairedModel = mean(paired.map((p) => Math.abs(errorPct(p.predicted, p.actual))));
+  const baselineError = paired.length
+    ? mean(paired.map((p) => Math.abs(errorPct(p.baseline, p.actual))))
+    : null;
   return {
     resolved: done.length,
-    modelError,
+    modelError: mean(model.map(Math.abs)),
     baselineError,
-    improvement: modelError > 0 ? baselineError / modelError : 0,
+    improvement: baselineError !== null && pairedModel > 0 ? baselineError / pairedModel : null,
     inRange: done.filter((p) => p.actual >= p.lo && p.actual <= p.hi).length,
     bias: mean(model),
     quarters: quarters.length,
     firstQuarter: quarters[0] ?? '',
     lastQuarter: quarters[quarters.length - 1] ?? '',
   };
+}
+
+/**
+ * When a prediction counts as made. An open quarter freezes at its end; a backtest stands in
+ * for a freeze at its as-of date (the computer ran it much later); a live row when it ran.
+ */
+export function frozenAt(p: Prediction): string {
+  if (p.status === 'open' || p.actual === null) return `${quarterOf(p.quarterStart).end}T23:59:00Z`;
+  if (p.kind === 'backtest') return `${p.asOf}T23:59:00Z`;
+  return p.madeAt;
+}
+
+/**
+ * One row per quarter: a live prediction beats a backtest of the same quarter, and within a
+ * kind the newest row counts (revisions are new rows).
+ */
+export function latestPerQuarter(predictions: Prediction[]): Prediction[] {
+  const rank = (p: Prediction) => `${p.kind === 'live' ? 1 : 0}${p.madeAt}`;
+  const byQuarter = new Map<string, Prediction>();
+  for (const p of [...predictions].sort((a, b) => rank(a).localeCompare(rank(b)))) {
+    byQuarter.set(p.quarterStart, p);
+  }
+  return [...byQuarter.values()].sort((a, b) => a.quarterStart.localeCompare(b.quarterStart));
 }
 
 /**
@@ -70,26 +101,26 @@ export interface QuarterAccuracy {
   quarterStart: string;
   /** Mean absolute % error of the model and of the baseline in that quarter. */
   model: number;
-  baseline: number;
+  /** Null when no company had a previous quarter to repeat. */
+  baseline: number | null;
   count: number;
 }
 
 export function accuracyByQuarter(log: Prediction[]): QuarterAccuracy[] {
   const byQuarter = new Map<string, { model: number[]; baseline: number[] }>();
   for (const p of log) {
-    if (p.status !== 'resolved' || p.actual === null) continue;
+    if (!isScored(p)) continue;
     const entry = byQuarter.get(p.quarterStart) ?? { model: [], baseline: [] };
     entry.model.push(Math.abs(errorPct(p.predicted, p.actual)));
-    entry.baseline.push(Math.abs(errorPct(p.baseline, p.actual)));
+    if (p.baseline !== null) entry.baseline.push(Math.abs(errorPct(p.baseline, p.actual)));
     byQuarter.set(p.quarterStart, entry);
   }
-  const mean = (values: number[]) => values.reduce((s, v) => s + v, 0) / values.length;
   return [...byQuarter.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([quarterStart, e]) => ({
       quarterStart,
       model: mean(e.model),
-      baseline: mean(e.baseline),
+      baseline: e.baseline.length ? mean(e.baseline) : null,
       count: e.model.length,
     }));
 }

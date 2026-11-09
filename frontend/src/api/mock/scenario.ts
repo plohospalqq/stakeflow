@@ -1,7 +1,8 @@
 /**
  * Sample data for the scenario explorer: share prices, a fitted model per company, the
- * model's answer and a free-text parser. The real endpoints (another team) will serve the
- * same shapes; until then every number here is badged as sample data.
+ * model's answer, the ready-made scenarios and a free-text parser. The live API serves the
+ * same shapes; the static demo and mocks mode use these, badged as sample data, because the
+ * real model is fitted on Euronext prices that may not be redistributed.
  *
  * The parser stands in for the LLM step: it only turns words into the five parameters
  * (never a result), in English, Ukrainian or Norwegian.
@@ -15,6 +16,8 @@ import type {
   ParsedScenario,
   ScenarioModel,
   ScenarioParams,
+  ScenarioPreset,
+  ScenarioResult,
   SharePriceSeries,
 } from '../types.scenario';
 
@@ -26,7 +29,15 @@ interface CompanySeed {
   ticker: string;
   lastClose: number;
   dailyVol: number;
-  model: Omit<ScenarioModel, 'companyId' | 'ticker' | 'method' | 'runAt' | 'version'>;
+  model: Pick<
+    ScenarioModel,
+    | 'window'
+    | 'observations'
+    | 'rSquared'
+    | 'coefficients'
+    | 'standardErrors'
+    | 'residualVolMonthly'
+  >;
 }
 
 // Sample coefficients in a plausible range for NCS producers; not fitted to real prices.
@@ -85,11 +96,55 @@ function modelFor(companyId: string): ScenarioModel {
     companyId,
     ticker: seed.ticker,
     method: 'ols-monthly-log-returns',
+    methodText: null,
+    adjRSquared: null,
+    excludedMonths: [],
+    backtest: null,
     runAt: MODEL_RUN_AT,
     version: 'scenario-0.1.0',
     ...seed.model,
   };
 }
+
+/** The backend's ready-made scenarios, same ids and numbers, so links work in every mode. */
+export const SAMPLE_PRESETS: ScenarioPreset[] = [
+  {
+    id: 'calm-year',
+    name: 'Calm year: everything flat',
+    description: 'Oil, gas, production and the dollar stay where they are for a year.',
+    params: { ...NEUTRAL_SCENARIO, horizonMonths: 12 },
+  },
+  {
+    id: 'oil-crash',
+    name: 'Oil crash: Brent −30%',
+    description: 'Brent falls by almost a third within three months.',
+    params: { ...NEUTRAL_SCENARIO, brentChangePct: -30, horizonMonths: 3 },
+  },
+  {
+    id: 'oil-rally',
+    name: 'Oil rally: Brent +30%',
+    description: 'Brent rises by almost a third within three months.',
+    params: { ...NEUTRAL_SCENARIO, brentChangePct: 30, horizonMonths: 3 },
+  },
+  {
+    id: 'gas-spike',
+    name: 'Gas spike: TTF +50%',
+    description: 'European gas prices jump by half within three months.',
+    params: { ...NEUTRAL_SCENARIO, ttfChangePct: 50, horizonMonths: 3 },
+  },
+  {
+    id: 'sverdrup-outage',
+    name: 'Johan Sverdrup outage: production −10% for a quarter',
+    description: 'The company produces 10% less over the next three months.',
+    params: { ...NEUTRAL_SCENARIO, productionChangePct: -10, horizonMonths: 3 },
+  },
+  {
+    id: 'strong-dollar',
+    name: 'Strong dollar: EUR/USD −10%',
+    description: 'The US dollar strengthens by about a tenth against the euro over six months.',
+    params: { ...NEUTRAL_SCENARIO, eurusdChangePct: -10, horizonMonths: 6 },
+  },
+];
 
 function tradingDays(end: string, count: number): string[] {
   const days: string[] = [];
@@ -114,6 +169,7 @@ function sharePrices(companyId: string): SharePriceSeries {
     companyId,
     ticker: seed.ticker,
     currency: 'NOK',
+    note: null,
     points: days.map((date, i) => ({
       date,
       close: Math.round((closes[i] ?? seed.lastClose) * 100) / 100,
@@ -163,19 +219,36 @@ function parseText(text: string, current: ScenarioParams): ParsedScenario {
     next.horizonMonths = Number(months[1]);
     recognised.push('horizonMonths');
   }
-  return { params: clampScenario(next), recognised };
+  return { params: clampScenario(next), recognised, assumptions: [], companyId: null };
+}
+
+function runScenario(companyId: string, params: ScenarioParams): ScenarioResult {
+  const seed = seedFor(companyId);
+  const core = modelScenario(modelFor(companyId), params);
+  const at = (changePct: number) => seed.lastClose * (1 + changePct / 100);
+  return {
+    companyId,
+    ...core,
+    price: {
+      date: PRICE_END,
+      currency: 'NOK',
+      base: seed.lastClose,
+      median: at(core.medianPct),
+      low: at(core.lowPct),
+      high: at(core.highPct),
+    },
+    caveats: [],
+    notice: null,
+  };
 }
 
 export const mockScenarioApi: Pick<
   ExtrasApi,
-  'sharePrices' | 'scenarioModel' | 'runScenario' | 'parseScenario'
+  'sharePrices' | 'scenarioPresets' | 'runScenario' | 'parseScenario'
 > = {
   sharePrices: async (companyId) => sharePrices(companyId),
-  scenarioModel: async (companyId) => modelFor(companyId),
-  runScenario: async (companyId, params) => ({
-    companyId,
-    ...modelScenario(modelFor(companyId), params),
-  }),
+  scenarioPresets: async () => SAMPLE_PRESETS,
+  runScenario: async (companyId, params) => runScenario(companyId, params),
   // Unrecognised parameters come back neutral; the UI applies only the recognised ones.
   parseScenario: async (text) => parseText(text, NEUTRAL_SCENARIO),
 };

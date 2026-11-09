@@ -1,43 +1,47 @@
-import type { ScenarioParams } from '@/api/types.scenario';
+/**
+ * The ready-made scenarios come from the backend (GET /scenarios/presets; the mock layer
+ * mirrors them). The UI keeps only their order and its own words for the ids it knows; an id
+ * it does not know is still shown, with the backend's English name.
+ */
+import type { ScenarioPreset } from '@/api/types.scenario';
+import type { Dict } from '@/i18n/types';
 import { NEUTRAL_SCENARIO } from '@/lib/scenario';
 
-export type PresetId = 'oilDown' | 'gasUp' | 'oilUp' | 'dollar' | 'sverdrup' | 'calm';
+export const PRESET_ORDER = [
+  'oil-crash',
+  'gas-spike',
+  'oil-rally',
+  'strong-dollar',
+  'sverdrup-outage',
+  'calm-year',
+] as const;
 
-export interface Preset {
-  id: PresetId;
-  label:
-    | 'presetOilDown'
-    | 'presetGasUp'
-    | 'presetOilUp'
-    | 'presetDollar'
-    | 'presetSverdrup'
-    | 'presetCalm';
-  /** Sverdrup's needs the company's real share of output, so presets are functions. */
-  params: (sverdrupShare: number) => ScenarioParams;
+export type KnownPresetId = (typeof PRESET_ORDER)[number];
+
+export function isKnownPreset(id: string): id is KnownPresetId {
+  return PRESET_ORDER.some((known) => known === id);
 }
 
-const base = NEUTRAL_SCENARIO;
-
-/** Johan Sverdrup stopping for two of the six months: its share × 2/6 of output is lost. */
-export function sverdrupCutPct(share: number): number {
-  return -Math.round(share * (2 / 6) * 1000) / 10;
+/** Known presets in display order, unknown ones after them in the backend's order. */
+export function orderPresets(presets: ScenarioPreset[]): ScenarioPreset[] {
+  const rank = (id: string) => {
+    const i = PRESET_ORDER.findIndex((known) => known === id);
+    return i === -1 ? PRESET_ORDER.length : i;
+  };
+  return [...presets].sort((a, b) => rank(a.id) - rank(b.id));
 }
 
-export const PRESETS: Preset[] = [
-  { id: 'oilDown', label: 'presetOilDown', params: () => ({ ...base, brentChangePct: -30 }) },
-  { id: 'gasUp', label: 'presetGasUp', params: () => ({ ...base, ttfChangePct: 50 }) },
-  { id: 'oilUp', label: 'presetOilUp', params: () => ({ ...base, brentChangePct: 20 }) },
-  { id: 'dollar', label: 'presetDollar', params: () => ({ ...base, eurusdChangePct: 10 }) },
-  {
-    id: 'sverdrup',
-    label: 'presetSverdrup',
-    params: (share) => ({ ...base, productionChangePct: sverdrupCutPct(share) }),
-  },
-  { id: 'calm', label: 'presetCalm', params: () => ({ ...base }) },
-];
-
-export function isPresetId(value: unknown): value is PresetId {
-  return PRESETS.some((p) => p.id === value);
+/** The reader's words for a known preset; the backend's English for one the UI does not know. */
+export function presetWords(
+  m: Dict,
+  preset: ScenarioPreset,
+): { label: string; text: string; lang?: 'en' } {
+  if (isKnownPreset(preset.id)) return m.scenarios.presetsById[preset.id];
+  return { label: preset.name, text: preset.description, lang: 'en' };
 }
+
+/** The explorer opens on "Oil −30%": a blank 0% says nothing about what it does. */
+export const DEFAULT_PRESET: KnownPresetId = 'oil-crash';
+export const DEFAULT_PARAMS = { ...NEUTRAL_SCENARIO, brentChangePct: -30, horizonMonths: 3 };
 
 export const SCENARIO_COMPANIES = ['aker-bp', 'var-energi', 'equinor'];

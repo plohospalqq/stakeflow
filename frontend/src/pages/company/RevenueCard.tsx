@@ -27,12 +27,13 @@ interface SliderSpec {
   spoken: (v: number, m: Dict) => string;
 }
 
+// Wide enough for real markets: Brent passed $100 and TTF €80/MWh again in 2026.
 const SLIDERS: SliderSpec[] = [
   {
     key: 'brentUsdPerBbl',
     label: (m) => m.revenue.brent,
-    min: 40,
-    max: 120,
+    min: 20,
+    max: 160,
     step: 0.5,
     text: (v) => `$${formatNumber(v, 1)} /bbl`,
     spoken: (v, m) => fill(m.revenue.brentSpoken, { v: formatNumber(v, 1) }),
@@ -40,8 +41,8 @@ const SLIDERS: SliderSpec[] = [
   {
     key: 'ttfEurPerMwh',
     label: (m) => m.revenue.ttf,
-    min: 10,
-    max: 80,
+    min: 5,
+    max: 150,
     step: 0.5,
     text: (v) => `€${formatNumber(v, 1)} /MWh`,
     spoken: (v, m) => fill(m.revenue.ttfSpoken, { v: formatNumber(v, 1) }),
@@ -117,7 +118,7 @@ export function RevenueCard({ model }: { model: RevenueModel | null }) {
           <h2 id="rv-h" className="display m-0 text-h2 font-semibold">
             {t(m.revenue.title, { quarter })}
           </h2>
-          <SampleBadge detail={model.volumeIsSample ? m.sample.revenueNowcast : m.sample.revenue} />
+          {model.isSample ? <SampleBadge detail={m.sample.revenue} /> : null}
         </div>
         <span className="lbl">{m.revenue.sub}</span>
       </div>
@@ -165,12 +166,15 @@ export function RevenueCard({ model }: { model: RevenueModel | null }) {
             type="button"
             className="btn px-3.5 text-[13px]"
             onClick={model.reset}
-            disabled={model.isAtForward}
+            disabled={model.isAtLatest}
           >
             {m.revenue.reset}
           </button>
           <span className="lbl">
-            {t(m.revenue.forward, { date: formatDate(model.forwardAsOf) })}
+            {t(m.revenue.latest, {
+              date: formatDate(model.brentDate),
+              month: formatMonth(model.ttfMonth),
+            })}
           </span>
         </div>
       </div>
@@ -204,6 +208,7 @@ export function RevenueCard({ model }: { model: RevenueModel | null }) {
             <Rich text={m.revenue.sold} />
           </li>
           <li>{m.revenue.excludes}</li>
+          <li>{m.revenue.priceSources}</li>
         </ul>
         <p className="lbl m-0">
           <Term id="brent" /> · <Term id="ttf" />

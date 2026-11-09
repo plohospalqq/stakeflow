@@ -6,7 +6,7 @@
  * numbers below are its actual output for Sodir data through Aug 2026. Anything else gets an
  * honest "not yet" reply. Every follow-up offered is a question the preview can answer.
  */
-import type { AskAnswer, AskTable } from '../types';
+import type { AskAnswer, AskPreviewReason, AskReply, AskTable } from '../types';
 
 export const ASK_TABLES: AskTable[] = [
   {
@@ -41,7 +41,9 @@ export const GOOD_FIRST_QUESTIONS = [
   'Which fields are declining fastest?',
 ];
 
-type Canned = Omit<AskAnswer, 'question' | 'matched' | 'followUps'> & { keywords: string[] };
+type Canned = Omit<AskAnswer, 'question' | 'matched' | 'followUps'> & {
+  keywords: string[];
+};
 
 const CANNED: Canned[] = [
   {
@@ -277,15 +279,17 @@ function followUpsFor(current: Canned | undefined): string[] {
   return GOOD_FIRST_QUESTIONS.filter((q) => findCanned(q) !== current).slice(0, 3);
 }
 
-export function answerQuestion(question: string): AskAnswer {
+/** A prepared answer; `preview` says why one is shown instead of the model's. */
+export function answerQuestion(question: string, preview: AskPreviewReason): AskReply {
   const match = findCanned(question);
   if (match) {
     const { keywords: _keywords, ...answer } = match;
-    return { ...answer, question, matched: true, followUps: followUpsFor(match) };
+    return { ...answer, question, matched: true, followUps: followUpsFor(match), preview };
   }
   return {
     question,
     matched: false,
+    preview,
     steps: [
       { label: 'Understood question', detail: 'Not one the preview can answer yet' },
       { label: 'No query run', detail: 'Nothing was looked up' },

@@ -5,6 +5,8 @@ import { estimateRevenue } from './revenue';
 import {
   accuracyByQuarter,
   errorTone,
+  frozenAt,
+  latestPerQuarter,
   leadDays,
   modelStats,
   reconciledQuarters,
@@ -13,12 +15,16 @@ import {
 
 const prediction = (over: Partial<Prediction>): Prediction => ({
   id: 'x',
+  kind: 'live',
   companyId: 'aker-bp',
   companyName: 'Aker BP',
   quarterStart: '2026-07-01',
   madeAt: '2026-09-30T23:59:00Z',
+  asOf: '2026-09-30',
+  dataThrough: '2026-06-01',
   reportedOn: '2026-10-14',
   expectedReportOn: '2026-10-14',
+  reportKind: 'trading update',
   predicted: 100,
   lo: 97,
   hi: 103,
@@ -78,6 +84,57 @@ describe('accuracyByQuarter', () => {
     expect(stats?.modelError).toBeCloseTo(3);
     expect(stats?.inRange).toBe(1);
     expect(stats?.bias).toBeCloseTo(1);
+  });
+});
+
+describe('nullable baseline', () => {
+  it('scores the simple guess only where a previous quarter exists', () => {
+    const stats = modelStats([
+      prediction({ predicted: 102, baseline: 104 }),
+      // The first quarter has nothing to repeat: it counts for the model only.
+      prediction({ quarterStart: '2023-01-01', predicted: 90, baseline: null }),
+    ]);
+    expect(stats?.modelError).toBeCloseTo(6);
+    expect(stats?.baselineError).toBeCloseTo(4);
+    // Compared on the same quarter: 4% against the model's 2%.
+    expect(stats?.improvement).toBeCloseTo(2);
+  });
+
+  it('has no simple-guess score when no quarter has one', () => {
+    const stats = modelStats([prediction({ baseline: null })]);
+    expect(stats?.baselineError).toBeNull();
+    expect(stats?.improvement).toBeNull();
+    expect(accuracyByQuarter([prediction({ baseline: null })])[0]?.baseline).toBeNull();
+  });
+});
+
+describe('frozenAt', () => {
+  it('counts a backtest from the quarter end it replays, not from when it ran', () => {
+    const backtest = prediction({
+      kind: 'backtest',
+      madeAt: '2026-11-09T12:22:39Z',
+      asOf: '2023-03-31',
+    });
+    expect(frozenAt(backtest)).toBe('2023-03-31T23:59:00Z');
+  });
+
+  it('freezes an open quarter at its end and keeps a scored live row as made', () => {
+    expect(frozenAt(prediction({ quarterStart: '2026-10-01', status: 'open', actual: null }))).toBe(
+      '2026-12-31T23:59:00Z',
+    );
+    expect(frozenAt(prediction({}))).toBe('2026-09-30T23:59:00Z');
+  });
+});
+
+describe('latestPerQuarter', () => {
+  it('keeps one row per quarter: live over backtest, then the newest revision', () => {
+    const rows = latestPerQuarter([
+      prediction({ id: 'bt', kind: 'backtest', madeAt: '2026-11-09T12:00:00Z' }),
+      prediction({ id: 'live-old', madeAt: '2026-08-01T00:00:00Z' }),
+      prediction({ id: 'live-new', madeAt: '2026-09-30T23:59:00Z' }),
+      prediction({ id: 'q1', quarterStart: '2026-01-01', kind: 'backtest' }),
+    ]);
+    expect(rows.map((r) => r.id)).toEqual(['q1', 'live-new']);
   });
 });
 

@@ -15,7 +15,9 @@ export function describeParsed(
     eurusdChangePct: m.scenarios.drivers.eurusd,
     horizonMonths: m.scenarios.horizon,
   };
+  // The backend returns all five numbers; "no change" goes without saying.
   return parsed.recognised
+    .filter((key) => key === 'horizonMonths' || parsed.params[key] !== 0)
     .map((key) =>
       key === 'horizonMonths'
         ? months(parsed.params.horizonMonths)

@@ -5,11 +5,11 @@
 import { keepPreviousData, useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import { addMonths } from '@/lib/dates';
 import { core, extras } from './index';
-import { isNotFound } from './http';
+import { isNotFound, isUnavailable } from './http';
 import { IS_STATIC_DEMO } from './mode';
 import { staticSnapshotInfo } from './static';
 import type { FieldStatus, MonthRange } from './types';
-import type { ScenarioParams } from './types.scenario';
+import type { ParseContext, ScenarioParams, ScenarioResult } from './types.scenario';
 
 export const queryKeys = {
   freshness: ['freshness'] as const,
@@ -32,18 +32,22 @@ export const queryKeys = {
   predictionLog: ['predictions'] as const,
   anomalies: ['anomalies'] as const,
   prices: ['prices'] as const,
-  forwardPrices: ['prices', 'forward'] as const,
+  latestPrices: ['prices', 'latest'] as const,
   ask: (question: string) => ['ask', question] as const,
+  askTables: ['ask', 'tables'] as const,
   snapshotInfo: ['snapshot'] as const,
   summary: ['summary'] as const,
   sharePrices: (companyId: string) => ['share-prices', companyId] as const,
-  scenarioModel: (companyId: string) => ['scenario', companyId, 'model'] as const,
+  scenarioPresets: ['scenario', 'presets'] as const,
   scenario: (companyId: string, params: ScenarioParams) => ['scenario', companyId, params] as const,
 };
 
-/** A 404 will not fix itself; anything else gets the default single retry. */
+/**
+ * A 404 will not fix itself, nor will a 503 (no model run, no AI key) within a second;
+ * anything else gets the default single retry.
+ */
 const retryUnlessNotFound = (failureCount: number, error: Error) =>
-  !isNotFound(error) && failureCount < 1;
+  !isNotFound(error) && !isUnavailable(error) && failureCount < 1;
 
 export function useFreshness() {
   return useQuery({ queryKey: queryKeys.freshness, queryFn: () => core.freshness() });
@@ -182,23 +186,44 @@ export function useFieldForecast(id: number) {
 }
 
 export function useNowcasts() {
-  return useQuery({ queryKey: queryKeys.nowcasts, queryFn: () => extras.nowcasts() });
+  return useQuery({
+    queryKey: queryKeys.nowcasts,
+    queryFn: () => extras.nowcasts(),
+    retry: retryUnlessNotFound,
+  });
 }
 
 export function usePredictionLog() {
-  return useQuery({ queryKey: queryKeys.predictionLog, queryFn: () => extras.predictionLog() });
+  return useQuery({
+    queryKey: queryKeys.predictionLog,
+    queryFn: () => extras.predictionLog(),
+    retry: retryUnlessNotFound,
+  });
 }
 
 export function useAnomalies() {
-  return useQuery({ queryKey: queryKeys.anomalies, queryFn: () => extras.anomalies() });
+  return useQuery({
+    queryKey: queryKeys.anomalies,
+    queryFn: () => extras.anomalies(),
+    retry: retryUnlessNotFound,
+  });
 }
 
 export function usePrices() {
-  return useQuery({ queryKey: queryKeys.prices, queryFn: () => extras.prices() });
+  return useQuery({
+    queryKey: queryKeys.prices,
+    queryFn: () => extras.prices(),
+    retry: retryUnlessNotFound,
+  });
 }
 
-export function useForwardPrices() {
-  return useQuery({ queryKey: queryKeys.forwardPrices, queryFn: () => extras.forwardPrices() });
+/** Newest Brent, TTF and EUR/USD: the revenue estimate's default prices. */
+export function useLatestPrices() {
+  return useQuery({
+    queryKey: queryKeys.latestPrices,
+    queryFn: () => extras.latestPrices(),
+    retry: retryUnlessNotFound,
+  });
 }
 
 export function useAsk(question: string | null) {
@@ -206,6 +231,14 @@ export function useAsk(question: string | null) {
     queryKey: queryKeys.ask(question ?? ''),
     queryFn: () => extras.ask(question ?? ''),
     enabled: Boolean(question),
+    staleTime: Infinity,
+  });
+}
+
+export function useAskTables() {
+  return useQuery({
+    queryKey: queryKeys.askTables,
+    queryFn: () => extras.askTables(),
     staleTime: Infinity,
   });
 }
@@ -222,25 +255,33 @@ export function useSharePrices(companyId: string) {
   });
 }
 
-export function useScenarioModel(companyId: string) {
+export function useScenarioPresets() {
   return useQuery({
-    queryKey: queryKeys.scenarioModel(companyId),
-    queryFn: () => extras.scenarioModel(companyId),
+    queryKey: queryKeys.scenarioPresets,
+    queryFn: () => extras.scenarioPresets(),
+    staleTime: Infinity,
     retry: retryUnlessNotFound,
   });
 }
 
-/** Keeps the previous answer on screen while sliders move, so the result never blinks. */
+/**
+ * Keeps the previous answer on screen while sliders move, so the result never blinks; but
+ * never another company's answer, which would show the wrong model under the new name.
+ */
 export function useScenario(companyId: string, params: ScenarioParams) {
   return useQuery({
     queryKey: queryKeys.scenario(companyId, params),
     queryFn: () => extras.runScenario(companyId, params),
-    placeholderData: keepPreviousData,
+    placeholderData: (previous: ScenarioResult | undefined) =>
+      previous?.companyId === companyId ? keepPreviousData(previous) : undefined,
     retry: retryUnlessNotFound,
   });
 }
 
 /** Free text → scenario parameters. A mutation: it runs on request, not on render. */
 export function useParseScenario() {
-  return useMutation({ mutationFn: (text: string) => extras.parseScenario(text) });
+  return useMutation({
+    mutationFn: ({ text, context }: { text: string; context: ParseContext }) =>
+      extras.parseScenario(text, context),
+  });
 }

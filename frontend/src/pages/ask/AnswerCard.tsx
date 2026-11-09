@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useAsk } from '@/api/hooks';
-import type { AskAnswer } from '@/api/types';
+import type { AskAnswer, AskPreviewReason } from '@/api/types';
 import { DataTable, type Column } from '@/components/DataTable';
 import { ErrorState } from '@/components/ErrorState';
 import { Icon } from '@/components/Icon';
@@ -12,12 +12,22 @@ import { AskBars } from './AskBars';
 import { SqlBlock } from './SqlBlock';
 
 type View = 'chart' | 'table';
+
+/** Why a prepared example answered instead of the AI. */
+const PREVIEW_NOTE = {
+  aiOff: 'previewAiOff',
+  unavailable: 'previewUnavailable',
+  offline: 'previewOffline',
+} as const satisfies Record<AskPreviewReason, string>;
 const VIEWS: View[] = ['chart', 'table'];
+
+type Row = AskAnswer['rows'][number];
 
 function ResultTable({ answer }: { answer: AskAnswer }) {
   const { m, t } = useI18n();
-  const columns: Column<(string | number)[]>[] = answer.columns.map((header, i) => {
-    const numeric = answer.rows.every((r) => typeof r[i] === 'number');
+  const columns: Column<Row>[] = answer.columns.map((header, i) => {
+    // SQL NULLs do not decide the column type; they print as a dash.
+    const numeric = answer.rows.every((r) => typeof r[i] === 'number' || r[i] === null);
     return {
       id: String(i),
       header,
@@ -25,6 +35,7 @@ function ResultTable({ answer }: { answer: AskAnswer }) {
       value: (r) => r[i] ?? null,
       cell: (r) => {
         const v = r[i];
+        if (v === null || v === undefined) return '–';
         return typeof v === 'number' ? formatNumber(v, 1) : v;
       },
     };
@@ -35,7 +46,9 @@ function ResultTable({ answer }: { answer: AskAnswer }) {
         caption={t(m.ask.resultOf, { q: answer.question })}
         columns={columns}
         rows={answer.rows}
-        rowKey={(r) => String(r[0])}
+        // A real query can repeat its first column (one row per year and field), so the whole
+        // row is the key.
+        rowKey={(r) => JSON.stringify(r)}
         dense
       />
     </div>
@@ -168,8 +181,14 @@ export function AnswerCard({
                   </li>
                 ))}
               </ol>
-              <SampleBadge detail={m.sample.ask} />
+              {answer.preview ? <SampleBadge detail={m.sample.ask} /> : null}
             </div>
+            {answer.preview ? (
+              <p className="m-0 flex items-start gap-1.5 text-[13px] text-muted">
+                <Icon name="info" size={14} className="mt-0.5 flex-none text-warn-ink" />
+                {m.ask[PREVIEW_NOTE[answer.preview]]}
+              </p>
+            ) : null}
             <p lang="en" className="m-0 text-[16px] leading-relaxed">
               {answer.answer}
             </p>

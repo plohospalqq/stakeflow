@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, isNotFound } from '../http';
-import { parseDataSource } from '../mode';
-import { narrow, resolveMonthRange, staticCore, staticRoute, type StaticRoute } from '../static';
+import { ApiError, isNotFound, type Query } from '../http';
+import { isSampleIn, parseDataSource, type CoreKind, type ExtraKind } from '../mode';
+import {
+  narrow,
+  resolveMonthRange,
+  staticCore,
+  staticExtras,
+  staticRoute,
+  type StaticRoute,
+} from '../static';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -20,8 +27,33 @@ describe('parseDataSource', () => {
   });
 });
 
+describe('isSampleIn', () => {
+  const core: CoreKind[] = ['production', 'ownership', 'reported', 'fields', 'outlines'];
+  const publicExtras: ExtraKind[] = ['forecast', 'nowcast', 'predictions', 'anomalies', 'prices'];
+
+  it('marks nothing as sample with the live API', () => {
+    for (const kind of [...core, ...publicExtras, 'scenario', 'ask'] as const) {
+      expect([kind, isSampleIn('api', kind)]).toEqual([kind, false]);
+    }
+  });
+
+  it('keeps share prices, the scenario model and Ask sample in the static demo', () => {
+    for (const kind of [...core, ...publicExtras]) {
+      expect([kind, isSampleIn('static', kind)]).toEqual([kind, false]);
+    }
+    expect(isSampleIn('static', 'scenario')).toBe(true);
+    expect(isSampleIn('static', 'ask')).toBe(true);
+  });
+
+  it('marks everything as sample in mocks mode', () => {
+    for (const kind of [...core, ...publicExtras, 'scenario', 'ask'] as const) {
+      expect([kind, isSampleIn('mocks', kind)]).toEqual([kind, true]);
+    }
+  });
+});
+
 describe('staticRoute', () => {
-  it.each<[string, Record<string, string | number | boolean | undefined>, StaticRoute]>([
+  it.each<[string, Query, StaticRoute]>([
     ['/meta/freshness', {}, { file: 'meta/freshness.json' }],
     ['/companies', { focus: true }, { file: 'companies/focus.json', limit: undefined }],
     ['/companies', { focus: false, limit: 200 }, { file: 'companies/all.json', limit: 200 }],
@@ -51,6 +83,16 @@ describe('staticRoute', () => {
     ['/fields/43506', {}, { file: 'fields/43506/detail.json' }],
     ['/fields/43506/production', {}, { file: 'fields/43506/production.json', series: 'field' }],
     ['/fields/43506/ownership', {}, { file: 'fields/43506/ownership.json' }],
+    ['/fields/43506/forecast', {}, { file: 'fields/43506/forecast.json' }],
+    ['/nowcasts', {}, { file: 'models/nowcasts.json' }],
+    ['/predictions', { latest: true }, { file: 'models/predictions.json' }],
+    ['/anomalies', { limit: 500 }, { file: 'anomalies/all.json', limit: 500 }],
+    [
+      '/prices',
+      { series: ['brent', 'ttf'] },
+      { file: 'prices/series.json', ids: ['brent', 'ttf'] },
+    ],
+    ['/prices/latest', {}, { file: 'prices/latest.json' }],
   ])('maps %s %o to its file', (path, query, route) => {
     expect(staticRoute(path, query)).toEqual(route);
   });
@@ -62,7 +104,13 @@ describe('staticRoute', () => {
     '/fields/1.5',
     '/fields/abc/production',
     '/fields/1/production/extra',
-    '/nowcasts',
+    // Only the newest row per quarter is exported.
+    '/predictions',
+    // Euronext-derived: never in the static demo.
+    '/companies/aker-bp/share-price',
+    '/companies/aker-bp/scenario',
+    '/scenarios/presets',
+    '/ask/tables',
   ])('has no file for %s', (path) => {
     expect(staticRoute(path)).toBeNull();
   });
@@ -191,6 +239,49 @@ describe('staticCore', () => {
   it('answers an unknown id with 404 without a request', async () => {
     const fetchMock = serve({});
     const error: unknown = await staticCore.company('No Such Co').catch((e: unknown) => e);
+    expect(isNotFound(error)).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('staticExtras', () => {
+  it('reads the exported prices and keeps only the series asked for', async () => {
+    const series = (id: string, frequency: string) => ({
+      id,
+      name: id,
+      unit: 'u',
+      frequency,
+      source: 'S',
+      sourceUrl: 'https://example.org/',
+      licence: 'L',
+      attribution: 'A',
+      points: [{ date: '2026-10-01', value: 1 }],
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify([
+              series('brent', 'daily'),
+              series('ttf', 'monthly'),
+              series('eurusd', 'daily'),
+            ]),
+          ),
+        ),
+      ),
+    );
+    const prices = await staticExtras.prices();
+    expect(prices.map((p) => [p.id, p.frequency])).toEqual([
+      ['brent', 'daily'],
+      ['ttf', 'monthly'],
+    ]);
+  });
+
+  it('has nothing to post a question to', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const error: unknown = await staticExtras.ask('Top fields').catch((e: unknown) => e);
     expect(isNotFound(error)).toBe(true);
     expect(fetchMock).not.toHaveBeenCalled();
   });
