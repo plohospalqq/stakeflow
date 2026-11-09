@@ -18,7 +18,8 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'home', tab: 'homeTab', icon: 'overview', end: true },
   { to: '/map', label: 'map', tab: 'map', icon: 'map' },
   { to: '/companies', label: 'companies', tab: 'companies', icon: 'company' },
-  { to: '/fields', label: 'fields', tab: 'fields', icon: 'field' },
+  { to: '/fields', label: 'fields', icon: 'field' },
+  { to: '/scenarios', label: 'scenarios', tab: 'scenarios', icon: 'sliders' },
   { to: '/track-record', label: 'trackRecord', icon: 'shield' },
   { to: '/anomalies', label: 'anomalies', icon: 'pulse', badge: 'anomalies' },
   ...(FEATURE_ASK

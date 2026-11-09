@@ -7,11 +7,12 @@ import { Glance } from './home/Glance';
 import { Hero } from './home/Hero';
 import { HowItWorks } from './home/HowItWorks';
 import { Race } from './home/Race';
+import { ScenarioTeaser } from './home/ScenarioTeaser';
 import { TrackStory } from './home/TrackStory';
 
 /**
  * The landing page as a keynote: one idea per screen for newcomers and recruiters (the
- * giant number, three facts, the race, how it works, the honest record), then
+ * giant number, three facts, the race, how it works, the honest record, a scenario), then
  * a dense bento of the same data for analysts.
  */
 export default function Home() {
@@ -37,6 +38,7 @@ export default function Home() {
       <Race />
       <HowItWorks summary={summary.data} />
       <TrackStory />
+      <ScenarioTeaser />
       <Glance summary={summary.data} />
     </main>
   );

@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/AppShell';
 
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const Home = lazy(() => import('@/pages/Home'));
+const Scenarios = lazy(() => import('@/pages/Scenarios'));
 const FieldsIndex = lazy(() => import('@/pages/FieldsIndex'));
 const FieldDetail = lazy(() => import('@/pages/FieldDetail'));
 const FieldMap = lazy(() => import('@/pages/FieldMap'));
@@ -24,6 +25,7 @@ export const routes: RouteObject[] = [
       { path: 'fields/:id', element: <FieldDetail /> },
       { path: 'companies', element: <Navigate to="/companies/aker-bp" replace /> },
       { path: 'companies/:id', element: <CompanyDetail /> },
+      { path: 'scenarios', element: <Scenarios /> },
       { path: 'track-record', element: <TrackRecord /> },
       { path: 'anomalies', element: <Anomalies /> },
       ...(FEATURE_ASK ? [{ path: 'ask', element: <Ask /> }] : []),

@@ -21,6 +21,7 @@ import type {
 } from '../types';
 import { answerQuestion } from './ask';
 import { FOCUS_IDS } from './core';
+import { mockScenarioApi } from './scenario';
 import { SEED_FIELDS, SEED_GROUPS } from './seedFields';
 
 const MODEL_RUN_AT = '2026-11-02T04:00:00Z';
@@ -363,5 +364,7 @@ export function createMockExtras(core: CoreApi): ExtrasApi {
     }),
 
     ask: async (question) => answerQuestion(question),
+
+    ...mockScenarioApi,
   };
 }

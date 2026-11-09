@@ -9,6 +9,7 @@ import { ChartCard } from '@/components/ChartCard';
 import { Constellation } from '@/components/Constellation';
 import { CountUp } from '@/components/CountUp';
 import { Rings } from '@/components/Rings';
+import { ScenarioGauge } from '@/components/ScenarioGauge';
 import { Term } from '@/components/Term';
 import { LanguageSwitch, ModeSwitch } from '@/components/settings/PreferenceControls';
 import { useI18n } from '@/i18n/useI18n';
@@ -241,18 +242,23 @@ function Kit() {
       </section>
 
       <section className="flex flex-col gap-2">
-        <h3 className="cap m-0">Night-sky thumbnail</h3>
-        <div className="card h-[180px] bg-[#05070b] p-3">
-          <Constellation
-            label="Demo constellation"
-            points={[
-              { id: 1, lon: 3.8, lat: 60.7, kboed: 799, oilShare: 0.02 },
-              { id: 2, lon: 2.7, lat: 58.8, kboed: 618, oilShare: 0.97 },
-              { id: 3, lon: 20.1, lat: 72.5, kboed: 214, oilShare: 1 },
-              { id: 4, lon: 6.9, lat: 65, kboed: 128, oilShare: 0.3 },
-              { id: 5, lon: 21.1, lat: 71.6, kboed: 134, oilShare: 0 },
-            ]}
-          />
+        <h3 className="cap m-0">Scenario gauge · night-sky thumbnail</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="card p-4">
+            <ScenarioGauge medianPct={-9.4} lowPct={-24} highPct={7} size="md" />
+          </div>
+          <div className="card h-[180px] bg-[#05070b] p-3">
+            <Constellation
+              label="Demo constellation"
+              points={[
+                { id: 1, lon: 3.8, lat: 60.7, kboed: 799, oilShare: 0.02 },
+                { id: 2, lon: 2.7, lat: 58.8, kboed: 618, oilShare: 0.97 },
+                { id: 3, lon: 20.1, lat: 72.5, kboed: 214, oilShare: 1 },
+                { id: 4, lon: 6.9, lat: 65, kboed: 128, oilShare: 0.3 },
+                { id: 5, lon: 21.1, lat: 71.6, kboed: 134, oilShare: 0 },
+              ]}
+            />
+          </div>
         </div>
       </section>
 
