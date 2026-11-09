@@ -43,7 +43,8 @@ More commands get added here as each phase step lands.
   `field_licensee_hst` (field level, unitised), day-weighted within a month.
 - **Equinor is labelled "Equinor (NCS only)"** in every company-level number, API response and
   UI. Never compare its attributed production with Equinor group totals (international,
-  trading and renewables are out of scope). Same rule for any company that stops being
+  trading and renewables are out of scope). Comparing with Equinor's **E&P Norway segment**
+  is fine: it is NCS-only (that is what the reconciliation seed uses). Same rule for any company that stops being
   NCS-only (watch Vår Energi + BlueNord).
 - **No stock price forecasts presented as predictions.** Allowed (decided 2026-11-09):
   real share prices for context, and a **what-if scenario explorer** that shows how a share

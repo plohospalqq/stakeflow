@@ -1,6 +1,46 @@
-group_id,quarter_start,reported_kboe_d,published_on,document,source_url
-aker-bp,2026-04-01,383.6,2026-10-14,Q3 2026 trading update (Q2 comparative),https://www.inderes.dk/en/releases/akrbp-third-quarter-2026-trading-update
-aker-bp,2026-07-01,374.3,2026-10-14,Q3 2026 trading update,https://www.inderes.dk/en/releases/akrbp-third-quarter-2026-trading-update
-var-energi,2025-07-01,370,2026-10-12,Q3 2026 trading update (Q3 2025 comparative),https://www.inderes.dk/en/releases/var-energi-third-quarter-2026-trading-update
-var-energi,2026-04-01,376,2026-10-12,Q3 2026 trading update (Q2 comparative),https://www.inderes.dk/en/releases/var-energi-third-quarter-2026-trading-update
-var-energi,2026-07-01,369,2026-10-12,Q3 2026 trading update,https://www.inderes.dk/en/releases/var-energi-third-quarter-2026-trading-update
+group_id,quarter_start,reported_kboe_d,published_on,document,source_url,notes
+aker-bp,2023-01-01,452.7,2023-04-19,Aker BP first quarter 2023 trading update,https://www.inderes.dk/en/releases/aker-bp-asa-first-quarter-2023-trading-update,Equity production
+aker-bp,2023-04-01,480.7,2023-07-05,Aker BP second quarter 2023 trading update,https://akerbp.com/borsmelding/aker-bp-second-quarter-2023-trading-update/,
+aker-bp,2023-07-01,449.8,2023-10-05,Aker BP third quarter 2023 trading update,https://akerbp.com/borsmelding/aker-bp-third-quarter-2023-trading-update/,
+aker-bp,2023-10-01,444.3,2024-01-15,Aker BP fourth quarter 2023 trading update,https://akerbp.com/borsmelding/aker-bp-fourth-quarter-2023-trading-update/,
+aker-bp,2024-01-01,448.0,2024-04-08,Aker BP trading update for Q1-2024,https://akerbp.com/borsmelding/aker-bp-trading-update-for-q1-2024/,
+aker-bp,2024-04-01,444.1,2024-07-03,Aker BP second quarter 2024 trading update,https://akerbp.com/borsmelding/aker-bp-second-quarter-2024-trading-update/,
+aker-bp,2024-07-01,414.7,2024-10-14,Aker BP third quarter 2024 trading update,https://akerbp.com/borsmelding/aker-bp-third-quarter-2024-trading-update/,Planned maintenance
+aker-bp,2024-10-01,449.2,2025-01-16,Aker BP fourth quarter 2024 trading update,https://akerbp.com/borsmelding/aker-bp-fourth-quarter-2024-trading-update/,
+aker-bp,2025-01-01,441.4,2025-04-07,Aker BP first quarter 2025 trading update,https://akerbp.com/borsmelding/aker-bp-first-quarter-2025-trading-update,
+aker-bp,2025-04-01,415.0,2025-07-04,Aker BP second quarter 2025 trading update,https://akerbp.com/borsmelding/aker-bp-second-quarter-2025-trading-update/,
+aker-bp,2025-07-01,414.0,2025-10-06,Aker BP third quarter 2025 trading update,https://akerbp.com/borsmelding/aker-bp-third-quarter-2025-trading-update/,
+aker-bp,2025-10-01,410.6,2026-01-16,Aker BP fourth quarter 2025 trading update,https://akerbp.com/borsmelding/aker-bp-fourth-quarter-2025-trading-update/,
+aker-bp,2026-01-01,398.4,2026-04-16,Aker BP first quarter 2026 trading update (MFN wire copy),https://www.mfn.se/cis/a/aker-bp/aker-bp-asa-first-quarter-2026-trading-update-8ed12bd6.iframe,
+aker-bp,2026-04-01,383.6,2026-07-03,Aker BP second quarter 2026 trading update (Inderes wire copy),https://www.inderes.fi/en/releases/akrbp-second-quarter-2026-trading-update,
+aker-bp,2026-07-01,374.3,2026-10-14,Aker BP third quarter 2026 trading update (Inderes wire copy),https://www.inderes.dk/en/releases/aker-bp-asa-third-quarter-2026-trading-update,
+var-energi,2023-01-01,214.4,2023-04-14,Vår Energi first quarter 2023 production update,https://www.inderes.dk/en/releases/var-energi-asa-var-energi-first-quarter-2023-production-update,Includes fuel gas not for sale
+var-energi,2023-04-01,202.5,2023-07-13,Vår Energi second quarter 2023 production update,https://cdn.financialreports.eu/financialreports/media/filings/3780/2023/RNS/3780_rns_2023-07-13_487efebe-1d4b-4f6e-bb1b-6e10313dfc2f.html,Includes fuel gas not for sale
+var-energi,2023-07-01,209.7,2023-10-12,Vår Energi third quarter 2023 trading update,https://cdn.financialreports.eu/financialreports/media/filings/3780/2023/RNS/3780_rns_2023-10-12_143722b2-99a4-4094-bcf0-eb7b418ec60f.html,Includes fuel gas not for sale
+var-energi,2023-10-01,224.9,2024-01-25,Vår Energi fourth quarter and full year 2023 trading update,https://cdn.financialreports.eu/financialreports/media/filings/3780/2024/RNS/3780_rns_2024-01-25_14d499aa-0b60-4dca-b277-3bfb4ae634cb.html,Includes fuel gas not for sale
+var-energi,2024-01-01,299,2024-04-12,Vår Energi first quarter 2024 trading update,https://cdn.financialreports.eu/financialreports/media/filings/3780/2024/RNS/3780_rns_2024-04-12_c0e1acd4-fc6c-4254-9f9f-dd8ac17eb326.html,Structural break: ex-Neptune volumes counted from 1 Jan 2024; includes fuel gas
+var-energi,2024-04-01,287,2024-07-11,Vår Energi second quarter and first half 2024 trading update,https://cdn.financialreports.eu/financialreports/media/filings/3780/2024/RNS/3780_rns_2024-07-11_13cf748a-5c00-4c3e-b1c1-3ba65e439ba4.html,Includes fuel gas not for sale
+var-energi,2024-07-01,256,2024-10-10,Vår Energi third quarter 2024 trading update,https://cdn.financialreports.eu/financialreports/media/filings/3780/2024/RNS/3780_rns_2024-10-10_2f3fe8c2-3586-46e9-adfe-5d97287e426f.html,Includes fuel gas not for sale
+var-energi,2024-10-01,278,2025-01-28,Vår Energi fourth quarter and full year 2024 trading update,https://inderes.dk/releases/var-energi-asa-var-energi-fourth-quarter-and-full-year-2024-trading-update,Includes fuel gas not for sale
+var-energi,2025-01-01,272,2025-04-11,Vår Energi first quarter 2025 trading update,https://cdn.financialreports.eu/financialreports/media/filings/3780/2025/RNS/3780_rns_2025-04-11_b10124c4-047f-44aa-891a-6893f0196857.html,First published 272; a 2026 comparative shows 269 (24.5 mmboe / 90 days = 272)
+var-energi,2025-04-01,288,2025-07-11,Vår Energi second quarter 2025 trading update,https://www.inderes.dk/en/releases/var-energi-asa-var-energi-second-quarter-2025-trading-update,Includes fuel gas not for sale
+var-energi,2025-07-01,370,2025-10-10,Vår Energi third quarter 2025 trading update,https://www.inderes.dk/releases/var-energi-asa-var-energi-third-quarter-2025-trading-update,Includes fuel gas not for sale
+var-energi,2025-10-01,397,2026-01-27,Vår Energi fourth quarter and full year 2025 trading update,https://www.inderes.fi/releases/var-energi-asa-var-energi-fourth-quarter-and-full-year-2025-trading-update,Includes fuel gas not for sale
+var-energi,2026-01-01,406,2026-04-13,Vår Energi first quarter 2026 trading update,https://www.inderes.fi/en/releases/var-energi-asa-var-energi-first-quarter-2026-trading-update,Includes fuel gas not for sale
+var-energi,2026-04-01,376,2026-07-09,Vår Energi second quarter 2026 trading update,https://www.inderes.fi/en/releases/var-energi-second-quarter-2026-trading-update,Includes fuel gas not for sale
+var-energi,2026-07-01,369,2026-10-12,Vår Energi third quarter 2026 trading update,https://www.inderes.dk/releases/var-energi-third-quarter-2026-trading-update,Includes fuel gas not for sale
+equinor,2023-01-01,1448,2023-05-04,Equinor Q1 2023 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/84e2662e2cae915fc68fb821a58d46760a908d67.pdf,E&P Norway segment only; Equinor's own share (excludes SDFI)
+equinor,2023-04-01,1304,2023-07-26,Equinor Q2 2023 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/2ddacbfcb63fe6bfb0a8fcd51d3821a8d3a83985.pdf,E&P Norway segment only
+equinor,2023-07-01,1283,2023-10-27,Equinor Q3 2023 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/bdb7304f52f2bb1d8232c362de7dfb935565323b.pdf,E&P Norway segment only
+equinor,2023-10-01,1464,2024-02-07,Equinor Q4 2023 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/8ea5addf8c0d1129734939503b9e6afd311182f3.pdf,E&P Norway segment only
+equinor,2024-01-01,1462,2024-04-25,Equinor Q1 2024 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/6fffb8ae54a09e710b2d9536ede600d06adf674d.pdf,E&P Norway segment only
+equinor,2024-04-01,1375,2024-07-24,Equinor Q2 2024 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/86e471e627363b6d0e11b839f19e703d060685fd.pdf,E&P Norway segment only
+equinor,2024-07-01,1308,2024-10-24,Equinor Q3 2024 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/18a02e599d46770217516c36b5adfc1fd905162e.pdf,E&P Norway segment only
+equinor,2024-10-01,1398,2025-02-05,Equinor Q4 2024 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/0e669ef01e45012c8392d33c792da2ba6c27a60b.pdf,E&P Norway segment only
+equinor,2025-01-01,1390,2025-04-30,Equinor Q1 2025 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/ed1b8083e956680ccf1abac2172146bd2c3cc3e5.pdf,E&P Norway segment only; Haltenbanken swap with Petoro from 1 Jan 2025
+equinor,2025-04-01,1359,2025-07-23,Equinor Q2 2025 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/6d7e9ccae521e607f64cd3c3de4ece5c6c514ff3.pdf,E&P Norway segment only
+equinor,2025-07-01,1422,2025-10-29,Equinor Q3 2025 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/1076ae946124491794687a843c115299662e71e0.pdf,E&P Norway segment only
+equinor,2025-10-01,1468,2026-02-04,Equinor Q4 2025 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/a16ada304291bf3d03e3a5dba0ddd68031b143da.pdf,E&P Norway segment only
+equinor,2026-01-01,1525,2026-05-06,Equinor Q1 2026 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/53aaf7c1ee7944aea232befdf1c95d6c872a6a76.pdf,E&P Norway segment only
+equinor,2026-04-01,1415,2026-07-22,Equinor Q2 2026 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/c0440c05d52a88d521781730b795e0bb635703ba.pdf,E&P Norway segment only
+equinor,2026-07-01,1421,2026-10-28,Equinor Q3 2026 financial statements and review (E&P Norway segment),https://cdn.equinor.com/files/h61q9gi9/global/6a729f4481ea0f1fbda2147bfaea91b970b10a5e.pdf,E&P Norway segment only

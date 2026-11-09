@@ -21,18 +21,21 @@ detection, a text-to-SQL agent) are designed in from the start and already have 
 ## Results so far
 
 Production attributed from public Sodir data reconciles with what the companies themselves
-report, to within about 1%:
+report, closely: within 1% for Aker BP and Equinor's Norway segment, over 14 complete quarters:
 
-| Company | Quarter | Stakeflow (Sodir-attributed) | Company-reported | Gap |
-|---|---|---:|---:|---:|
-| Aker BP | Q2 2026 | 380.8 kboe/d | 383.6 kboe/d | −0.74% |
-| Vår Energi | Q2 2026 | 373.4 kboe/d | 376 kboe/d | −0.69% |
-| Vår Energi | Q3 2025 | 362.2 kboe/d | 370 kboe/d | −2.10% |
+| Company | Complete quarters compared | Mean absolute gap | Bias |
+|---|---:|---:|---:|
+| Equinor (E&P Norway segment) | 14 | 0.22% | +0.15% |
+| Aker BP | 14 | 0.72% | −0.72% |
+| Vår Energi | 14 | 3.8% | −3.8% |
+
+Example: Aker BP Q2 2026, 380.8 kboe/d from Sodir vs 383.6 reported (−0.74%).
 
 Reported figures come from the companies' trading updates (sources in
 [`reported_quarterly_production.csv`](pipeline/dbt/seeds/reported_quarterly_production.csv)).
-The remaining gap is expected: companies report entitlement volumes and use their own boe
-conversion. Field volumes match Sodir's own published numbers exactly (checked against the live
+Vår Energi's figures include fuel gas it burns rather than sells, so they run above Sodir's
+saleable volumes; its Q1 2024 gap (−10%) is the Neptune acquisition, which the company counted
+from 1 January while the licence transfer is dated 31 January. Field volumes match Sodir's own published numbers exactly (checked against the live
 Sodir API, and by a dbt test for every field and month).
 
 ## What you can do in the app

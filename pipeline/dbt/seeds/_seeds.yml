@@ -27,10 +27,12 @@ seeds:
   - name: reported_quarterly_production
     description: >
       Production the companies themselves reported (kboe/d, quarterly average), copied by hand
-      from public trading updates with the source link. Ground truth for reconciliation and,
+      from the first public document that carried each figure (trading update, or Equinor's
+      quarterly report for its E&P Norway segment), with the source link. published_on is the
+      first publication date, because forecasts are scored against what was public at the time. Ground truth for reconciliation and,
       later, for scoring forecasts. Append rows; never edit old ones.
     config:
-      column_types: {group_id: text, quarter_start: date, reported_kboe_d: numeric, published_on: date, document: text, source_url: text}
+      column_types: {group_id: text, quarter_start: date, reported_kboe_d: numeric, published_on: date, document: text, source_url: text, notes: text}
     tests:
       - unique_combination:
           arguments: {columns: [group_id, quarter_start]}

@@ -33,6 +33,18 @@ precisely from snapshots (see "Next steps").
 | T+29 (29 Oct) | Aker BP Q3 report | full financials |
 | ~T+40–69 | Sodir field-level data for September | first time the full quarter is attributable |
 
+### Correction (2026-11-09, from 45 sourced quarters)
+
+- Aker BP trading updates appear **3–16 days** after quarter end (not always ~14).
+- Vår Energi trading updates appear ~10–13 days after Q1–Q3, but **~4 weeks** after Q4.
+- Equinor publishes no trading update; its E&P Norway figure first appears in the quarterly
+  report, ~4–5 weeks after quarter end.
+- Vår Energi's figures include fuel gas that is not sold, so they run above Sodir's saleable
+  volumes (−3.8% average gap); Q1 2024 is a structural break (Neptune counted from 1 January).
+
+The verdict below still holds: Sodir's field data for the last month of a quarter always arrives
+after the company's first publication.
+
 ## Verdict
 
 **"Beat the companies with Sodir data" is not feasible.**
