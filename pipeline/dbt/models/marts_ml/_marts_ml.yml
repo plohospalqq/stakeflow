@@ -32,3 +32,27 @@ models:
     tests:
       - unique_combination:
           arguments: {columns: [anomaly_id, group_id]}
+  - name: fct_share_price_models
+    description: >
+      Latest scenario model per focus company. Coefficients are monthly log-return
+      sensitivities with standard errors; covariance gives the coefficient uncertainty band.
+    columns:
+      - name: group_id
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_company_group'), field: group_id}
+      - name: status
+        tests:
+          - accepted_values:
+              arguments: {values: ["ok", "insufficient_data"]}
+      - name: r2
+        tests:
+          - dbt_expression_between:
+              arguments: {min: 0, max: 1}
+  - name: fct_share_price_backtest
+    description: Quarterly actual vs explained share log returns (in and out of sample).
+    tests:
+      - unique_combination:
+          arguments: {columns: [group_id, quarter_start]}

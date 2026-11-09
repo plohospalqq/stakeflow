@@ -35,6 +35,18 @@ def test_ml_views_sit_downstream_of_the_python_model_and_the_sodir_refresh_runs_
     assert {anomalies, AssetKey(["marts", "fct_anomalies"])} <= sodir
 
 
+def test_scenario_model_refits_when_prices_or_production_change():
+    graph = defs.resolve_asset_graph()
+    models = AssetKey(["ml", "share_price_models"])
+    parents = graph.get(models).parent_keys
+    assert {AssetKey(["marts", "fct_prices_monthly"]), AssetKey(["marts", "share_listings"])} <= (
+        parents
+    )
+    for job in ("market_refresh", "sodir_refresh"):
+        selected = defs.resolve_job_def(job).asset_layer.selected_asset_keys
+        assert {models, AssetKey(["marts", "fct_share_price_models"])} <= selected, job
+
+
 def test_dbt_models_sit_downstream_of_raw_assets():
     graph = defs.resolve_asset_graph()
     staging_production = AssetKey(["staging", "stg_sodir__production_monthly"])

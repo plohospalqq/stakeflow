@@ -53,4 +53,39 @@
         note            text,
         primary key (run_id, field_id, month)
     );
+    create table if not exists ml.share_price_models (
+        run_id                    uuid             not null,
+        run_at                    timestamptz      not null default now(),
+        model_version             text             not null,
+        group_id                  text             not null,
+        ticker                    text             not null,
+        status                    text             not null,
+        status_note               text,
+        window_start              date,
+        window_end                date,
+        n_obs                     integer          not null,
+        coefficients              jsonb            not null,
+        covariance                jsonb,
+        r2                        double precision,
+        adj_r2                    double precision,
+        resid_std                 double precision,
+        excluded_months           jsonb            not null,
+        backtest_quarters         integer          not null,
+        backtest_r2_in_sample     double precision,
+        backtest_r2_out_of_sample double precision,
+        backtest_band_coverage    double precision,
+        primary key (run_id, group_id)
+    );
+    create table if not exists ml.share_price_backtest (
+        run_id        uuid             not null,
+        group_id      text             not null,
+        quarter_start date             not null,
+        actual_return double precision not null,
+        fitted_return double precision not null,
+        oos_return    double precision,
+        oos_lo        double precision,
+        oos_hi        double precision,
+        train_months  integer,
+        primary key (run_id, group_id, quarter_start)
+    );
 {% endmacro %}

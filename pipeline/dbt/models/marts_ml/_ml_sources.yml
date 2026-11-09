@@ -11,3 +11,7 @@ sources:
       - name: anomaly_runs
       - name: anomaly_evaluations
         description: Every judged field-month of a run, with expected value and band.
+      - name: share_price_models
+        description: One row per focus company and run of the scenario model (fit statistics).
+      - name: share_price_backtest
+        description: Quarterly in-sample and expanding-window out-of-sample explained returns.
