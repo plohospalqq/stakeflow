@@ -1,13 +1,15 @@
 import { Link } from 'react-router';
 import { Page } from '@/components/layout/Page';
+import { useI18n } from '@/i18n/useI18n';
 
 export default function NotFound() {
+  const { m } = useI18n();
   return (
-    <Page label="Not found" title="This page does not exist">
-      <section className="card flex flex-col items-start gap-3 p-5">
-        <p className="m-0 text-muted">The link may be old, or the field or company id is wrong.</p>
-        <Link to="/" className="btn">
-          Back to the overview
+    <Page label="404" title={m.notFound.title} hideFreshness>
+      <section className="card flex flex-col items-start gap-4 p-6">
+        <p className="m-0 text-[16px] text-muted">{m.notFound.text}</p>
+        <Link to="/" className="btn btn-primary">
+          {m.notFound.home}
         </Link>
       </section>
     </Page>

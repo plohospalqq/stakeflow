@@ -4,29 +4,31 @@ import { SeverityChip, StatusChip } from '@/components/Chips';
 import { SampleBadge } from '@/components/SampleBadge';
 import { Skeleton } from '@/components/Skeleton';
 import { Sparkline } from '@/components/Sparkline';
+import { useI18n } from '@/i18n/useI18n';
 import { sortAnomalies } from '@/lib/anomalies';
 import { formatMonth, formatPct } from '@/lib/format';
 
 export function RecentAnomalies({ limit = 4 }: { limit?: number }) {
+  const { m } = useI18n();
   const anomalies = useAnomalies();
   const items = sortAnomalies(anomalies.data ?? []).slice(0, limit);
   return (
     <section className="card flex min-w-0 flex-col" aria-labelledby="an-h">
-      <div className="flex items-center justify-between gap-2 px-4 pb-2 pt-3.5">
-        <span className="flex items-center gap-2">
-          <h2 id="an-h" className="m-0 text-h2">
-            Recent anomalies
-          </h2>
-          <SampleBadge detail="Anomaly detection is not in the backend yet" />
+      <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-2 pt-5">
+        <span className="flex flex-wrap items-center gap-2">
+          <h3 id="an-h" className="display m-0 text-h2 font-semibold">
+            {m.anomalies.recent}
+          </h3>
+          <SampleBadge detail={m.sample.anomalies} />
         </span>
-        <Link to="/anomalies" className="text-[13px] text-muted underline-offset-2 hover:underline">
-          View all
+        <Link to="/anomalies" className="text-[14px] font-medium text-muted hover:text-ink">
+          {m.anomalies.viewAll}
         </Link>
       </div>
-      <ul className="m-0 list-none p-0">
+      <ul className="m-0 list-none px-2 pb-2">
         {anomalies.isPending
           ? [0, 1, 2].map((i) => (
-              <li key={i} className="border-t border-line px-4 py-3">
+              <li key={i} className="px-3 py-3">
                 <Skeleton height={14} />
               </li>
             ))
@@ -35,27 +37,30 @@ export function RecentAnomalies({ limit = 4 }: { limit?: number }) {
               return (
                 <li
                   key={a.id}
-                  className="flex min-h-[52px] items-center gap-3 border-t border-line px-4 py-2.5"
+                  className="flex min-h-[56px] items-center gap-3 rounded-2xl px-3 py-2.5 hover:bg-surface2"
                 >
-                  <SeverityChip severity={a.severity} className="w-[66px] justify-center" />
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="text-[13px] font-medium">
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="text-[14px] font-semibold">
                       <Link to={`/fields/${a.fieldId}`} className="link">
                         {a.fieldName}
                       </Link>{' '}
-                      <span className="num" style={{ color }}>
+                      <span
+                        className="num"
+                        style={{ color: a.pctVsExpected < 0 ? 'var(--dn-ink)' : 'var(--up-ink)' }}
+                      >
                         {formatPct(a.pctVsExpected, 0, true)}
                       </span>
                     </span>
-                    <span className="lbl flex flex-wrap items-center gap-1.5">
+                    <span className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-muted">
+                      <SeverityChip severity={a.severity} />
                       <StatusChip status={a.status} /> {formatMonth(a.month)}
                     </span>
                   </span>
                   <span className="w-16 flex-none">
                     <Sparkline
                       values={a.series.map((s) => s.actual)}
-                      height={24}
-                      strokeWidth={1.4}
+                      height={26}
+                      strokeWidth={1.6}
                       color="var(--fa)"
                       tailColor={color}
                     />

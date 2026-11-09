@@ -1,15 +1,24 @@
 import { useSetUnit } from '@/hooks/useUnitUrlSync';
-import { UNIT_LABELS, type Unit } from '@/lib/units';
+import { useI18n } from '@/i18n/useI18n';
+import type { Unit } from '@/lib/units';
 import { useUnitStore } from '@/stores/unit';
 import { SegmentedControl } from './SegmentedControl';
 
-const OPTIONS = [
-  { value: 'boe', label: UNIT_LABELS.boe.toggle },
-  { value: 'sm3', label: UNIT_LABELS.sm3.toggle },
-] as const satisfies readonly { value: Unit; label: string }[];
-
 export function UnitToggle() {
+  const { m, v } = useI18n();
   const unit = useUnitStore((s) => s.unit);
   const setUnit = useSetUnit();
-  return <SegmentedControl label="Units" options={OPTIONS} value={unit} onChange={setUnit} />;
+  const options: { value: Unit; label: string }[] = [
+    { value: 'boe', label: v(m.units.boe.toggle) },
+    { value: 'sm3', label: v(m.units.sm3.toggle) },
+  ];
+  return (
+    <SegmentedControl
+      size="sm"
+      label={m.settings.units}
+      options={options}
+      value={unit}
+      onChange={setUnit}
+    />
+  );
 }

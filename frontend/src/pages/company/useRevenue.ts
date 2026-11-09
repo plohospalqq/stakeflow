@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { CompanyMonthly, ForwardPrices, Nowcast } from '@/api/types';
 import { daysInQuarter } from '@/lib/dates';
+import { useI18n } from '@/i18n/useI18n';
 import { formatMonth, formatQuarter } from '@/lib/format';
 import { estimateRevenue, type RevenueEstimate } from '@/lib/revenue';
 import { sm3ToKboed } from '@/lib/units';
@@ -45,6 +46,7 @@ export function useRevenue(
   nowcast: Nowcast | undefined,
   forward: ForwardPrices | undefined,
 ): RevenueModel | null {
+  const { m, t } = useI18n();
   const [overrides, setOverrides] = useState<Partial<PriceInputs>>({});
 
   const recent = useMemo(() => (production ?? []).slice(-3), [production]);
@@ -72,8 +74,8 @@ export function useRevenue(
     quarterStart,
     days: quarterDays,
     volumeLabel: nowcast
-      ? `the ${formatQuarter(quarterStart)} nowcast`
-      : `the average of ${formatMonth(first.month)}–${formatMonth(last.month)} (Sodir)`,
+      ? t(m.revenue.volumeNowcast, { quarter: formatQuarter(quarterStart) })
+      : t(m.revenue.volumeAverage, { from: formatMonth(first.month), to: formatMonth(last.month) }),
     volumeIsSample: Boolean(nowcast),
     kboed,
     liquidsShare,

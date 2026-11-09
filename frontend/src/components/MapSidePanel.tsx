@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router';
-import { formatMonth, formatMonthName, formatMonthShort, formatNumber } from '@/lib/format';
+import { useCompanyName } from '@/hooks/useCompanyName';
+import { useI18n } from '@/i18n/useI18n';
 import { addMonths } from '@/lib/dates';
+import { formatMonth, formatMonthName, formatMonthShort, formatNumber } from '@/lib/format';
+import { CountUp } from './CountUp';
 import { FieldStatusChip } from './Chips';
 import { DeltaBadge } from './DeltaBadge';
 import { Icon } from './Icon';
@@ -15,8 +18,10 @@ export interface MapPanelField {
   status: string;
   mainArea: string;
   operatorName: string | null;
-  /** 'Mainly oil', 'Gas and condensate', ... */
+  /** Localised product kind, e.g. 'Mainly oil'. */
   productKind: string;
+  /** Colour of the dominant product, for the eyebrow; null for mixed fields. */
+  productColor: string | null;
   discoveryYear?: number | null;
   areaKm2?: number | null;
   latest: { month: string; value: number; momPct: number | null; yoyPct: number | null } | null;
@@ -37,8 +42,9 @@ interface MapSidePanelProps {
 }
 
 /**
- * Details for the field picked on the map. Announces changes politely, closes on Esc;
- * the map page returns focus to the marker or list row that opened it.
+ * Details for the field picked on the map, as a floating glass card. Announces changes
+ * politely and closes on Esc; the map page returns focus to the marker or list row that
+ * opened it.
  */
 export function MapSidePanel({
   field,
@@ -49,6 +55,7 @@ export function MapSidePanel({
   detailHref,
   className,
 }: MapSidePanelProps) {
+  const { m } = useI18n();
   useEffect(() => {
     if (!field) return;
     const onKey = (e: KeyboardEvent) => {
@@ -60,9 +67,9 @@ export function MapSidePanel({
 
   return (
     <section
-      className={`card flex flex-col ${className ?? ''}`}
+      className={`glass flex flex-col rounded-[24px] ${className ?? ''}`}
       aria-live="polite"
-      aria-label="Selected field"
+      aria-label={m.map.panel}
     >
       {field ? (
         <PanelBody
@@ -74,12 +81,9 @@ export function MapSidePanel({
           detailHref={detailHref}
         />
       ) : (
-        <div className="flex flex-col gap-2 p-[18px]">
-          <h2 className="m-0 text-h2">Pick a field</h2>
-          <p className="m-0 text-[13px] text-muted">
-            Click a circle on the map or a row in the list to see who owns the field and how much it
-            produces.
-          </p>
+        <div className="flex flex-col gap-2 p-5">
+          <h2 className="display m-0 text-h2 font-semibold">{m.map.pick}</h2>
+          <p className="m-0 text-[14px] text-muted">{m.map.pickText}</p>
         </div>
       )}
     </section>
@@ -94,9 +98,11 @@ function PanelBody({
   format,
   detailHref,
 }: Omit<MapSidePanelProps, 'field' | 'className'> & { field: MapPanelField }) {
+  const { m, t } = useI18n();
+  const name = useCompanyName();
   const facts = [
     field.mainArea,
-    field.discoveryYear ? `discovered ${field.discoveryYear}` : null,
+    field.discoveryYear ? t(m.map.discovered, { year: field.discoveryYear }) : null,
     field.areaKm2 ? `${formatNumber(field.areaKm2, 0)} km²` : null,
   ].filter(Boolean);
   const latest = field.latest;
@@ -104,108 +110,119 @@ function PanelBody({
 
   return (
     <>
-      <div className="flex flex-col gap-2.5 border-b border-line px-[18px] pb-3.5 pt-[18px]">
+      <div className="flex flex-col gap-1 px-5 pb-3 pt-5">
         <div className="flex items-start justify-between gap-2.5">
           <div className="flex min-w-0 flex-col gap-0.5">
-            <h2 className="m-0 text-[20px] font-semibold tracking-[-0.01em]">{field.name}</h2>
+            <span
+              className="text-[12px] font-semibold uppercase tracking-[0.06em]"
+              style={{
+                color: field.productColor
+                  ? `color-mix(in srgb, ${field.productColor} 70%, var(--tx))`
+                  : 'var(--mu)',
+              }}
+            >
+              {field.productKind}
+            </span>
+            <h2 className="display m-0 break-words text-[30px] font-bold leading-[1.05] tracking-[-0.035em]">
+              {field.name}
+            </h2>
             <span className="lbl">{facts.join(' · ')}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <FieldStatusChip status={field.status} />
-            <button
-              type="button"
-              className="ibtn h-9 w-9 max-nav:h-11 max-nav:w-11"
-              aria-label="Close field panel"
-              onClick={onClose}
-            >
-              <Icon name="close" />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="ibtn h-9 w-9 flex-none bg-[color-mix(in_srgb,var(--tx)_8%,transparent)] max-nav:h-11 max-nav:w-11"
+            aria-label={m.map.closePanel}
+            onClick={onClose}
+          >
+            <Icon name="close" />
+          </button>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          <FieldStatusChip status={field.status} />
           {field.operatorName ? (
-            <span className="chip">Operator · {field.operatorName}</span>
+            <span className="chip">{t(m.common.operatorNamed, { name: field.operatorName })}</span>
           ) : null}
-          <span className="chip">{field.productKind}</span>
         </div>
       </div>
 
       {latest ? (
-        <div className="grid grid-cols-3 gap-3 border-b border-line px-[18px] py-3.5">
-          <div>
-            <div className="lbl">{formatMonth(latest.month)}</div>
-            <div className="num text-[20px] font-semibold">{format(latest.value)}</div>
-            <div className="lbl text-[11px]">{unitLabel}</div>
-          </div>
-          <div>
-            <div className="lbl">vs {formatMonthName(addMonths(latest.month, -1))}</div>
-            <div className="mt-1">
+        <div className="flex flex-col gap-2 px-5 pb-4">
+          <span className="flex flex-wrap items-baseline gap-x-2">
+            <CountUp
+              value={latest.value}
+              format={format}
+              duration={900}
+              className="display num text-[52px] font-extrabold leading-none tracking-[-0.05em]"
+            />
+            <span className="text-[15px] font-semibold text-muted">{unitLabel}</span>
+          </span>
+          <span className="lbl">{formatMonth(latest.month)}</span>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted">
+            <span className="flex items-center gap-1.5">
               {latest.momPct === null ? (
-                <span className="lbl">n/a</span>
+                m.common.notAvailable
               ) : (
                 <DeltaBadge value={latest.momPct} />
               )}
-            </div>
-          </div>
-          <div>
-            <div className="lbl">vs {formatMonthShort(addMonths(latest.month, -12))}</div>
-            <div className="mt-1">
+              {t(m.common.vsMonth, { month: formatMonthName(addMonths(latest.month, -1)) })}
+            </span>
+            <span className="flex items-center gap-1.5">
               {latest.yoyPct === null ? (
-                <span className="lbl">n/a</span>
+                m.common.notAvailable
               ) : (
                 <DeltaBadge value={latest.yoyPct} />
               )}
-            </div>
+              {t(m.common.vsMonth, { month: formatMonthShort(addMonths(latest.month, -12)) })}
+            </span>
           </div>
         </div>
       ) : (
-        <p className="m-0 border-b border-line px-[18px] py-3.5 text-[13px] text-muted">
-          No recent production reported for this field.
-        </p>
+        <p className="m-0 px-5 pb-4 text-[14px] text-muted">{m.map.noRecent}</p>
       )}
 
-      <div className="flex flex-col gap-2 border-b border-line px-[18px] py-3.5">
-        <div className="flex justify-between gap-2">
-          <span className="cap">Last 36 months</span>
-          <span className="lbl flex gap-2.5">
+      <div className="flex flex-col gap-2 border-t border-line px-5 py-3.5">
+        <div className="flex flex-wrap justify-between gap-2">
+          <span className="cap">{m.map.last36}</span>
+          <span className="lbl flex gap-2.5 text-[12px]">
             <span className="flex items-center gap-1">
               <span className="dot bg-oil" />
-              Oil
+              {m.products.oil}
             </span>
             <span className="flex items-center gap-1">
               <span className="dot bg-gas" />
-              Gas
+              {m.products.gas}
             </span>
             <span className="flex items-center gap-1">
               <span className="dot bg-cond" />
-              NGL + cond.
+              {m.products.nglCondShort}
             </span>
           </span>
         </div>
         {history === undefined ? (
-          <Skeleton height={90} />
+          <Skeleton height={80} />
         ) : history.length > 1 ? (
           <>
             <MiniStackedArea
-              label={`${field.name} oil, gas and NGL plus condensate production over the last ${history.length} months`}
+              height={80}
+              label={t(m.map.historyAria, { field: field.name, n: history.length })}
               series={[
                 { key: 'oil', values: history.map((h) => h.oil), color: 'var(--oil)' },
                 { key: 'gas', values: history.map((h) => h.gas), color: 'var(--gas)' },
                 { key: 'cnd', values: history.map((h) => h.nglCond), color: 'var(--cnd)' },
               ]}
             />
-            <div className="lbl flex justify-between text-[11px]">
+            <div className="lbl flex justify-between text-[11.5px]">
               <span>{formatMonth(history[0]?.month ?? '')}</span>
               <span>{formatMonth(history[history.length - 1]?.month ?? '')}</span>
             </div>
           </>
         ) : (
-          <p className="lbl m-0">No production history in this period.</p>
+          <p className="lbl m-0">{m.map.noHistory}</p>
         )}
       </div>
 
-      <div className="flex flex-col gap-2.5 px-[18px] py-3.5">
-        <span className="cap">Who owns it</span>
+      <div className="flex flex-col gap-3 border-t border-line px-5 pb-5 pt-3.5">
+        <span className="cap">{m.map.owners}</span>
         {field.owners === undefined ? (
           <>
             <Skeleton height={10} width="80%" />
@@ -215,14 +232,14 @@ function PanelBody({
           <OwnerBars
             owners={field.owners.map((o) => ({
               key: o.groupId,
-              name: o.name,
+              name: name(o.groupId, o.name),
               sharePct: o.sharePct,
               emphasis: focusCompanies.includes(o.groupId),
             }))}
           />
         )}
-        <Link to={detailHref(field.id)} className="btn btn-primary mt-1.5 min-h-[40px]">
-          Open field detail
+        <Link to={detailHref(field.id)} className="btn btn-primary mt-1">
+          {m.map.openDetail}
         </Link>
       </div>
     </>

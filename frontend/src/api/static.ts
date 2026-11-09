@@ -5,6 +5,9 @@
  * maps them into domain models unchanged. Query parameters that only narrow a list (month
  * range, status, limit, since) are applied here, with the API's own rules.
  */
+import type { components } from './schema.gen';
+import { mapSummary } from './summary';
+import type { ShelfSummary } from './types.summary';
 import { addMonths, monthStart } from '@/lib/dates';
 import { ApiError, createCore, type Query } from './http';
 import type { CoreApi } from './source';
@@ -166,3 +169,8 @@ async function getStatic<T>(path: string, query: Query = {}): Promise<T> {
 }
 
 export const staticCore: CoreApi = createCore(getStatic);
+
+/** The landing page's shelf summary from the snapshot (same mapper as the live API). */
+export async function staticSummary(): Promise<ShelfSummary> {
+  return mapSummary(await getStatic<components['schemas']['ShelfSummary']>('/summary'));
+}

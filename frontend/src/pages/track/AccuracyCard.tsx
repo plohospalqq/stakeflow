@@ -6,7 +6,8 @@ import { EChart } from '@/components/charts/EChart';
 import { buildAccuracyOption, TARGET_ERROR_PCT } from '@/components/charts/accuracyOption';
 import { useChartTheme } from '@/hooks/useChartTheme';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
-import { formatPct, formatQuarter } from '@/lib/format';
+import { useI18n } from '@/i18n/useI18n';
+import { formatPct, formatQuarter, formatQuarterShort } from '@/lib/format';
 import { accuracyByQuarter } from '@/lib/trackRecord';
 
 export function AccuracyCard({
@@ -19,55 +20,60 @@ export function AccuracyCard({
   onRetry: () => void;
 }) {
   const t = useChartTheme();
+  const { m, t: tr } = useI18n();
   const isDesktop = useIsDesktop();
   const points = useMemo(
     () =>
       accuracyByQuarter(predictions).map((q) => ({
-        label: formatQuarter(q.quarterStart).replace(/ 20(\d\d)$/, ' $1'),
+        label: formatQuarterShort(q.quarterStart),
         quarterName: formatQuarter(q.quarterStart),
         model: q.model,
         baseline: q.baseline,
       })),
-    [predictions],
+    // m: quarter labels follow the language.
+    [predictions, m], // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const option = useMemo(() => buildAccuracyOption(t, points, !isDesktop), [t, points, isDesktop]);
+  const option = useMemo(
+    () => buildAccuracyOption(t, points, m, !isDesktop),
+    [t, points, m, isDesktop],
+  );
   const onTarget = points.filter((p) => p.model < TARGET_ERROR_PCT).length;
   const height = isDesktop ? 220 : 200;
 
   return (
     <ChartCard
-      title="Accuracy over time"
-      subtitle="Average error per quarter, % · lower is better"
-      info="For each quarter: how far the frozen forecasts landed from what the companies reported, ignoring direction, next to the same number for the simple guess (last quarter's figure, unchanged). The dashed line is the 2% target."
-      sample="Sample predictions until the nowcast model is in the backend"
+      title={m.track.accuracyTitle}
+      subtitle={m.track.accuracySub}
+      info={m.track.accuracyInfo}
+      sample={m.sample.log}
       legend={[
-        { label: 'Our model', color: 'var(--fc)' },
-        { label: 'Simple guess', color: 'var(--f4)' },
-        { label: `${TARGET_ERROR_PCT}% target`, color: 'var(--up)', kind: 'dashed' },
+        { label: m.track.ourModel, color: 'var(--fc)' },
+        { label: m.track.simpleGuess, color: 'var(--f4)' },
+        { label: tr(m.track.target, { n: TARGET_ERROR_PCT }), color: 'var(--up)', kind: 'dashed' },
       ]}
-      source={{ label: 'Sample data' }}
+      source={{ label: m.common.sampleSource }}
       state={state === 'ready' && points.length === 0 ? 'empty' : state}
-      message="No resolved predictions for this selection yet."
+      message={m.track.accuracyEmpty}
       onRetry={onRetry}
       height={height}
       table={
         <DataTable
-          caption="Average error per quarter, model vs simple guess (sample data)"
+          caption={m.track.accuracyCaption}
           dense
           rows={[...points].reverse()}
           rowKey={(p) => p.quarterName}
           columns={[
-            { id: 'q', header: 'Quarter', value: (p) => p.quarterName },
+            { id: 'q', header: m.common.quarter, value: (p) => p.quarterName },
             {
               id: 'model',
-              header: 'Our model',
+              header: m.track.ourModel,
               align: 'right',
               value: (p) => p.model,
               cell: (p) => formatPct(p.model),
             },
             {
               id: 'baseline',
-              header: 'Simple guess',
+              header: m.track.simpleGuess,
               align: 'right',
               value: (p) => p.baseline,
               cell: (p) => formatPct(p.baseline),
@@ -80,9 +86,12 @@ export function AccuracyCard({
         <EChart
           option={option}
           height={height}
-          ariaLabel={`Average error per quarter over ${points.length} quarters (sample data): the model was under the ${TARGET_ERROR_PCT}% target in ${onTarget} of them and below the simple guess in ${
-            points.filter((p) => p.model < p.baseline).length
-          }.`}
+          ariaLabel={tr(m.track.accuracyAria, {
+            n: points.length,
+            target: TARGET_ERROR_PCT,
+            onTarget,
+            below: points.filter((p) => p.model < p.baseline).length,
+          })}
         />
       </div>
     </ChartCard>

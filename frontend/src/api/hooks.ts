@@ -2,13 +2,14 @@
  * TanStack Query hooks: the only way components read data. Query keys live here so cache
  * sharing is deliberate (the overview and company page reuse the same company queries).
  */
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import { addMonths } from '@/lib/dates';
 import { core, extras } from './index';
 import { isNotFound } from './http';
 import { IS_STATIC_DEMO } from './mode';
 import { staticSnapshotInfo } from './static';
 import type { FieldStatus, MonthRange } from './types';
+import type { ScenarioParams } from './types.scenario';
 
 export const queryKeys = {
   freshness: ['freshness'] as const,
@@ -34,6 +35,10 @@ export const queryKeys = {
   forwardPrices: ['prices', 'forward'] as const,
   ask: (question: string) => ['ask', question] as const,
   snapshotInfo: ['snapshot'] as const,
+  summary: ['summary'] as const,
+  sharePrices: (companyId: string) => ['share-prices', companyId] as const,
+  scenarioModel: (companyId: string) => ['scenario', companyId, 'model'] as const,
+  scenario: (companyId: string, params: ScenarioParams) => ['scenario', companyId, params] as const,
 };
 
 /** A 404 will not fix itself; anything else gets the default single retry. */
@@ -203,4 +208,39 @@ export function useAsk(question: string | null) {
     enabled: Boolean(question),
     staleTime: Infinity,
   });
+}
+
+export function useSummary() {
+  return useQuery({ queryKey: queryKeys.summary, queryFn: () => core.summary() });
+}
+
+export function useSharePrices(companyId: string) {
+  return useQuery({
+    queryKey: queryKeys.sharePrices(companyId),
+    queryFn: () => extras.sharePrices(companyId),
+    retry: retryUnlessNotFound,
+  });
+}
+
+export function useScenarioModel(companyId: string) {
+  return useQuery({
+    queryKey: queryKeys.scenarioModel(companyId),
+    queryFn: () => extras.scenarioModel(companyId),
+    retry: retryUnlessNotFound,
+  });
+}
+
+/** Keeps the previous answer on screen while sliders move, so the result never blinks. */
+export function useScenario(companyId: string, params: ScenarioParams) {
+  return useQuery({
+    queryKey: queryKeys.scenario(companyId, params),
+    queryFn: () => extras.runScenario(companyId, params),
+    placeholderData: keepPreviousData,
+    retry: retryUnlessNotFound,
+  });
+}
+
+/** Free text → scenario parameters. A mutation: it runs on request, not on render. */
+export function useParseScenario() {
+  return useMutation({ mutationFn: (text: string) => extras.parseScenario(text) });
 }

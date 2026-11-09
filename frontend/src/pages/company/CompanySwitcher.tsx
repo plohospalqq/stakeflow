@@ -1,7 +1,9 @@
 import { useId, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useCompanies } from '@/api/hooks';
-import { COMPANY_META, FOCUS_ORDER } from '@/lib/companies';
+import { useCompanyName } from '@/hooks/useCompanyName';
+import { useI18n } from '@/i18n/useI18n';
+import { FOCUS_ORDER } from '@/lib/companies';
 
 /**
  * Focus companies as links (switching company is navigation), the rest in a select.
@@ -9,6 +11,8 @@ import { COMPANY_META, FOCUS_ORDER } from '@/lib/companies';
  * hostile to keyboard users.
  */
 export function CompanySwitcher({ current }: { current: string }) {
+  const { m } = useI18n();
+  const name = useCompanyName();
   const navigate = useNavigate();
   const companies = useCompanies(false);
   const selectId = useId();
@@ -26,8 +30,8 @@ export function CompanySwitcher({ current }: { current: string }) {
   };
 
   return (
-    <nav aria-label="Company" className="flex flex-wrap items-center gap-2">
-      <div className="inline-flex max-w-full flex-wrap gap-0.5 rounded-control border border-line bg-surface2 p-[3px]">
+    <nav aria-label={m.company.switcher} className="flex flex-wrap items-center gap-2">
+      <div className="inline-flex max-w-full flex-wrap gap-0.5 rounded-full bg-[color-mix(in_srgb,var(--tx)_7%,transparent)] p-[3px]">
         {FOCUS_ORDER.map((id) => {
           const on = id === current;
           return (
@@ -35,39 +39,37 @@ export function CompanySwitcher({ current }: { current: string }) {
               key={id}
               to={`/companies/${id}`}
               aria-current={on ? 'page' : undefined}
-              className={`inline-flex min-h-[34px] items-center whitespace-nowrap rounded-[7px] px-3 text-[12.5px] font-medium no-underline max-nav:min-h-[40px] ${
-                on ? 'bg-surface3 text-ink' : 'text-muted hover:text-ink'
+              className={`inline-flex min-h-[36px] items-center rounded-full px-3.5 text-[13.5px] font-medium no-underline max-nav:min-h-[44px] ${
+                on
+                  ? 'bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,0.14)] [.t-dark_&]:bg-surface3'
+                  : 'text-muted hover:text-ink'
               }`}
             >
-              {COMPANY_META[id]?.name ?? id}
+              {name(id)}
             </Link>
           );
         })}
       </div>
       <form onSubmit={open} className="flex items-center gap-1.5">
         <label htmlFor={selectId} className="sr-only">
-          Other company
+          {m.company.otherCompany}
         </label>
         <select
           id={selectId}
-          className="input max-w-[200px] text-[13px] max-nav:min-h-[44px]"
+          className="input max-w-[220px] text-[14px] max-nav:min-h-[44px]"
           value={selected}
           onChange={(e) => setPicked(e.target.value)}
           disabled={others.length === 0}
         >
-          <option value="">Other companies…</option>
+          <option value="">{m.company.otherCompanies}</option>
           {others.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
           ))}
         </select>
-        <button
-          type="submit"
-          className="btn max-nav:min-h-[44px]"
-          disabled={!selected || selected === current}
-        >
-          Open
+        <button type="submit" className="btn" disabled={!selected || selected === current}>
+          {m.common.open}
         </button>
       </form>
     </nav>

@@ -57,7 +57,7 @@ describe('Track record', () => {
   it('lists reported quarters and filters by company through the URL', async () => {
     renderWithProviders(<div />, { routes, route: '/track-record' });
     const table = await screen.findByRole('table', {
-      name: /sodir-attributed vs company-reported/i,
+      name: /public data vs company-reported/i,
     });
     expect((await within(table).findAllByText('Aker BP')).length).toBeGreaterThan(0);
     expect(within(table).getAllByText('Vår Energi').length).toBeGreaterThan(0);

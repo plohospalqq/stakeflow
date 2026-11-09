@@ -1,9 +1,9 @@
 /**
- * "Say it in words": one generated sentence per company card explaining the latest
- * month-on-month change by the field that moved most.
+ * "Say it in words": one generated sentence explaining the latest month-on-month change of
+ * a company by the field that moved most. The sentence templates come from the dictionary.
  */
 import type { CompanyFieldMonthly } from '@/api/types';
-import { formatMonthName, formatNumber, MINUS } from './format';
+import { formatNumber, MINUS } from './format';
 
 export interface FieldMove {
   fieldName: string;
@@ -11,9 +11,24 @@ export interface FieldMove {
   change: number;
 }
 
+/** The dictionary's explain section (kept structural so lib/ does not import i18n). */
+export interface ExplainWords {
+  flat: string;
+  upMostly: string;
+  downMostly: string;
+  upDespite: string;
+  downDespite: string;
+  rose: string;
+  fell: string;
+}
+
 function signed(value: number, digits: number): string {
   const text = formatNumber(Math.abs(value), digits);
   return value < 0 ? `${MINUS}${text}` : `+${text}`;
+}
+
+function fillIn(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (whole, name: string) => vars[name] ?? whole);
 }
 
 /** Per-field change between the previous and the latest month, largest move first. */
@@ -43,28 +58,33 @@ export function fieldMoves(
  */
 export function explainChange(
   moves: FieldMove[],
-  previousMonth: string,
+  previousMonthName: string,
   unitLabel: string,
+  words: ExplainWords,
   digits = 1,
 ): string | null {
-  if (moves.length === 0) return null;
-  const total = moves.reduce((s, m) => s + m.change, 0);
-  const prevName = formatMonthName(previousMonth);
   const [top] = moves;
   if (!top) return null;
+  const total = moves.reduce((s, m) => s + m.change, 0);
   const totalAbs = Math.abs(total);
   const scale = Math.max(...moves.map((m) => Math.abs(m.change)), totalAbs) || 1;
+  const base = { n: formatNumber(totalAbs, digits), unit: unitLabel, month: previousMonthName };
   if (totalAbs < scale * 0.05 && Math.abs(top.change) < 0.05) {
-    return `Flat on ${prevName}; no field moved by more than ${formatNumber(0.05, 2)} ${unitLabel}.`;
+    return fillIn(words.flat, { ...base, n: formatNumber(0.05, 2) });
   }
-  const direction = total >= 0 ? 'Up' : 'Down';
-  const head = `${direction} ${formatNumber(totalAbs, digits)} ${unitLabel} on ${prevName}`;
+  const up = total >= 0;
+  const topVars = { ...base, field: top.fieldName, change: signed(top.change, digits) };
   if (Math.sign(top.change) === Math.sign(total) || total === 0) {
-    return `${head}, mostly ${top.fieldName} (${signed(top.change, digits)}).`;
+    return fillIn(up ? words.upMostly : words.downMostly, topVars);
   }
-  const despite = `${head} despite ${top.fieldName} (${signed(top.change, digits)})`;
+  const despite = fillIn(up ? words.upDespite : words.downDespite, topVars);
   const driver = moves.find((m) => Math.sign(m.change) === Math.sign(total));
   if (!driver) return `${despite}.`;
-  const verb = total < 0 ? 'fell' : 'rose';
-  return `${despite}; ${driver.fieldName} ${verb} the most (${signed(driver.change, digits)}).`;
+  return (
+    despite +
+    fillIn(up ? words.rose : words.fell, {
+      field: driver.fieldName,
+      change: signed(driver.change, digits),
+    })
+  );
 }

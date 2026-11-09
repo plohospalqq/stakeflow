@@ -1,34 +1,28 @@
 import { Link } from 'react-router';
+import { useI18n } from '@/i18n/useI18n';
 
-export function LogoMark({ size = 28 }: { size?: number }) {
+/** Three rising bars in the product colours: oil, gas, NGL. */
+export function LogoMark({ size = 26 }: { size?: number }) {
   return (
     <svg viewBox="0 0 28 28" width={size} height={size} aria-hidden="true" className="flex-none">
-      <rect x="1" y="1" width="26" height="26" rx="7" fill="var(--sf2)" stroke="var(--bd2)" />
-      <path d="M7 20h14" stroke="var(--fa)" strokeWidth="1.5" />
-      <path
-        d="M9 17v-5M12.5 17V8M16 17v-3M19.5 17v-6"
-        stroke="var(--oil)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
+      <rect x="0.5" y="0.5" width="27" height="27" rx="8" fill="var(--tx)" />
+      <path d="M8.5 19.5v-5" stroke="var(--cnd)" strokeWidth="3" strokeLinecap="round" />
+      <path d="M14 19.5V8.5" stroke="var(--oil)" strokeWidth="3" strokeLinecap="round" />
+      <path d="M19.5 19.5v-8" stroke="var(--gas)" strokeWidth="3" strokeLinecap="round" />
     </svg>
   );
 }
 
-export function Logo({ compact = false }: { compact?: boolean }) {
+export function Logo() {
+  const { m } = useI18n();
   return (
     <Link
       to="/"
-      className="flex min-h-[44px] items-center gap-2.5 rounded-control px-2.5 text-ink no-underline"
-      aria-label="Stakeflow home"
+      className="flex min-h-[44px] flex-none items-center gap-2 rounded-full pr-1 text-ink no-underline"
+      aria-label={m.nav.logoLabel}
     >
       <LogoMark />
-      <span className="flex flex-col leading-tight">
-        <span className="text-[14px] font-bold">Stakeflow</span>
-        {compact ? null : (
-          <span className="text-[11px] text-muted">NCS production intelligence</span>
-        )}
-      </span>
+      <span className="display text-[16px] font-semibold tracking-[-0.02em]">Stakeflow</span>
     </Link>
   );
 }

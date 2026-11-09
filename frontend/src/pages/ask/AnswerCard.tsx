@@ -6,17 +6,16 @@ import { ErrorState } from '@/components/ErrorState';
 import { Icon } from '@/components/Icon';
 import { SampleBadge } from '@/components/SampleBadge';
 import { Skeleton } from '@/components/Skeleton';
+import { useI18n } from '@/i18n/useI18n';
 import { formatNumber } from '@/lib/format';
 import { AskBars } from './AskBars';
 import { SqlBlock } from './SqlBlock';
 
 type View = 'chart' | 'table';
-const VIEWS: { value: View; label: string }[] = [
-  { value: 'chart', label: 'Chart' },
-  { value: 'table', label: 'Table' },
-];
+const VIEWS: View[] = ['chart', 'table'];
 
 function ResultTable({ answer }: { answer: AskAnswer }) {
+  const { m, t } = useI18n();
   const columns: Column<(string | number)[]>[] = answer.columns.map((header, i) => {
     const numeric = answer.rows.every((r) => typeof r[i] === 'number');
     return {
@@ -33,7 +32,7 @@ function ResultTable({ answer }: { answer: AskAnswer }) {
   return (
     <div className="px-1.5 pb-2">
       <DataTable
-        caption={`Result of: ${answer.question}`}
+        caption={t(m.ask.resultOf, { q: answer.question })}
         columns={columns}
         rows={answer.rows}
         rowKey={(r) => String(r[0])}
@@ -45,6 +44,7 @@ function ResultTable({ answer }: { answer: AskAnswer }) {
 
 /** Chart and Table as real tabs: arrow keys move between them, Tab goes into the panel. */
 function ResultTabs({ answer }: { answer: AskAnswer }) {
+  const { m } = useI18n();
   const [view, setView] = useState<View>('chart');
   const base = useId();
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -55,7 +55,7 @@ function ResultTabs({ answer }: { answer: AskAnswer }) {
     const next = (i + (e.key === 'ArrowRight' ? 1 : VIEWS.length - 1)) % VIEWS.length;
     const target = VIEWS[next];
     if (!target) return;
-    setView(target.value);
+    setView(target);
     tabs.current[next]?.focus();
   };
 
@@ -64,30 +64,32 @@ function ResultTabs({ answer }: { answer: AskAnswer }) {
       <div className="flex flex-wrap items-center justify-between gap-2.5 px-[18px] pb-2.5">
         <div
           role="tablist"
-          aria-label="Result view"
-          className="inline-flex gap-0.5 rounded-control border border-line bg-surface2 p-[3px]"
+          aria-label={m.ask.resultView}
+          className="inline-flex gap-0.5 rounded-full bg-[color-mix(in_srgb,var(--tx)_7%,transparent)] p-[3px]"
         >
           {VIEWS.map((v, i) => {
-            const on = view === v.value;
+            const on = view === v;
             return (
               <button
-                key={v.value}
+                key={v}
                 ref={(el) => {
                   tabs.current[i] = el;
                 }}
                 type="button"
                 role="tab"
-                id={`${base}-${v.value}-tab`}
+                id={`${base}-${v}-tab`}
                 aria-selected={on}
-                aria-controls={`${base}-${v.value}-panel`}
+                aria-controls={`${base}-${v}-panel`}
                 tabIndex={on ? 0 : -1}
-                onClick={() => setView(v.value)}
+                onClick={() => setView(v)}
                 onKeyDown={(e) => onKey(e, i)}
-                className={`inline-flex min-h-[34px] items-center rounded-[7px] px-3 text-[12.5px] font-medium max-nav:min-h-[40px] ${
-                  on ? 'bg-surface3 text-ink' : 'text-muted hover:text-ink'
+                className={`inline-flex min-h-[34px] items-center rounded-full px-3.5 text-[13px] font-medium max-nav:min-h-[44px] ${
+                  on
+                    ? 'bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,0.14)] [.t-dark_&]:bg-surface3'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
-                {v.label}
+                {v === 'chart' ? m.ask.chart : m.ask.table}
               </button>
             );
           })}
@@ -124,6 +126,7 @@ export function AnswerCard({
   /** Told when the answer has arrived, for the page's live region. Must be stable. */
   onReady: (answer: AskAnswer) => void;
 }) {
+  const { m, t } = useI18n();
   const ask = useAsk(question);
   const answer = ask.data;
 
@@ -133,22 +136,17 @@ export function AnswerCard({
   }, [answer, onReady]);
 
   if (ask.isError) {
-    return (
-      <ErrorState
-        message="This question could not be answered."
-        onRetry={() => void ask.refetch()}
-      />
-    );
+    return <ErrorState message={m.ask.failed} onRetry={() => void ask.refetch()} />;
   }
 
   return (
     <article
-      className="card flex min-w-0 flex-col overflow-hidden"
-      aria-label={`Answer to: ${question}`}
+      className="card enter flex min-w-0 flex-col overflow-hidden"
+      aria-label={t(m.ask.answerTo, { q: question })}
     >
       {!answer ? (
         <div className="flex flex-col gap-2.5 p-[18px]" aria-busy="true">
-          <span className="lbl">Working on it…</span>
+          <span className="lbl">{m.ask.working}</span>
           <Skeleton width="70%" />
           <Skeleton height={40} />
         </div>
@@ -170,9 +168,11 @@ export function AnswerCard({
                   </li>
                 ))}
               </ol>
-              <SampleBadge detail="Ask is a preview: a few example questions have hand-written answers with sample numbers" />
+              <SampleBadge detail={m.sample.ask} />
             </div>
-            <p className="m-0 text-[15px] leading-relaxed">{answer.answer}</p>
+            <p lang="en" className="m-0 text-[16px] leading-relaxed">
+              {answer.answer}
+            </p>
           </div>
           {answer.matched && answer.chart.length > 0 ? <ResultTabs answer={answer} /> : null}
           {answer.sql ? <SqlBlock answer={answer} /> : null}
@@ -180,13 +180,14 @@ export function AnswerCard({
       )}
       {answer && answer.followUps.length > 0 ? (
         <div className="flex flex-col gap-2 border-t border-line px-[18px] py-3.5">
-          <span className="cap">{answer.matched ? 'Follow-up ideas' : 'Try one of these'}</span>
+          <span className="cap">{answer.matched ? m.ask.followUps : m.ask.tryThese}</span>
           <div className="flex flex-wrap gap-2">
             {answer.followUps.map((f) => (
               <button
                 key={f}
                 type="button"
-                className="min-h-[36px] rounded-full border border-line-strong px-3 text-left text-[13px] hover:bg-surface2 max-nav:min-h-[44px]"
+                lang="en"
+                className="min-h-[40px] rounded-full bg-surface2 px-3.5 text-left text-[14px] hover:bg-surface3 max-nav:min-h-[44px]"
                 onClick={() => onAsk(f)}
               >
                 {f}

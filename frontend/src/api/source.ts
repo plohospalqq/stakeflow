@@ -25,6 +25,14 @@ import type {
   PriceSeries,
   ReportedQuarter,
 } from './types';
+import type {
+  ParsedScenario,
+  ScenarioModel,
+  ScenarioParams,
+  ScenarioResult,
+  SharePriceSeries,
+} from './types.scenario';
+import type { ShelfSummary } from './types.summary';
 
 export interface CoreApi {
   freshness(): Promise<Freshness>;
@@ -48,4 +56,17 @@ export interface ExtrasApi {
   prices(): Promise<PriceSeries[]>;
   forwardPrices(): Promise<ForwardPrices>;
   ask(question: string): Promise<AskAnswer>;
+  sharePrices(companyId: string): Promise<SharePriceSeries>;
+  scenarioModel(companyId: string): Promise<ScenarioModel>;
+  runScenario(companyId: string, params: ScenarioParams): Promise<ScenarioResult>;
+  /** Free text → parameters (an LLM on the backend). 503 = AI not configured there. */
+  parseScenario(text: string): Promise<ParsedScenario>;
+}
+
+/**
+ * GET /summary. Separate from CoreApi only so http.ts (being reworked for the static data
+ * mode) needs no change yet; fold summary() into CoreApi when that lands.
+ */
+export interface ShelfSummaryApi {
+  summary(): Promise<ShelfSummary>;
 }

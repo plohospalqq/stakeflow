@@ -11,6 +11,9 @@ import { Page } from '@/components/layout/Page';
 import { OilShareBar } from '@/components/MixBar';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { useUnits, type Units } from '@/hooks/useUnits';
+import type { Dict } from '@/i18n/types';
+import { fill } from '@/i18n/text';
+import { useI18n } from '@/i18n/useI18n';
 import { latestView } from '@/lib/latest';
 
 type StatusFilter = 'producing' | 'all';
@@ -21,53 +24,53 @@ interface Row {
   momPct: number | null;
 }
 
-function columns(units: Units): Column<Row>[] {
+function columns(units: Units, m: Dict): Column<Row>[] {
   return [
     {
       id: 'name',
-      header: 'Field',
+      header: m.common.field,
       value: (r) => r.field.name,
       cell: (r) => (
-        <Link to={`/fields/${r.field.id}`} className="link font-medium">
+        <Link to={`/fields/${r.field.id}`} className="link font-semibold">
           {r.field.name}
         </Link>
       ),
     },
     {
       id: 'area',
-      header: 'Area',
+      header: m.fields.colArea,
       value: (r) => r.field.mainArea,
       cell: (r) => <span className="text-muted">{r.field.mainArea ?? '–'}</span>,
     },
     {
       id: 'operator',
-      header: 'Operator',
+      header: m.common.operator,
       value: (r) => r.field.operator?.name ?? null,
       cell: (r) => <span className="text-muted">{r.field.operator?.name ?? '–'}</span>,
     },
     {
       id: 'status',
-      header: 'Status',
+      header: m.fields.colStatus,
       value: (r) => r.field.status,
       cell: (r) => <FieldStatusChip status={r.field.status} />,
     },
     {
       id: 'value',
-      header: `Latest, ${units.label}`,
+      header: fill(m.fields.colLatest, { unit: units.label }),
       align: 'right',
       value: (r) => r.value,
       cell: (r) => (r.value === null ? '–' : units.format(r.value)),
     },
     {
       id: 'mom',
-      header: 'vs previous',
+      header: m.common.vsPrevious,
       align: 'right',
       value: (r) => r.momPct,
       cell: (r) => (r.momPct === null ? '–' : <DeltaBadge value={r.momPct} />),
     },
     {
       id: 'oil',
-      header: 'Oil share',
+      header: m.fields.colOil,
       sortable: false,
       value: (r) => r.field.latest?.mix.oil ?? null,
       cell: (r) => (r.field.latest ? <OilShareBar oilShare={r.field.latest.mix.oil} /> : null),
@@ -76,6 +79,7 @@ function columns(units: Units): Column<Row>[] {
 }
 
 export default function FieldsIndex() {
+  const { m, t, plural } = useI18n();
   const units = useUnits();
   const [status, setStatus] = useState<StatusFilter>('producing');
   const [query, setQuery] = useState('');
@@ -91,49 +95,49 @@ export default function FieldsIndex() {
         return { field, value: view?.value ?? null, momPct: view?.momPct ?? null };
       });
   }, [fields.data, status, query, units.unit]);
-  const cols = useMemo(() => columns(units), [units]);
+  const cols = useMemo(() => columns(units, m), [units, m]);
 
   return (
-    <Page label="Fields" title="Every field on the Norwegian shelf">
+    <Page label={m.page.fields} title={m.fields.title}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SegmentedControl
-          label="Status"
+          label={m.fields.statusFilter}
           value={status}
           onChange={setStatus}
           options={[
-            { value: 'producing', label: 'Producing' },
-            { value: 'all', label: 'All fields' },
+            { value: 'producing', label: m.fields.producing },
+            { value: 'all', label: m.fields.allFields },
           ]}
         />
-        <label className="input flex w-full items-center gap-2 text-muted sm:w-[280px]">
+        <label className="input flex w-full items-center gap-2 text-muted max-nav:min-h-[44px] sm:w-[300px]">
           <Icon name="search" />
-          <span className="sr-only">Find a field</span>
+          <span className="sr-only">{m.fields.find}</span>
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Find a field, e.g. Troll"
-            className="min-w-0 flex-1 border-0 bg-transparent text-[14px] text-ink outline-none"
+            placeholder={m.fields.findPlaceholder}
+            className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-ink outline-none"
           />
         </label>
       </div>
       {fields.isError ? (
-        <ErrorState message="Fields could not be loaded." onRetry={() => void fields.refetch()} />
+        <ErrorState message={m.fields.loadFailed} onRetry={() => void fields.refetch()} />
       ) : (
-        <section className="card min-w-0" aria-label="Fields">
+        <section className="card enter min-w-0 px-2 py-2" aria-label={m.page.fields}>
           <DataTable
-            caption="Fields on the Norwegian shelf with their latest monthly production"
+            caption={m.fields.caption}
             columns={cols}
             rows={rows}
             rowKey={(r) => String(r.field.id)}
             initialSort={{ id: 'value', desc: true }}
             loading={fields.isPending}
-            empty={query ? `No field matches “${query}”.` : 'No fields.'}
+            empty={query ? t(m.fields.noMatch, { q: query }) : m.fields.none}
           />
         </section>
       )}
       <p className="lbl m-0">
-        {rows.length} fields · gross field production, latest month · {units.longLabel}
+        {t(m.fields.count, { fields: plural(m.common.fields, rows.length), unit: units.longLabel })}
       </p>
     </Page>
   );

@@ -42,13 +42,15 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-// jsdom has no matchMedia; components use it for theme and layout queries.
+// jsdom has no matchMedia; components use it for theme and layout queries. Tests run with
+// reduced motion, like a reader who asked for it: count-ups show their final value at once.
+// The motion test overrides this to check the animated path too.
 if (!window.matchMedia) {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: (query: string): MediaQueryList => {
       const mql: MediaQueryList = {
-        matches: false,
+        matches: query.includes('prefers-reduced-motion'),
         media: query,
         onchange: null,
         addListener: () => undefined,

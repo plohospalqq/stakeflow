@@ -1,24 +1,30 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
-import { useAnomalies, useFreshness } from '@/api/hooks';
+import { useAnomalies } from '@/api/hooks';
+import { useLanguageUrlSync } from '@/hooks/useLanguageUrlSync';
 import { useUnitUrlSync } from '@/hooks/useUnitUrlSync';
-import { BottomTabs } from './BottomTabs';
-import { DataStatusCard } from './DataStatus';
+import { useI18n } from '@/i18n/useI18n';
+import { BottomTabs, MobileBar } from './BottomTabs';
 import { Footer } from './Footer';
-import { Sidebar } from './Sidebar';
+import { TopNav } from './TopNav';
 
 function PageFallback() {
+  const { m } = useI18n();
   return (
-    <div className="flex flex-col gap-4 px-4 py-6 nav:px-8" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading page</span>
+    <div
+      className="mx-auto flex w-[min(1320px,calc(100%-32px))] flex-col gap-4 py-10"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <span className="sr-only">{m.common.loadingPage}</span>
       <span className="skeleton h-3 w-24" />
-      <span className="skeleton h-6 w-72 max-w-full" />
-      <span className="skeleton mt-4 h-40 w-full" />
+      <span className="skeleton h-9 w-80 max-w-full" />
+      <span className="skeleton mt-4 h-48 w-full rounded-[24px]" />
     </div>
   );
 }
 
-/** New page, new scroll position; unit changes (search params only) keep the scroll. */
+/** New page, new scroll position; unit or language changes (search params only) keep it. */
 function useScrollToTopOnPathChange(): void {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -27,31 +33,27 @@ function useScrollToTopOnPathChange(): void {
 }
 
 export function AppShell() {
+  const { m } = useI18n();
   useUnitUrlSync();
+  useLanguageUrlSync();
   useScrollToTopOnPathChange();
-  const freshness = useFreshness();
+  const [moreOpen, setMoreOpen] = useState(false);
   const anomalies = useAnomalies();
   const openAnomalies = anomalies.data?.filter(
     (a) => a.status === 'new' || a.status === 'investigating',
   ).length;
   return (
-    <div className="flex min-h-screen bg-bg text-ink">
-      <a href="#main" className="btn sr-only-focusable fixed left-2 top-2 z-50">
-        Skip to content
+    <div className="flex min-h-screen flex-col bg-bg pb-[84px] text-ink nav:pb-0">
+      <a href="#main" className="btn sr-only-focusable fixed left-3 top-3 z-50">
+        {m.nav.skip}
       </a>
-      <Sidebar
-        openAnomalies={openAnomalies}
-        status={
-          <DataStatusCard latestMonth={freshness.data?.latestMonth} error={freshness.isError} />
-        }
-      />
-      <div className="flex min-w-0 flex-1 flex-col pb-[76px] nav:pb-0">
-        <Suspense fallback={<PageFallback />}>
-          <Outlet />
-        </Suspense>
-        <Footer />
-      </div>
-      <BottomTabs />
+      <TopNav openAnomalies={openAnomalies} />
+      <MobileBar onOpenMore={() => setMoreOpen(true)} />
+      <Suspense fallback={<PageFallback />}>
+        <Outlet />
+      </Suspense>
+      <Footer />
+      <BottomTabs moreOpen={moreOpen} setMoreOpen={setMoreOpen} />
     </div>
   );
 }

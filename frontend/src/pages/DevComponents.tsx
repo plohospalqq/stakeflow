@@ -1,10 +1,18 @@
 /**
- * Living style guide: every core component in its states, in both themes side by side.
- * Charts draw on a canvas with colours read from <html>, so they follow the global theme
- * toggle rather than the side-by-side panels.
+ * Living style guide: the design language (tokens, type, materials, motion) and every core
+ * component in its states, in both themes side by side. Charts draw on a canvas with colours
+ * read from <html>, so they follow the global theme toggle rather than the side-by-side
+ * panels. Demo copy is English on purpose: this page is for developers.
  */
 import { useState } from 'react';
 import { ChartCard } from '@/components/ChartCard';
+import { Constellation } from '@/components/Constellation';
+import { CountUp } from '@/components/CountUp';
+import { Rings } from '@/components/Rings';
+import { ScenarioGauge } from '@/components/ScenarioGauge';
+import { Term } from '@/components/Term';
+import { LanguageSwitch, ModeSwitch } from '@/components/settings/PreferenceControls';
+import { useI18n } from '@/i18n/useI18n';
 import { FieldStatusChip, SeverityChip, StatusChip } from '@/components/Chips';
 import { DataTable, type Column } from '@/components/DataTable';
 import { DeltaBadge } from '@/components/DeltaBadge';
@@ -107,6 +115,7 @@ const PANEL_FIELD: MapPanelField = {
   mainArea: 'North sea',
   operatorName: 'Aker BP',
   productKind: 'Mainly oil',
+  productColor: 'var(--oil)',
   discoveryYear: 2007,
   areaKm2: 36,
   latest: { month: '2026-08-01', value: 77.2, momPct: 4.8, yoyPct: -12.0 },
@@ -136,6 +145,10 @@ const TOKENS = [
   ['--oil', 'oil'],
   ['--gas', 'gas'],
   ['--cnd', 'NGL + cond.'],
+  ['--oil-ink', 'oil text'],
+  ['--gas-ink', 'gas text'],
+  ['--cnd-ink', 'NGL text'],
+  ['--focus', 'focus ring'],
   ['--up', 'good'],
   ['--dn', 'bad'],
   ['--warn', 'warning'],
@@ -171,13 +184,82 @@ function Kit() {
       </section>
 
       <section className="flex flex-col gap-2">
-        <h3 className="cap m-0">Type</h3>
-        <span className="num text-kpi">1,382.4</span>
-        <span className="text-h1">Who produces what on the shelf</span>
-        <span className="text-h2">Production history and forecast</span>
-        <span>Each month Sodir publishes how much each field produced.</span>
+        <h3 className="cap m-0">Type · Inter Tight display, Inter text, tabular figures</h3>
+        <span
+          className="display num bg-clip-text text-[96px] font-extrabold leading-[0.9] tracking-[-0.055em] text-transparent"
+          style={{ backgroundImage: 'var(--hero-grad)', WebkitBackgroundClip: 'text' }}
+        >
+          4.22
+        </span>
+        <span className="display text-display-l font-bold">Three companies. One shelf.</span>
+        <span className="display num text-kpi font-bold">1,382.4</span>
+        <span className="display text-h1 font-bold">Who produces what</span>
+        <span className="display text-h2 font-semibold">Production history and forecast</span>
+        <span>
+          Each month <Term id="sodir" /> publishes how much each <Term id="field" /> produced.
+        </span>
         <span className="lbl">Net to Aker BP · kboe/d</span>
         <span className="cap">Q4 2026 nowcast</span>
+        <span className="eyebrow">Norwegian shelf · August 2026</span>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h3 className="cap m-0">Materials · tile, glass, stage</h3>
+        <div className="relative grid grid-cols-3 gap-3 overflow-hidden rounded-[24px] bg-[radial-gradient(circle_at_30%_30%,var(--oil),transparent_45%),radial-gradient(circle_at_70%_70%,var(--gas),transparent_45%)] p-4">
+          <div className="card p-4 text-[13px]">Tile</div>
+          <div className="glass rounded-[22px] p-4 text-[13px]">Glass</div>
+          <div className="lift card p-4 text-[13px]">Hover lift</div>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h3 className="cap m-0">Motion · count-up, rings, staggered spring entrance</h3>
+        <div className="flex flex-wrap items-center gap-5">
+          <CountUp
+            value={4.22}
+            format={(v) => formatNumber(v, 2)}
+            className="display num text-[44px] font-bold tracking-[-0.045em]"
+          />
+          <Rings
+            size={120}
+            stroke={12}
+            label="Oil 44%, gas 51%, NGL 5%"
+            rings={[
+              { key: 'oil', value: 0.445, color: 'var(--oil)' },
+              { key: 'gas', value: 0.51, color: 'var(--gas)' },
+              { key: 'ngl', value: 0.046, color: 'var(--cnd)' },
+            ]}
+          />
+          <div className="grid grid-cols-3 gap-2">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className="card enter h-10 w-14" style={{ '--i': i }} />
+            ))}
+          </div>
+        </div>
+        <span className="lbl">
+          Everything is visible at rest; with reduced motion the final state shows at once.
+        </span>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h3 className="cap m-0">Scenario gauge · night-sky thumbnail</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="card p-4">
+            <ScenarioGauge medianPct={-9.4} lowPct={-24} highPct={7} size="md" />
+          </div>
+          <div className="card h-[180px] bg-[#05070b] p-3">
+            <Constellation
+              label="Demo constellation"
+              points={[
+                { id: 1, lon: 3.8, lat: 60.7, kboed: 799, oilShare: 0.02 },
+                { id: 2, lon: 2.7, lat: 58.8, kboed: 618, oilShare: 0.97 },
+                { id: 3, lon: 20.1, lat: 72.5, kboed: 214, oilShare: 1 },
+                { id: 4, lon: 6.9, lat: 65, kboed: 128, oilShare: 0.3 },
+                { id: 5, lon: 21.1, lat: 71.6, kboed: 134, oilShare: 0 },
+              ]}
+            />
+          </div>
+        </div>
       </section>
 
       <section className="flex flex-col gap-2">
@@ -222,6 +304,8 @@ function Kit() {
         <h3 className="cap m-0">Controls</h3>
         <div className="flex flex-wrap items-center gap-2.5">
           <UnitToggle />
+          <ModeSwitch />
+          <LanguageSwitch />
           <SegmentedControl
             label="Product"
             value={product}
@@ -308,24 +392,25 @@ function Kit() {
 }
 
 export default function DevComponents() {
+  const { m } = useI18n();
   const [product, setProduct] = useState<ProductFilter>('all');
   return (
-    <Page label="Developer" title="Component kit and tokens">
+    <Page label={m.dev.label} title={m.dev.title} hideFreshness>
       <p className="m-0 max-w-[760px] text-muted">
-        Every screen is assembled from these components. Colours are CSS variables swapped by a
-        t-dark / t-light class; the two columns below render the same kit in each theme.
+        {m.dev.lede} Colours are CSS variables swapped by a t-dark / t-light class; the two columns
+        below render the same kit in each theme.
       </p>
 
       <div className="grid gap-4 xl:grid-cols-2 [&>*]:min-w-0">
-        <div className="t-dark rounded-card border border-line bg-bg p-5 text-ink">
+        <div lang="en" className="t-dark rounded-[28px] border border-line bg-bg p-5 text-ink">
           <Kit />
         </div>
-        <div className="t-light rounded-card border border-line bg-bg p-5 text-ink">
+        <div lang="en" className="t-light rounded-[28px] border border-line bg-bg p-5 text-ink">
           <Kit />
         </div>
       </div>
 
-      <h2 className="m-0 text-h2">ChartCard (follows the global theme)</h2>
+      <h2 className="display m-0 text-h2 font-semibold">ChartCard (follows the global theme)</h2>
       <ChartCard
         title="Production history and forecast"
         subtitle="Monthly · kboe/d"

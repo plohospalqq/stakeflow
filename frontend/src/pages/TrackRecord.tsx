@@ -8,9 +8,13 @@ import { Page } from '@/components/layout/Page';
 import { SampleBadge } from '@/components/SampleBadge';
 import { SectionHeading } from '@/components/SectionHeading';
 import { SegmentedControl } from '@/components/SegmentedControl';
+import { Term } from '@/components/Term';
+import { useCompanyName } from '@/hooks/useCompanyName';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useUnits } from '@/hooks/useUnits';
-import { COMPANY_META, FOCUS_ORDER } from '@/lib/companies';
+import { Rich } from '@/i18n/Rich';
+import { useI18n } from '@/i18n/useI18n';
+import { FOCUS_ORDER } from '@/lib/companies';
 import { formatNumber, formatPct, formatQuarter } from '@/lib/format';
 import { leadDays, modelStats, reconciledQuarters, reconciliationSummary } from '@/lib/trackRecord';
 import { WhyTheyDiffer } from './company/ReconciliationCard';
@@ -20,11 +24,6 @@ import { ReconciliationTable } from './track/ReconciliationTable';
 import { TrustItems } from './track/TrustItems';
 
 const ALL = 'all';
-
-const FILTER_OPTIONS = [
-  { value: ALL, label: 'All companies' },
-  ...FOCUS_ORDER.map((id) => ({ value: id, label: COMPANY_META[id]?.name ?? id })),
-];
 
 /** ?co= keeps the filter in the URL, so the company page can link straight to its rows. */
 function useCompanyFilter(): [string, (value: string) => void] {
@@ -43,15 +42,19 @@ function useCompanyFilter(): [string, (value: string) => void] {
 function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
-      <span className="lbl">{label}</span>
-      <span className="num text-[22px] font-semibold tracking-[-0.02em]">{value}</span>
+      <span className="text-[13px] font-semibold text-muted">{label}</span>
+      <span className="display num text-[34px] font-bold leading-none tracking-[-0.04em]">
+        {value}
+      </span>
       <span className="lbl">{sub}</span>
     </div>
   );
 }
 
 export default function TrackRecord() {
+  const { m, t, plural } = useI18n();
   const units = useUnits();
+  const name = useCompanyName();
   const isDesktop = useIsDesktop();
   const [company, setCompany] = useCompanyFilter();
   const ids = useMemo(() => (company === ALL ? FOCUS_ORDER : [company]), [company]);
@@ -59,13 +62,18 @@ export default function TrackRecord() {
   const log = usePredictionLog();
 
   // A few dozen rows at most: cheap enough to rebuild on every render.
-  const reconRows = FOCUS_ORDER.flatMap((id, i) =>
-    ids.includes(id) ? reconciledQuarters(id, quarterQueries[i]?.data ?? []) : [],
-  ).sort(
-    (a, b) =>
-      b.quarter.quarterStart.localeCompare(a.quarter.quarterStart) ||
-      a.companyId.localeCompare(b.companyId),
-  );
+  const perCompany = FOCUS_ORDER.map((id, i) => ({
+    id,
+    rows: reconciledQuarters(id, quarterQueries[i]?.data ?? []),
+  }));
+  const reconRows = perCompany
+    .filter((c) => ids.includes(c.id))
+    .flatMap((c) => c.rows)
+    .sort(
+      (a, b) =>
+        b.quarter.quarterStart.localeCompare(a.quarter.quarterStart) ||
+        a.companyId.localeCompare(b.companyId),
+    );
   const recon = reconciliationSummary(reconRows);
   const reconPending = quarterQueries.some((q) => q.isPending);
   const reconError = quarterQueries.some((q) => q.isError);
@@ -88,118 +96,133 @@ export default function TrackRecord() {
       )
     : null;
   const logState: ChartState = log.isError ? 'error' : log.isPending ? 'loading' : 'ready';
+  const filterOptions = [
+    { value: ALL, label: m.track.allCompanies },
+    ...FOCUS_ORDER.map((id) => ({ value: id, label: name(id) })),
+  ];
 
   return (
-    <Page label="Track record" title="Every prediction, scored">
-      <TrustItems averageLead={averageLead} />
-
+    <Page label={m.track.label} title={m.track.title}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SegmentedControl
-          label="Company"
+          label={m.track.companyFilter}
           value={company}
           onChange={setCompany}
-          options={FILTER_OPTIONS}
+          options={filterOptions}
         />
-        <span className="lbl">
-          Production as average {units.unit === 'boe' ? 'kboe/d' : 'month, MSm³ o.e.'} per quarter
-        </span>
+        <span className="lbl">{t(m.track.unitNote, { unit: units.label })}</span>
       </div>
 
-      <section className="card flex min-w-0 flex-col" aria-labelledby="rc-h">
+      <section className="card enter flex min-w-0 flex-col" aria-labelledby="rc-h">
         <SectionHeading
           id="rc-h"
-          title="Public data vs what the companies reported"
-          sub={`Real figures, no model: Sodir field data × licence shares, next to each company's own trading update · ${units.label}`}
+          title={m.track.reconTitle}
+          sub={t(m.track.reconSub, { unit: units.label })}
         />
         {reconError ? (
           <ErrorState
-            className="mx-[18px] my-2"
-            message="Reported quarters could not be loaded."
+            className="mx-5 my-2"
+            message={m.track.reconFailed}
             onRetry={() => quarterQueries.forEach((q) => void q.refetch())}
           />
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 px-[18px] pb-2 pt-2 nav:grid-cols-[repeat(3,minmax(0,220px))]">
+            <ul
+              aria-label={m.track.perCompany}
+              className="m-0 grid list-none gap-3 px-5 pb-3 pt-2 nav:grid-cols-3"
+            >
+              {perCompany
+                .filter((c) => ids.includes(c.id))
+                .map((c) => {
+                  const s = reconciliationSummary(c.rows);
+                  return (
+                    <li key={c.id} className="flex flex-col gap-1 rounded-2xl bg-surface2 p-4">
+                      <span className="text-[13px] font-semibold text-muted">{name(c.id)}</span>
+                      <span className="display num text-[34px] font-bold leading-none tracking-[-0.04em]">
+                        {s.meanAbsGap === null ? '–' : formatPct(s.meanAbsGap, 2)}
+                      </span>
+                      <span className="lbl">
+                        <Term id="gap">{m.track.avgGap}</Term> ·{' '}
+                        {plural(m.track.overQuarters, s.complete)}
+                      </span>
+                    </li>
+                  );
+                })}
+            </ul>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-5 pb-3 pt-2 nav:grid-cols-[repeat(3,minmax(0,240px))]">
               <Stat
-                label="Average gap"
+                label={m.track.avgGap}
                 value={recon.meanAbsGap === null ? '–' : formatPct(recon.meanAbsGap, 2)}
-                sub={`over ${recon.complete} complete quarter${recon.complete === 1 ? '' : 's'}`}
+                sub={plural(m.track.overQuarters, recon.complete)}
               />
               <Stat
-                label="Largest gap"
+                label={m.track.largestGap}
                 value={recon.maxAbsGap === null ? '–' : formatPct(recon.maxAbsGap, 2)}
-                sub="ignoring direction"
+                sub={m.track.ignoringDirection}
               />
               <Stat
-                label="Provisional"
+                label={m.track.provisional}
                 value={String(recon.partial)}
-                sub="quarters still missing a Sodir month"
+                sub={m.track.provisionalSub}
               />
             </div>
-            <div className="px-1.5 pb-1.5">
+            <div className="px-2 pb-2">
               <ReconciliationTable
                 rows={reconRows}
                 showCompany
                 loading={reconPending}
-                caption="Sodir-attributed vs company-reported production by quarter"
-                empty="No company-reported quarter for this selection yet."
+                caption={m.track.reconCaption}
+                empty={m.track.reconEmpty}
               />
             </div>
             {withoutReports.length > 0 ? (
-              <p className="lbl m-0 px-[18px] pb-2">
-                {withoutReports.map((id) => COMPANY_META[id]?.name ?? id).join(', ')}: no
-                company-reported quarter in the data yet
-                {withoutReports.includes('equinor')
-                  ? '. Equinor publishes no NCS-only production in a trading update, so there is nothing like-for-like to compare'
-                  : ''}
-                .
+              <p className="lbl m-0 px-5 pb-2">
+                {t(m.track.noReports, {
+                  companies: withoutReports.map((id) => name(id)).join(', '),
+                })}
               </p>
             ) : null}
-            <div className="flex flex-col pb-3.5 pt-1">
-              <WhyTheyDiffer />
+            <div className="flex flex-col pb-5 pt-1">
+              <WhyTheyDiffer withVar={ids.includes('var-energi')} />
             </div>
           </>
         )}
       </section>
 
-      <section aria-labelledby="model-h" className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
+      <section aria-labelledby="model-h" className="mt-4 flex flex-col gap-5">
+        <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 id="model-h" className="m-0 text-h2">
-              Nowcast model
+            <h2 id="model-h" className="display m-0 text-display-l font-bold">
+              {m.track.modelTitle}
             </h2>
-            <SampleBadge detail="The nowcast model is not in the backend yet; every number below is sample data" />
+            <SampleBadge detail={m.sample.nowcastAll} />
           </div>
-          <p className="m-0 max-w-[760px] text-[13px] text-muted">
-            The quarterly nowcast is not in the backend yet. Everything below runs on sample
-            predictions to show how each forecast will be scored: frozen at quarter end, compared
-            with the trading update (Vår Energi about 12 days later, Aker BP about 14; Equinor with
-            its quarterly report), and set against a simple guess.
-          </p>
+          <p className="m-0 max-w-[780px] text-[15px] text-muted">{m.track.modelText}</p>
         </div>
 
+        <TrustItems averageLead={averageLead} />
+
         {log.isError ? (
-          <ErrorState
-            message="The prediction log could not be loaded."
-            onRetry={() => void log.refetch()}
-          />
+          <ErrorState message={m.track.logFailed} onRetry={() => void log.refetch()} />
         ) : (
           <div
-            aria-label="Model summary"
+            aria-label={m.track.summary}
             role="group"
-            className="grid grid-cols-2 gap-3 nav:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] nav:gap-3.5"
+            className="grid grid-cols-2 gap-3 nav:grid-cols-4 nav:gap-5"
           >
             <KpiCard
-              label="Average error, our model"
+              index={0}
+              label={m.track.avgErrModel}
               value={log.isPending ? null : (stats?.modelError ?? 0)}
               unit="%"
               format={(v) => formatNumber(v, 1)}
               compact={!isDesktop}
               sample
-              sub="how far off, ignoring direction"
+              sub={m.track.howFar}
             />
             <KpiCard
-              label="Average error, simple guess"
+              index={1}
+              label={m.track.avgErrBaseline}
               value={log.isPending ? null : (stats?.baselineError ?? 0)}
               unit="%"
               format={(v) => formatNumber(v, 1)}
@@ -207,28 +230,28 @@ export default function TrackRecord() {
               sample
               sub={
                 stats ? (
-                  <>
-                    model is{' '}
-                    <strong className="text-ink">
-                      {formatNumber(stats.improvement, 1)}× more accurate
-                    </strong>
-                  </>
+                  <Rich
+                    text={m.track.moreAccurate}
+                    vars={{ n: formatNumber(stats.improvement, 1) }}
+                  />
                 ) : (
-                  'no resolved predictions'
+                  m.track.noResolved
                 )
               }
             />
             <KpiCard
-              label="Actual inside the 80% range"
+              index={2}
+              label={<Term id="range80">{m.track.inRange}</Term>}
               value={log.isPending ? null : (stats?.inRange ?? 0)}
               unit=""
-              format={(v) => `${v} / ${stats?.resolved ?? 0}`}
+              format={(v) => `${formatNumber(v, 0)} / ${stats?.resolved ?? 0}`}
               compact={!isDesktop}
               sample
-              sub="expect about 8 in 10 if ranges are honest"
+              sub={m.track.inRangeSub}
             />
             <KpiCard
-              label="Bias"
+              index={3}
+              label={m.track.bias}
               value={log.isPending ? null : (stats?.bias ?? 0)}
               unit="%"
               format={(v) => `${v > 0 ? '+' : ''}${formatNumber(v, 1)}`}
@@ -236,8 +259,8 @@ export default function TrackRecord() {
               sample
               sub={
                 stats
-                  ? `positive = guesses run high · ${formatQuarter(stats.firstQuarter)}–${formatQuarter(stats.lastQuarter)}`
-                  : 'positive = guesses run high'
+                  ? `${m.track.biasSub} · ${formatQuarter(stats.firstQuarter)}–${formatQuarter(stats.lastQuarter)}`
+                  : m.track.biasSub
               }
             />
           </div>
