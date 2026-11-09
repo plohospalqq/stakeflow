@@ -90,8 +90,14 @@ def _write_model(
     if fit is not None:
         std_errors = np.sqrt(np.diag(fit.covariance))
         coefficients = [
-            {"term": t, "estimate": float(b), "std_error": float(se), "t_stat": float(b / se)}
-            for t, b, se in zip(TERMS, fit.estimates, std_errors, strict=True)
+            {
+                "term": t,
+                "estimate": float(b),
+                "std_error": float(se),
+                "t_stat": float(b / se),
+                "monthly_change_sd": float(sd),
+            }
+            for t, b, se, sd in zip(TERMS, fit.estimates, std_errors, fit.x_sd, strict=True)
         ]
         covariance = {"terms": list(TERMS), "matrix": fit.covariance.tolist()}
     conn.execute(

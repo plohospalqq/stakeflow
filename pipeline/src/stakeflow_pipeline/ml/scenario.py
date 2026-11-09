@@ -64,6 +64,9 @@ class Fit:
     r2: float
     adj_r2: float
     n: int
+    # Spread of each regressor's monthly change in the sample: lets a scenario be flagged as
+    # an extrapolation when it asks for a move far outside anything the model was fitted on
+    x_sd: Vector
 
     def predict(self, x: Vector) -> Vector:
         return x @ self.estimates
@@ -109,6 +112,7 @@ def ols(x: Vector, y: Vector) -> Fit:
         r2=r2,
         adj_r2=1 - (1 - r2) * (n - 1) / (n - k),
         n=n,
+        x_sd=x.std(axis=0, ddof=1),
     )
 
 
