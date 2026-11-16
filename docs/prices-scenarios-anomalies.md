@@ -169,4 +169,6 @@ files, except share prices and scenarios, which are never exported.
   percent.
 - Scenario results are shown as the backend computed them (change, 80% band, price, each
   driver's contribution, caveats, notice); the intercept is past drift and is not shown with the
-  sensitivities.
+  sensitivities. `path` is drawn on the share-price chart after the last close: each point's
+  percentages applied to `base.close`, one calendar month apart from `base.date`, as a dashed
+  line with the 80% band, always labelled "Scenario path (not a forecast)".

@@ -91,16 +91,16 @@ real carries a dashed amber **Sample data** badge, and the footer says which par
   model there, and Ask is a preview (no server).
 - **Mocks** (`VITE_USE_MOCKS=true`, tests and CI): everything is deterministic sample data.
 
-| Screen                          | Live API                                                                                                                                                                                                                                 | Static demo                                                |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Landing `/`                     | Shelf total and its 24 months, state share, gas, largest fields, the company race, the reconciliation record, Brent (daily, 3 months, EIA) and TTF (monthly averages, World Bank), recent anomalies, the scenario teaser (Aker BP model) | All real except the scenario teaser (sample)               |
-| Field map `/map`, Fields        | Field centroids and outlines, production, owners, history, the shelf timeline                                                                                                                                                            | Real                                                       |
-| Field detail `/fields/:id`      | History by product, plateau, owners, facts, monthly table; the forecast with its 80% range and model card (decline curve, or held flat on plateau, ramp-up or a young field), backtest error next to the simple guess                    | Real (every field with a model card)                       |
-| Company detail `/companies/:id` | Net production by field, product rings, Sodir vs reported, the quarter nowcast and its range, nowcast vs reported (past quarters are backtests), the revenue estimate at the latest Brent, TTF and EUR/USD                               | Real, frozen at the snapshot                               |
-| Scenarios `/scenarios`          | Share prices from the user's own Euronext import (local only), the fitted model (R², adjusted R², window, coefficients, backtest), its answer with the backend's band, caveats and notice, the presets                                   | Sample (badged): share prices, model and answers           |
-| Track record `/track-record`    | Reconciliation; live predictions and backtests scored apart, never pooled; accuracy over time; the prediction log and its CSV, with links to the committed file of each quarter-end live prediction                                      | Real, frozen at the snapshot                               |
-| Anomalies `/anomalies`          | The latest detector run: every flagged field-month, its band and the effect on each owner. Status and notes are yours and stay in the browser tab                                                                                        | Real                                                       |
-| Ask `/ask` (beta)               | AI answers with the SQL that ran; without an AI key, prepared examples (badged) say why. Table catalogue from `/ask/tables`                                                                                                              | Prepared examples (badged); their SQL and numbers are real |
+| Screen                          | Live API                                                                                                                                                                                                                                             | Static demo                                                |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Landing `/`                     | Shelf total and its 24 months, state share, gas, largest fields, the company race, the reconciliation record, Brent (daily, 3 months, EIA) and TTF (monthly averages, World Bank), recent anomalies, the scenario teaser (Aker BP model)             | All real except the scenario teaser (sample)               |
+| Field map `/map`, Fields        | Field centroids and outlines, production, owners, history, the shelf timeline                                                                                                                                                                        | Real                                                       |
+| Field detail `/fields/:id`      | History by product, plateau, owners, facts, monthly table; the forecast with its 80% range and model card (decline curve, or held flat on plateau, ramp-up or a young field), backtest error next to the simple guess                                | Real (every field with a model card)                       |
+| Company detail `/companies/:id` | Net production by field, product rings, Sodir vs reported, the quarter nowcast and its range, nowcast vs reported (past quarters are backtests), the revenue estimate at the latest Brent, TTF and EUR/USD                                           | Real, frozen at the snapshot                               |
+| Scenarios `/scenarios`          | Share prices from the user's own Euronext import (local only), the fitted model (R², adjusted R², window, coefficients, backtest), its answer with the backend's band, caveats and notice, the scenario path drawn after the last close, the presets | Sample (badged): share prices, model and answers           |
+| Track record `/track-record`    | Reconciliation; live predictions and backtests scored apart, never pooled; accuracy over time; the prediction log and its CSV, with links to the committed file of each quarter-end live prediction                                                  | Real, frozen at the snapshot                               |
+| Anomalies `/anomalies`          | The latest detector run: every flagged field-month, its band and the effect on each owner. Status and notes are yours and stay in the browser tab                                                                                                    | Real                                                       |
+| Ask `/ask` (beta)               | AI answers with the SQL that ran; without an AI key, prepared examples (badged) say why. Table catalogue from `/ask/tables`                                                                                                                          | Prepared examples (badged); their SQL and numbers are real |
 
 ### Rules the UI keeps
 
@@ -111,6 +111,9 @@ real carries a dashed amber **Sample data** badge, and the footer says which par
   to assumptions the reader picks, with the model's fit (R², window, observations), its
   coefficients, an 80% range and a "Scenario, not a forecast · not investment advice" notice.
   The AI step only turns free text into the five parameters; the model computes the numbers.
+  The share-price chart continues past the last close with the scenario's month-by-month path
+  as a dashed line inside its 80% range; the legend, the tooltip and the chart's summary all
+  call it "Scenario path (not a forecast)".
 - **Nowcast framing:** forecasts are frozen at quarter end and scored against the company's first
   publication. See `docs/nowcast-feasibility.md`.
 - The revenue estimate is volume × price with the formula on screen, sold vs produced and the
@@ -134,7 +137,10 @@ The scenario explorer uses the backend's parameter contract, in camelCase in the
 and `parseScenario(text, { companyId, reference })`; the parser gets today's Brent, TTF and
 EUR/USD from `/prices/latest`, so "oil at $90" becomes a percentage it can explain. Types in
 `api/types.scenario.ts`, sample implementations in `api/mock/scenario.ts`. The page shows the
-backend's band, caveats and notice as they are and never recomputes them. A 503 from
+backend's band, caveats and notice as they are and never recomputes them. The answer carries a
+`path` (the change and its 80% range after 1…`horizonMonths` months); `scenarioProjection()`
+in `lib/scenario.ts` applies it to the last close, one point per calendar month, and
+`charts/sharePriceOption.ts` draws it. A 503 from
 `parseScenario` reads "AI is not configured on this server" (code `llm_not_configured`) or "The
 AI did not answer", with the ready-made scenarios next to it.
 
@@ -165,7 +171,10 @@ src/
   Each chart has a `role="img"` summary and a table alternative.
 - **Map.** OpenFreeMap `dark` (deepened to a night-sky palette at runtime) and `positron`. Each
   field is two circle layers, a blurred halo under a crisp core, radius ∝ √production, colour =
-  oil share; localized sea names; `lib/mapScale.ts` keeps map and legend in step. The
+  oil share; localized sea names; `lib/mapScale.ts` keeps map and legend in step. Basemap
+  place and water names follow the app language (`lib/mapLabels.ts` points every name label at
+  the tiles' `name:en`, `name:uk` or `name:no`, then any Latin name; the stock styles print
+  the local script under the Latin name, so Russian towns came out in Cyrillic). The
   "Fields by production" list is the keyboard and screen-reader way in; the field card closes
   on Escape and returns focus; on phones it becomes a bottom sheet. The timeline scrubs the
   shelf total; the field circles stay at the latest month, and the panel says so.
