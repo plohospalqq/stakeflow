@@ -27,6 +27,13 @@ export function addMonths(iso: string, n: number): string {
   return toIsoDate(d);
 }
 
+/** The same day n months on, or the month's last day when it has no such day (31 Jan → 28 Feb). */
+export function addCalendarMonths(iso: string, n: number): string {
+  const month = addMonths(iso, n);
+  const day = Math.min(parseIsoDate(iso).getUTCDate(), daysInMonth(month));
+  return `${month.slice(0, 7)}-${String(day).padStart(2, '0')}`;
+}
+
 export function addDays(iso: string, n: number): string {
   return toIsoDate(new Date(parseIsoDate(iso).getTime() + n * MS_PER_DAY));
 }

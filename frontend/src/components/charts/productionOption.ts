@@ -11,6 +11,7 @@ import {
   valueAxis,
   withAlpha,
 } from './chartBase';
+import { firstDataDate } from './params';
 
 /** One month, already in the display unit. */
 export interface ProductPoint {
@@ -58,12 +59,6 @@ const PRODUCTS = [
   { key: 'gas', label: (m: Dict) => m.products.gas, color: (t: ChartTheme) => t.gas },
   { key: 'nglCond', label: (m: Dict) => m.products.nglCond, color: (t: ChartTheme) => t.cond },
 ] as const;
-
-function readMonth(param: unknown): string | null {
-  if (typeof param !== 'object' || param === null || !('data' in param)) return null;
-  const data: unknown = param.data;
-  return Array.isArray(data) && typeof data[0] === 'string' ? data[0] : null;
-}
 
 export function buildProductionOption(
   t: ChartTheme,
@@ -178,8 +173,7 @@ export function buildProductionOption(
     tooltip: {
       ...baseTooltip(t),
       formatter: (params) => {
-        const first = Array.isArray(params) ? params[0] : params;
-        const month = readMonth(first);
+        const month = firstDataDate(params);
         if (!month) return '';
         const h = byMonth.get(month);
         const f = fcByMonth.get(month);

@@ -179,7 +179,7 @@ export default function Scenarios() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 nav:grid-cols-3">
-        <SharePriceCard companyId={company} />
+        <SharePriceCard companyId={company} scenario={r} />
 
         <section
           aria-labelledby="res-h"

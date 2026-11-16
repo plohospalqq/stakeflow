@@ -257,6 +257,12 @@ export function mapScenario(r: Schemas['ScenarioResponse']): ScenarioResult {
     lowPct: r.band80.loChangePct,
     highPct: r.band80.hiChangePct,
     contributions,
+    path: r.path.map((p) => ({
+      monthOffset: p.monthOffset,
+      changePct: p.changePct,
+      lowPct: p.loChangePct,
+      highPct: p.hiChangePct,
+    })),
     price: {
       date: r.base.date,
       currency: r.currency,

@@ -315,7 +315,11 @@ const scenarioResponse = (): Schemas['ScenarioResponse'] => ({
   price: 278.76,
   band80: { loChangePct: -18.752, hiChangePct: -4.701, loPrice: 257.39, hiPrice: 301.91 },
   varianceFromCoefficients: 0.0016,
-  path: [],
+  path: [
+    { monthOffset: 1, changePct: -4.174, loChangePct: -8.72, hiChangePct: 0.598 },
+    { monthOffset: 2, changePct: -8.174, loChangePct: -14.063, hiChangePct: -1.882 },
+    { monthOffset: 3, changePct: -12.006, loChangePct: -18.752, hiChangePct: -4.701 },
+  ],
   contributions: [
     { driver: 'brent', inputChangePct: -30, coefficient: 0.3586, contributionPct: -12.006 },
     { driver: 'ttf', inputChangePct: 0, coefficient: 0.0646, contributionPct: 0 },
@@ -368,6 +372,13 @@ describe('mapScenario', () => {
       high: 301.91,
     });
     expect(r.params).toMatchObject({ brentChangePct: -30, horizonMonths: 3 });
+    expect(r.path).toHaveLength(3);
+    expect(r.path[0]).toEqual({ monthOffset: 1, changePct: -4.174, lowPct: -8.72, highPct: 0.598 });
+    expect(r.path[2]).toMatchObject({
+      changePct: r.medianPct,
+      lowPct: r.lowPct,
+      highPct: r.highPct,
+    });
     expect(r.caveats).toHaveLength(1);
     expect(r.notice).toBe('Scenario, not a forecast; not investment advice.');
   });

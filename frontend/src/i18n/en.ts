@@ -944,6 +944,10 @@ export const en = {
     priceTitle: 'Share price for context',
     priceSub: '{ticker} · daily close, {currency} · last {n}',
     priceAria: '{ticker} share price over {n}, from {from} to {to} {currency}',
+    pathLegend: 'Scenario path (not a forecast)',
+    pathAria:
+      'Dashed scenario path, not a forecast: {price} {currency} by {date}, 80% range {low} to {high}',
+    lastClose: 'Last close',
     staticNote:
       'This public demo carries no share prices: Euronext data may not be redistributed. The model below is a sample with made-up coefficients; run Stakeflow locally with your own Euronext download to see the real one.',
     priceSource: "Euronext, the user's own download (local only)",

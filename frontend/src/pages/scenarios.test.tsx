@@ -31,6 +31,29 @@ describe('Scenario explorer', () => {
     ).toBeInTheDocument();
   });
 
+  it('draws the scenario on the share-price chart and says it is not a forecast', async () => {
+    renderWithProviders(<div />, { routes, route: '/scenarios' });
+    // Oil −30% over 3 months from the sample close of 6 Nov 2026 (243.6 NOK).
+    const chart = await screen.findByRole('img', {
+      name: /AKRBP share price .* Dashed scenario path, not a forecast: 22\d\.\d NOK by 6 Feb 2027, 80% range 19\d\.\d to 25\d\.\d/,
+    });
+    const card = chart.closest('section');
+    expect(card).not.toBeNull();
+    if (card) {
+      expect(within(card).getByText('Scenario path (not a forecast)')).toBeInTheDocument();
+    }
+  });
+
+  it('redraws the path when the assumptions change', async () => {
+    renderWithProviders(<div />, { routes, route: '/scenarios' });
+    await screen.findByRole('img', { name: /scenario path.* by 6 Feb 2027/i });
+    await userEvent.click(await screen.findByRole('button', { name: 'Stronger dollar' }));
+    // Six months instead of three, and a weaker euro lifts this share: above the close.
+    expect(
+      await screen.findByRole('img', { name: /scenario path.*: 25\d\.\d NOK by 6 May 2027/i }),
+    ).toBeInTheDocument();
+  });
+
   it('applies a preset from the link and moves the sliders', async () => {
     renderWithProviders(<div />, { routes, route: '/scenarios?preset=gas-spike&co=equinor' });
     await waitFor(() =>

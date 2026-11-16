@@ -8,8 +8,10 @@ import type {
   ScenarioDriver,
   ScenarioModel,
   ScenarioParams,
+  ScenarioPathPoint,
   ScenarioResult,
 } from '@/api/types.scenario';
+import { addCalendarMonths } from './dates';
 
 export const SCENARIO_LIMITS: Record<keyof ScenarioParams, { min: number; max: number }> = {
   brentChangePct: { min: -90, max: 300 },
@@ -106,7 +108,7 @@ const pct = (logReturn: number) => (Math.exp(logReturn) - 1) * 100;
 
 export type ScenarioCore = Pick<
   ScenarioResult,
-  'params' | 'medianPct' | 'lowPct' | 'highPct' | 'contributions' | 'model'
+  'params' | 'medianPct' | 'lowPct' | 'highPct' | 'contributions' | 'path' | 'model'
 >;
 
 /**
@@ -114,6 +116,8 @@ export type ScenarioCore = Pick<
  * coefficient uncertainty for these changes plus the residual volatility over the horizon,
  * which is why longer horizons get wider bands. The sample model has no covariance matrix, so
  * it treats the coefficients as independent; the backend uses the full matrix (x′ Cov(b) x).
+ * The path is the same answer k months in: the drivers have moved k/h of the way (in logs)
+ * and the noise has had k months, so the last point is the answer itself.
  */
 export function modelScenario(model: ScenarioModel, input: ScenarioParams): ScenarioCore {
   const params = clampScenario(input);
@@ -128,15 +132,58 @@ export function modelScenario(model: ScenarioModel, input: ScenarioParams): Scen
   };
   const median = DRIVERS.reduce((s, d) => s + term(d), 0);
   const paramVar = DRIVERS.reduce((s, d) => s + (model.standardErrors[d] * x(d)) ** 2, 0);
-  const sigma = Math.sqrt(paramVar + model.residualVolMonthly ** 2 * params.horizonMonths);
+  const after = (months: number): ScenarioPathPoint => {
+    const done = months / params.horizonMonths;
+    const mu = median * done;
+    const sigma = Math.sqrt(paramVar * done ** 2 + model.residualVolMonthly ** 2 * months);
+    return {
+      monthOffset: months,
+      changePct: pct(mu),
+      lowPct: pct(mu - Z80 * sigma),
+      highPct: pct(mu + Z80 * sigma),
+    };
+  };
+  const path = Array.from({ length: params.horizonMonths }, (_, i) => after(i + 1));
+  const end = after(params.horizonMonths);
   return {
     params,
-    medianPct: pct(median),
-    lowPct: pct(median - Z80 * sigma),
-    highPct: pct(median + Z80 * sigma),
+    medianPct: end.changePct,
+    lowPct: end.lowPct,
+    highPct: end.highPct,
     contributions,
+    path,
     model,
   };
+}
+
+/** One point of the scenario drawn after the last close, in the share's currency. */
+export interface ProjectionPoint {
+  date: string;
+  price: number;
+  low: number;
+  high: number;
+}
+
+/**
+ * The scenario as prices over time: the last close, where the range is still zero wide, then
+ * one point per month of the path. Empty without a share price to start from. Only applies
+ * the model's percentages to the close; it never recomputes them.
+ */
+export function scenarioProjection({
+  price,
+  path,
+}: Pick<ScenarioResult, 'price' | 'path'>): ProjectionPoint[] {
+  if (!price || path.length === 0) return [];
+  const at = (changePct: number) => price.base * (1 + changePct / 100);
+  return [
+    { date: price.date, price: price.base, low: price.base, high: price.base },
+    ...path.map((p) => ({
+      date: addCalendarMonths(price.date, p.monthOffset),
+      price: at(p.changePct),
+      low: at(p.lowPct),
+      high: at(p.highPct),
+    })),
+  ];
 }
 
 /** |t| ≥ 2: the backend's line between a sensitivity and noise. */

@@ -955,6 +955,10 @@ export const nb: Dict = {
     priceTitle: 'Aksjekurs som bakgrunn',
     priceSub: '{ticker} · sluttkurs per dag, {currency} · siste {n}',
     priceAria: 'Aksjekursen til {ticker} over {n}, fra {from} til {to} {currency}',
+    pathLegend: 'Scenariobane (ikke en prognose)',
+    pathAria:
+      'Stiplet scenariobane, ikke en prognose: {price} {currency} innen {date}, 80 %-intervall {low} til {high}',
+    lastClose: 'Siste sluttkurs',
     staticNote:
       'Denne offentlige demoen har ingen aksjekurser: data fra Euronext kan ikke videreformidles. Modellen nedenfor er et eksempel med oppdiktede koeffisienter; kjør Stakeflow lokalt med din egen nedlasting fra Euronext for å se den ekte.',
     priceSource: 'Euronext, brukerens egen nedlasting (bare lokalt)',

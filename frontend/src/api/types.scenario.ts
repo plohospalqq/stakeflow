@@ -69,6 +69,15 @@ export interface ScenarioModel {
   version: string;
 }
 
+/** Where the modelled change stands k months in, with its 80% range. */
+export interface ScenarioPathPoint {
+  /** 1…horizonMonths. */
+  monthOffset: number;
+  changePct: number;
+  lowPct: number;
+  highPct: number;
+}
+
 export interface ScenarioResult {
   companyId: string;
   /** The parameters after clamping to the contract's ranges. */
@@ -82,6 +91,11 @@ export interface ScenarioResult {
    * combine by multiplying, so they add up to the total only approximately.
    */
   contributions: Record<ScenarioDriver, number>;
+  /**
+   * The way there, month by month: the drivers move in equal (log) steps, the range widens
+   * with time. The last point is the answer above.
+   */
+  path: ScenarioPathPoint[];
   /** The same changes applied to the last close; null without a share price. */
   price: {
     date: string;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addCalendarMonths,
   addMonths,
   daysInMonth,
   daysInQuarter,
@@ -19,6 +20,12 @@ describe('dates', () => {
   it('adds months across year boundaries', () => {
     expect(addMonths('2026-11-01', 2)).toBe('2027-01-01');
     expect(addMonths('2026-01-31', -1)).toBe('2025-12-01');
+  });
+
+  it('adds calendar months keeping the day, or the last day of a shorter month', () => {
+    expect(addCalendarMonths('2026-11-06', 3)).toBe('2027-02-06');
+    expect(addCalendarMonths('2026-01-31', 1)).toBe('2026-02-28');
+    expect(addCalendarMonths('2023-12-31', 2)).toBe('2024-02-29');
   });
 
   it('builds inclusive month ranges', () => {

@@ -7,6 +7,7 @@ import {
   modelScenario,
   NEUTRAL_SCENARIO,
   SCENARIO_LIMITS,
+  scenarioProjection,
   toContract,
 } from './scenario';
 
@@ -102,6 +103,64 @@ describe('scenario model', () => {
     const r = modelScenario(model, { ...NEUTRAL_SCENARIO, productionChangePct: -100 });
     expect(Number.isFinite(r.medianPct)).toBe(true);
     expect(r.medianPct).toBeGreaterThan(-100);
+  });
+});
+
+describe('scenario path', () => {
+  const r = modelScenario(model, { ...NEUTRAL_SCENARIO, brentChangePct: -30, horizonMonths: 6 });
+
+  it('has one point per month and ends at the answer', () => {
+    expect(r.path.map((p) => p.monthOffset)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(r.path[5]).toEqual({
+      monthOffset: 6,
+      changePct: r.medianPct,
+      lowPct: r.lowPct,
+      highPct: r.highPct,
+    });
+  });
+
+  it('moves in equal log steps, like the backend', () => {
+    // Half way in time is half way in logs: β × ln(0.7) × 3/6.
+    expect(r.path[2]?.changePct).toBeCloseTo((Math.exp(0.28 * Math.log(0.7) * 0.5) - 1) * 100, 6);
+  });
+
+  it('widens with time even when nothing changes', () => {
+    const calm = modelScenario(model, { ...NEUTRAL_SCENARIO, horizonMonths: 12 });
+    const widths = calm.path.map((p) => p.highPct - p.lowPct);
+    expect(calm.path.every((p) => Math.abs(p.changePct) < 1e-9)).toBe(true);
+    expect(widths).toEqual([...widths].sort((a, b) => a - b));
+    expect(widths[0]).toBeGreaterThan(0);
+  });
+});
+
+describe('scenarioProjection', () => {
+  const price = { date: '2026-11-06', currency: 'NOK', base: 200, median: 0, low: 0, high: 0 };
+  const path = [
+    { monthOffset: 1, changePct: -2, lowPct: -8, highPct: 4 },
+    { monthOffset: 2, changePct: -4, lowPct: -13, highPct: 6 },
+    { monthOffset: 3, changePct: -6, lowPct: -17, highPct: 7.5 },
+  ];
+
+  it('starts at the last close with a range of zero width', () => {
+    expect(scenarioProjection({ price, path })[0]).toEqual({
+      date: '2026-11-06',
+      price: 200,
+      low: 200,
+      high: 200,
+    });
+  });
+
+  it('puts one point a month after the last close, as prices', () => {
+    const [, ...months] = scenarioProjection({ price, path });
+    expect(months.map((p) => p.date)).toEqual(['2026-12-06', '2027-01-06', '2027-02-06']);
+    expect(months.map((p) => p.price)).toEqual([196, 192, 188]);
+    expect(months.map((p) => p.low)).toEqual([184, 174, 166]);
+    expect(months.map((p) => p.high)).toEqual([208, 212, 215]);
+  });
+
+  it('draws nothing without a share price or a path', () => {
+    expect(scenarioProjection({ price: null, path })).toEqual([]);
+    expect(scenarioProjection({ price, path: [] })).toEqual([]);
   });
 });
 
