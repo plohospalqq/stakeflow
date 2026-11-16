@@ -49,6 +49,44 @@ describe('Company detail', () => {
     );
   });
 
+  it('names the fields its estimate cannot see yet, with the company share', async () => {
+    renderWithProviders(<div />, { routes, route: '/companies/aker-bp' });
+    const watch = await screen.findByRole('complementary', {
+      name: 'What the estimate cannot see yet',
+    });
+    // Not producing yet: nothing of ours to show, so the name leads to Sodir's page
+    const fenris = await within(watch).findByRole('link', { name: /^Fenris/ });
+    expect(fenris).toHaveAttribute('href', expect.stringContaining('factpages.sodir.no'));
+    expect(fenris.closest('li')).toHaveTextContent('77.8% share · approved Jun 2023');
+    // Irpa is Equinor's and Petoro's, Johan Castberg has no Aker BP share
+    expect(within(watch).queryByRole('link', { name: /^Irpa/ })).toBeNull();
+    expect(within(watch).queryByText('In their first year')).toBeNull();
+  });
+
+  it('shows a field in its first year with what the company gets from it', async () => {
+    renderWithProviders(<div />, { routes, route: '/companies/var-energi' });
+    const watch = await screen.findByRole('complementary', {
+      name: 'What the estimate cannot see yet',
+    });
+    const castberg = await within(watch).findByRole('link', { name: 'Johan Castberg' });
+    expect(castberg).toHaveAttribute('href', '/fields/32017325');
+    // 30% of 180 thousand barrels a day
+    expect(castberg.closest('li')).toHaveTextContent(
+      '30.0% share · 6 months of production · 54.0 k barrels/day',
+    );
+  });
+
+  it('says when a company has no field waiting to start', async () => {
+    vi.spyOn(extras, 'startups').mockResolvedValue([]);
+    renderWithProviders(<div />, { routes, route: '/companies/aker-bp' });
+    const watch = await screen.findByRole('complementary', {
+      name: 'What the estimate cannot see yet',
+    });
+    expect(
+      await within(watch).findByText(/No field of Aker BP is waiting to start/),
+    ).toBeInTheDocument();
+  });
+
   it('says so when the company does not exist', async () => {
     renderWithProviders(<div />, { routes, route: '/companies/nope' });
     expect(

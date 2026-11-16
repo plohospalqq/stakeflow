@@ -30,6 +30,7 @@ export const queryKeys = {
   fieldOutlines: ['fields', 'outlines'] as const,
   fieldForecast: (id: number) => ['field', id, 'forecast'] as const,
   nowcasts: ['nowcasts'] as const,
+  startups: ['startups'] as const,
   predictionLog: ['predictions'] as const,
   anomalies: ['anomalies'] as const,
   prices: ['prices'] as const,
@@ -247,6 +248,10 @@ export function useAskTables() {
 
 export function useSummary() {
   return useQuery({ queryKey: queryKeys.summary, queryFn: () => core.summary() });
+}
+
+export function useStartups() {
+  return useQuery({ queryKey: queryKeys.startups, queryFn: () => extras.startups() });
 }
 
 export function useFieldTimeline() {

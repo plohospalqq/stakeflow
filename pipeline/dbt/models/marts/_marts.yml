@@ -174,6 +174,36 @@ models:
       - name: producing_field_count
         description: Fields with production net to the group that month.
 
+  - name: fct_field_startups
+    description: >
+      Watchlist of fields the decline model cannot see or fit yet: approved for production
+      with nothing produced in the last year, or under 12 months of production. Sodir gives no
+      expected start date or volume here, so it lists them; it does not forecast them.
+    columns:
+      - name: field_id
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_field'), field: field_id}
+      - name: stage
+        description: "'approved' (not producing yet) or 'ramping' (under 12 months of production)."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [approved, ramping]}
+      - name: approved_on
+        description: Start of the current 'Approved for production' status (approved fields only).
+      - name: first_production_month
+        description: First month with production (ramping fields only).
+      - name: months_producing
+        description: Months since first production, counting both ends (ramping fields only).
+        tests:
+          - dbt_expression_between:
+              arguments: {min: 1, max: 11}
+      - name: latest_boe_per_day
+        description: Production in the latest month of data (ramping fields only).
+
   - name: fct_publication_lag
     description: Days between month end and the first snapshot containing that month (bounded by the previous snapshot).
     columns:

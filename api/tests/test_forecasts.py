@@ -99,3 +99,23 @@ def test_q3_2026_backtest_is_scored_against_the_trading_update(api):
     assert q3["baseline"] == 383.6
     assert q3["reportedOn"] == "2026-10-14"
     assert q3["asOf"] == "2026-09-30"
+
+
+def test_startups_list_blind_spots_with_their_owners(api):
+    rows = api.get("/startups").json()
+    assert rows, "the shelf always has fields approved or ramping up"
+    stages = [r["stage"] for r in rows]
+    assert set(stages) <= {"approved", "ramping"}
+    assert stages == sorted(stages)  # approved first
+    for r in rows:
+        shares = [o["sharePct"] for o in r["owners"]]
+        assert shares == sorted(shares, reverse=True) and sum(shares) <= 100.0001
+        if r["stage"] == "approved":
+            assert r["monthsProducing"] is None and r["latestBoePerDay"] is None
+        else:
+            assert 1 <= r["monthsProducing"] <= 11 and r["firstProductionMonth"]
+
+    aker = api.get("/startups", params={"company": "aker-bp"}).json()
+    assert aker and len(aker) < len(rows)
+    assert all(any(o["companyId"] == "aker-bp" for o in r["owners"]) for r in aker)
+    assert api.get("/startups", params={"company": "no-such-company"}).json() == []

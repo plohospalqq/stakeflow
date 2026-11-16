@@ -62,6 +62,7 @@ export function staticRoute(path: string, query: Query = {}): StaticRoute | null
 
   // Models and markets: one file each, exported as the API answers them.
   if (root === 'nowcasts' && !id) return { file: 'models/nowcasts.json' };
+  if (root === 'startups' && !id) return { file: 'models/startups.json' };
   // Only the newest row per quarter is exported, the way every page asks for it.
   if (root === 'predictions' && !id && query.latest === true) {
     return { file: 'models/predictions.json' };

@@ -26,6 +26,16 @@ models:
           - not_null
           - dbt_expression_between:
               arguments: {min: 0, max: 100}
+  - name: stg_sodir__field_status_history
+    description: >
+      Status history per field (approved for production, producing, shut down), one row per
+      period. valid_to is exclusive; an open period ends 9999-12-31.
+    columns:
+      - name: field_id
+        tests: [not_null]
+      - name: status
+        tests: [not_null]
+
   - name: stg_sodir__production_monthly
     description: Monthly net (saleable) production per field in Sm³.
     tests:

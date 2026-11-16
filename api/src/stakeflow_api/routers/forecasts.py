@@ -15,12 +15,14 @@ from psycopg.errors import UndefinedTable
 from stakeflow_api.db import fetch_all, fetch_one, get_conn
 from stakeflow_api.schemas import (
     FieldForecast,
+    FieldStartup,
     FitWindow,
     ForecastPoint,
     ModelCard,
     Nowcast,
     PredictionKind,
     PredictionRecord,
+    StartupOwner,
 )
 
 router = APIRouter(tags=["forecasts"])
@@ -137,6 +139,64 @@ def nowcasts(conn: Conn) -> list[Nowcast]:
             status=r["status"],
             expected_report_on=r["expected_report_on"],
             report_kind=r["report_kind"],
+        )
+        for r in rows
+    ]
+
+
+@router.get("/startups", response_model=list[FieldStartup], response_model_by_alias=True)
+def startups(
+    conn: Conn,
+    company: Annotated[
+        str | None, Query(max_length=40, description="Only fields this company holds a share in")
+    ] = None,
+) -> list[FieldStartup]:
+    """Fields approved but not producing yet, or in their first year of production.
+
+    A decline model cannot see the first kind and has nothing to fit on the second, which is
+    where a quarterly nowcast misses most. Sodir publishes no expected start date or volume in
+    its tables, so this is a watchlist, not a forecast. Approved fields first (oldest approval
+    first), then the ramping ones, youngest first.
+    """
+    with _forecasts_built():
+        rows = fetch_all(
+            conn,
+            """
+            with owners as (
+                select o.field_id, o.group_id, g.display_name, sum(o.share_pct) as share_pct
+                from marts.fct_field_ownership as o
+                join marts.dim_company_group as g on g.group_id = o.group_id
+                where o.is_current
+                group by o.field_id, o.group_id, g.display_name
+            )
+            select s.*,
+                   coalesce(
+                       (select json_agg(json_build_object(
+                                   'company_id', o.group_id, 'company_name', o.display_name,
+                                   'share_pct', o.share_pct) order by o.share_pct desc)
+                        from owners as o where o.field_id = s.field_id),
+                       '[]'::json) as owners
+            from marts.fct_field_startups as s
+            where %(company)s::text is null
+               or exists (select 1 from owners as o
+                          where o.field_id = s.field_id and o.group_id = %(company)s)
+            order by s.stage, s.approved_on, s.months_producing, s.name
+            """,
+            {"company": company},
+        )
+    return [
+        FieldStartup(
+            field_id=r["field_id"],
+            field_name=r["name"],
+            stage=r["stage"],
+            approved_on=r["approved_on"],
+            first_production_month=r["first_production_month"],
+            months_producing=r["months_producing"],
+            latest_boe_per_day=(
+                float(r["latest_boe_per_day"]) if r["latest_boe_per_day"] is not None else None
+            ),
+            factpage_url=r["factpage_url"],
+            owners=[StartupOwner(**o) for o in r["owners"]],
         )
         for r in rows
     ]

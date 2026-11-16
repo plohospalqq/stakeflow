@@ -369,6 +369,31 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/startups': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Startups
+     * @description Fields approved but not producing yet, or in their first year of production.
+     *
+     *     A decline model cannot see the first kind and has nothing to fit on the second, which is
+     *     where a quarterly nowcast misses most. Sodir publishes no expected start date or volume in
+     *     its tables, so this is a watchlist, not a forecast. Approved fields first (oldest approval
+     *     first), then the ramping ones, youngest first.
+     */
+    get: operations['startups_startups_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/predictions': {
     parameters: {
       query?: never;
@@ -865,6 +890,41 @@ export interface components {
       oeSm3: number;
       /** Boeperday */
       boePerDay: number;
+    };
+    /**
+     * FieldStartup
+     * @description A field the decline model cannot see or fit yet: a blind spot of the quarterly nowcast.
+     */
+    FieldStartup: {
+      /** Fieldid */
+      fieldId: number;
+      /** Fieldname */
+      fieldName: string;
+      /**
+       * Stage
+       * @description `approved`: approved for production, nothing produced in the last year. `ramping`: under
+       *     12 months of production, held at its best recent month.
+       * @enum {string}
+       */
+      stage: 'approved' | 'ramping';
+      /**
+       * Approvedon
+       * @description Start of the current 'Approved for production' status (approved fields).
+       */
+      approvedOn: string | null;
+      /** Firstproductionmonth */
+      firstProductionMonth: string | null;
+      /** Monthsproducing */
+      monthsProducing: number | null;
+      /** Latestboeperday */
+      latestBoePerDay: number | null;
+      /** Factpageurl */
+      factpageUrl: string | null;
+      /**
+       * Owners
+       * @description Current owners by company group, largest share first.
+       */
+      owners: components['schemas']['StartupOwner'][];
     };
     /** FieldSummary */
     FieldSummary: {
@@ -1701,6 +1761,15 @@ export interface components {
       /** Series */
       series: components['schemas']['SummaryPoint'][];
     };
+    /** StartupOwner */
+    StartupOwner: {
+      /** Companyid */
+      companyId: string;
+      /** Companyname */
+      companyName: string;
+      /** Sharepct */
+      sharePct: number;
+    };
     /** SummaryField */
     SummaryField: {
       /** Id */
@@ -2312,6 +2381,38 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Nowcast'][];
+        };
+      };
+    };
+  };
+  startups_startups_get: {
+    parameters: {
+      query?: {
+        /** @description Only fields this company holds a share in */
+        company?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FieldStartup'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };

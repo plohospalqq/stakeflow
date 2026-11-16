@@ -16,6 +16,7 @@ import type {
   FieldMonthly,
   FieldOutlines,
   FieldStatus,
+  FieldStartup,
   FieldSummary,
   Freshness,
   LatestPrices,
@@ -56,6 +57,8 @@ export interface ExtrasApi {
   fieldForecast(id: number): Promise<FieldForecast>;
   /** The newest live prediction per focus company, for the open quarter. */
   nowcasts(): Promise<Nowcast[]>;
+  /** GET /startups: fields approved but not producing, or in their first year. */
+  startups(): Promise<FieldStartup[]>;
   /** The newest row per company, quarter and kind: live and backtest rows both. */
   predictionLog(): Promise<Prediction[]>;
   anomalies(): Promise<Anomaly[]>;

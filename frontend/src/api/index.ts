@@ -62,6 +62,7 @@ const demoExtras: ExtrasApi = {
   ...mockExtras,
   fieldForecast: (id) => staticExtras.fieldForecast(id),
   nowcasts: () => staticExtras.nowcasts(),
+  startups: () => staticExtras.startups(),
   predictionLog: () => staticExtras.predictionLog(),
   anomalies: () => staticExtras.anomalies(),
   prices: () => staticExtras.prices(),

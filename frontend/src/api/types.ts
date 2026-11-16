@@ -250,6 +250,28 @@ export interface Nowcast {
 }
 
 /**
+ * A field the decline model cannot see or fit yet, so the quarterly estimate misses it:
+ * `approved` (approved for production, nothing produced in the last year) or `ramping` (under
+ * 12 months of production, held at its best recent month). A watchlist from Sodir's field
+ * status and production; Sodir's tables give no expected start date or volume.
+ */
+export interface FieldStartup {
+  fieldId: number;
+  /** Title-cased for display. */
+  fieldName: string;
+  stage: 'approved' | 'ramping';
+  /** When the current approval began (approved fields). */
+  approvedOn: string | null;
+  firstProductionMonth: Month | null;
+  monthsProducing: number | null;
+  latestBoePerDay: number | null;
+  /** Sodir's fact page, where the development plan is described; null if not a safe link. */
+  factpageUrl: string | null;
+  /** Current owners by company group, largest share first. */
+  owners: { companyId: string; companyName: string; sharePct: number }[];
+}
+
+/**
  * `live`: made before the quarter's numbers existed (the quarter-end one is committed to
  * GitHub). `backtest`: replayed from today's data, cut to what was published by the quarter
  * end. Never mixed: they are scored and shown apart.

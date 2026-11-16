@@ -16,6 +16,7 @@ import type {
   AnomalyHit,
   AskReply,
   FieldForecast,
+  FieldStartup,
   LatestPrices,
   ModelCard,
   Nowcast,
@@ -75,6 +76,24 @@ export function mapNowcast(n: Schemas['Nowcast']): Nowcast {
     monthsInData: n.monthsInData,
     expectedReportOn: n.expectedReportOn,
     reportKind: n.reportKind,
+  };
+}
+
+export function mapStartup(s: Schemas['FieldStartup']): FieldStartup {
+  return {
+    fieldId: s.fieldId,
+    fieldName: titleCaseName(s.fieldName),
+    stage: s.stage,
+    approvedOn: s.approvedOn,
+    firstProductionMonth: s.firstProductionMonth,
+    monthsProducing: s.monthsProducing,
+    latestBoePerDay: s.latestBoePerDay,
+    factpageUrl: safeExternalUrl(s.factpageUrl),
+    owners: s.owners.map((o) => ({
+      companyId: o.companyId,
+      companyName: o.companyName,
+      sharePct: o.sharePct,
+    })),
   };
 }
 
@@ -331,6 +350,9 @@ export function createExtras(get: JsonGetter, post: JsonPoster): ExtrasApi {
     },
     async nowcasts() {
       return (await get<Schemas['Nowcast'][]>('/nowcasts')).map(mapNowcast);
+    },
+    async startups() {
+      return (await get<Schemas['FieldStartup'][]>('/startups')).map(mapStartup);
     },
     async predictionLog() {
       const rows = await get<Schemas['PredictionRecord'][]>('/predictions', { latest: true });

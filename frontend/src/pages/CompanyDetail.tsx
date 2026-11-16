@@ -43,6 +43,7 @@ import { CompanyFacts } from './company/CompanyFacts';
 import { CompanySwitcher } from './company/CompanySwitcher';
 import { FieldStackCard } from './company/FieldStackCard';
 import { NowcastCard } from './company/NowcastCard';
+import { StartupWatch } from './company/StartupWatch';
 import { ReconciliationCard } from './company/ReconciliationCard';
 import { RevenueCard } from './company/RevenueCard';
 import { useRevenue, type RevenueModel } from './company/useRevenue';
@@ -426,11 +427,10 @@ export default function CompanyDetail() {
             onRetry={() => void log.refetch()}
           />
         </div>
-        {simple && view ? (
-          <div className="min-w-0 nav:col-span-2">
-            <CompanyFacts company={c} />
-          </div>
-        ) : null}
+        <div className="flex min-w-0 flex-col gap-5 nav:col-span-2">
+          {nowcast ? <StartupWatch companyId={id} companyName={title} /> : null}
+          {simple && view ? <CompanyFacts company={c} /> : null}
+        </div>
       </div>
     </Page>
   );

@@ -21,7 +21,7 @@ import type {
   Severity,
 } from '../types';
 import { answerQuestion, ASK_TABLES } from './ask';
-import { FOCUS_IDS } from './core';
+import { FOCUS_IDS, MOCK_LATEST_MONTH } from './core';
 import { mockScenarioApi } from './scenario';
 import { SEED_FIELDS, SEED_GROUPS } from './seedFields';
 
@@ -392,6 +392,51 @@ export function createMockExtras(core: CoreApi): ExtrasApi {
     },
 
     predictionLog: async () => predictionLog(),
+
+    // Sample. The approved ones are real (names, shares, Sodir pages); the ramping one is a
+    // field the mock core has, so its link leads somewhere.
+    startups: async () => [
+      {
+        fieldId: 42002478,
+        fieldName: 'Fenris',
+        stage: 'approved',
+        approvedOn: '2023-06-05',
+        firstProductionMonth: null,
+        monthsProducing: null,
+        latestBoePerDay: null,
+        factpageUrl: 'https://factpages.sodir.no/en/field/PageView/All/42002478',
+        owners: [{ companyId: 'aker-bp', companyName: 'Aker BP', sharePct: 77.8 }],
+      },
+      {
+        fieldId: 42002482,
+        fieldName: 'Irpa',
+        stage: 'approved',
+        approvedOn: '2023-06-28',
+        firstProductionMonth: null,
+        monthsProducing: null,
+        latestBoePerDay: null,
+        factpageUrl: 'https://factpages.sodir.no/en/field/PageView/All/42002482',
+        owners: [
+          { companyId: 'equinor', companyName: 'Equinor (NCS only)', sharePct: 51 },
+          { companyId: 'petoro', companyName: 'Petoro (SDFI)', sharePct: 20 },
+        ],
+      },
+      {
+        fieldId: 32017325,
+        fieldName: 'Johan Castberg',
+        stage: 'ramping',
+        approvedOn: null,
+        firstProductionMonth: addMonths(MOCK_LATEST_MONTH, -5),
+        monthsProducing: 6,
+        latestBoePerDay: 180_000,
+        factpageUrl: null,
+        owners: [
+          { companyId: 'equinor', companyName: 'Equinor (NCS only)', sharePct: 46.3 },
+          { companyId: 'var-energi', companyName: 'Vår Energi', sharePct: 30 },
+          { companyId: 'petoro', companyName: 'Petoro (SDFI)', sharePct: 23.7 },
+        ],
+      },
+    ],
 
     anomalies: async () => anomalies(),
 

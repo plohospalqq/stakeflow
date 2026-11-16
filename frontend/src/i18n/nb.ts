@@ -616,7 +616,7 @@ export const nb: Dict = {
       ramp_up:
         'Feltet vokser fortsatt etter oppstart, så det er ikke på en fallkurve ennå. Prognosen holder det på de tre siste månedene; den faktiske produksjonen kan fortsette å stige.',
       too_short:
-        'Feltet har produsert i under ett år, for kort til å tilpasse en kurve. Prognosen holder det på de tre siste månedene.',
+        'Feltet har produsert i under ett år, for kort til å tilpasse en kurve. Det trapper fortsatt opp, så prognosen holder det på den beste av de tre siste månedene.',
     },
     how2: 'Den stiplede linjen er det mest sannsynlige forløpet. Det skraverte båndet viser hvor produksjonen bør havne <b>8 av 10 ganger</b>; det blir bredere fordi den fjerne framtiden er mer usikker. Produktvisningene fordeler totalen etter miksen de siste 12 månedene.',
     noForecastText:
@@ -1013,6 +1013,25 @@ export const nb: Dict = {
           'Gina Krog falt mest (−58 % i august 2026 mot august 2025), deretter Kristin, Edvard Grieg, Ormen Lange og Tyrving. Johan Sverdrup er ned mindre, 15 %, men det er det største fallet i volum: −110 kboe/d.',
       },
     },
+  },
+
+  startups: {
+    title: 'Det anslaget ikke ser ennå',
+    lede: 'Kvartalsanslaget bygger på hvert felts tidligere produksjon. Disse feltene til {company} har ingen ennå, eller under ett år med produksjon.',
+    approved: 'Godkjent, produserer ikke ennå',
+    approvedNote: 'Ikke med i anslaget før produksjonen starter.',
+    ramping: 'I sitt første år',
+    rampingNote: 'Holdes på sin beste måned nylig: det finnes ingen nedgang å tilpasse ennå.',
+    share: '{share} andel',
+    approvedSince: 'godkjent {date}',
+    months: {
+      one: '{n} måned med produksjon',
+      other: '{n} måneder med produksjon',
+    },
+    none: 'Ingen felt hos {company} venter på oppstart eller er i sitt første år akkurat nå.',
+    source:
+      'Kilde: Sodirs feltstatus og produksjon. Forventet oppstart eller volum publiseres ikke der.',
+    failed: 'Listen over oppstarter kunne ikke lastes.',
   },
 
   scenarios: {

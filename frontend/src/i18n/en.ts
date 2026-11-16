@@ -615,7 +615,7 @@ export const en = {
       ramp_up:
         'This field is still growing after start-up, so it is not on a decline curve yet. The forecast holds it at its last three months; real output may keep rising.',
       too_short:
-        'This field has produced for less than a year, too short to fit a curve. The forecast holds it at its last three months.',
+        'This field has produced for less than a year, too short to fit a curve. It is still ramping up, so the forecast holds it at the best of its last three months.',
     },
     how2: "The dashed line is the most likely path. The shaded band is where production should land <b>8 times out of 10</b>; it widens because the far future is less certain. Product views split the total by the last 12 months' mix.",
     noForecastText:
@@ -1002,6 +1002,25 @@ export const en = {
           'Gina Krog fell the most (−58% in August 2026 vs August 2025), then Kristin, Edvard Grieg, Ormen Lange and Tyrving. Johan Sverdrup is down a smaller 15%, but that is the largest drop in volume: −110 kboe/d.',
       },
     },
+  },
+
+  startups: {
+    title: 'What the estimate cannot see yet',
+    lede: "The quarterly estimate is built from each field's past production. These fields of {company} have none yet, or less than a year of it.",
+    approved: 'Approved, not producing yet',
+    approvedNote: 'Not in the estimate at all until production starts.',
+    ramping: 'In their first year',
+    rampingNote: 'Held at their best recent month: there is no decline to fit yet.',
+    share: '{share} share',
+    approvedSince: 'approved {date}',
+    months: {
+      one: '{n} month of production',
+      other: '{n} months of production',
+    },
+    none: 'No field of {company} is waiting to start or in its first year right now.',
+    source:
+      'Source: Sodir field status and production. No expected start dates or volumes are published there.',
+    failed: 'The list of start-ups could not be loaded.',
   },
 
   scenarios: {

@@ -287,6 +287,33 @@ class Nowcast(ApiModel):
     report_kind: ReportKind
 
 
+StartupStage = Literal["approved", "ramping"]
+
+
+class StartupOwner(ApiModel):
+    company_id: str
+    company_name: str
+    share_pct: float
+
+
+class FieldStartup(ApiModel):
+    """A field the decline model cannot see or fit yet: a blind spot of the quarterly nowcast."""
+
+    field_id: int
+    field_name: str
+    stage: StartupStage
+    """`approved`: approved for production, nothing produced in the last year. `ramping`: under
+    12 months of production, held at its best recent month."""
+    approved_on: date | None
+    """Start of the current 'Approved for production' status (approved fields)."""
+    first_production_month: date | None
+    months_producing: int | None
+    latest_boe_per_day: float | None
+    factpage_url: str | None
+    owners: list[StartupOwner]
+    """Current owners by company group, largest share first."""
+
+
 class PredictionRecord(ApiModel):
     """One row of the append-only prediction log (kboe/d), with what happened since."""
 

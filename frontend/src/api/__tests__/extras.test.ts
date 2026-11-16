@@ -16,6 +16,7 @@ import {
   mapPriceSeries,
   mapScenario,
   mapSharePrices,
+  mapStartup,
   predictionFileUrl,
 } from '../extras';
 import { ApiError, getJson, parseErrorBody, postJson, queryString } from '../http';
@@ -443,6 +444,32 @@ describe('mapScenario', () => {
     expect(parsed.recognised).toHaveLength(5);
     expect(parsed.companyId).toBe('equinor');
     expect(parsed.assumptions).toHaveLength(1);
+  });
+});
+
+describe('mapStartup', () => {
+  it('title-cases the field and keeps the owners in order', () => {
+    const wire: Schemas['FieldStartup'] = {
+      fieldId: 43568,
+      fieldName: 'HUGIN SATELLITTER',
+      stage: 'approved',
+      approvedOn: '2026-01-01',
+      firstProductionMonth: null,
+      monthsProducing: null,
+      latestBoePerDay: null,
+      factpageUrl: 'https://factpages.sodir.no/en/field/PageView/All/43568',
+      owners: [
+        { companyId: 'aker-bp', companyName: 'Aker BP', sharePct: 87.7 },
+        { companyId: 'c1', companyName: 'Other', sharePct: 12.3 },
+      ],
+    };
+    const s = mapStartup(wire);
+    expect(s.fieldName).toBe('Hugin Satellitter');
+    expect(s.owners.map((o) => o.companyId)).toEqual(['aker-bp', 'c1']);
+    expect(s.stage).toBe('approved');
+    expect(s.factpageUrl).toBe('https://factpages.sodir.no/en/field/PageView/All/43568');
+    // A link from data is only kept when it points where we expect
+    expect(mapStartup({ ...wire, factpageUrl: 'https://example.com/x' }).factpageUrl).toBeNull();
   });
 });
 

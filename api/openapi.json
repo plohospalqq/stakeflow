@@ -969,6 +969,63 @@
         }
       }
     },
+    "/startups": {
+      "get": {
+        "tags": [
+          "forecasts"
+        ],
+        "summary": "Startups",
+        "description": "Fields approved but not producing yet, or in their first year of production.\n\nA decline model cannot see the first kind and has nothing to fit on the second, which is\nwhere a quarterly nowcast misses most. Sodir publishes no expected start date or volume in\nits tables, so this is a watchlist, not a forecast. Approved fields first (oldest approval\nfirst), then the ramping ones, youngest first.",
+        "operationId": "startups_startups_get",
+        "parameters": [
+          {
+            "name": "company",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only fields this company holds a share in",
+              "title": "Company"
+            },
+            "description": "Only fields this company holds a share in"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldStartup"
+                  },
+                  "title": "Response Startups Startups Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/predictions": {
       "get": {
         "tags": [
@@ -2504,6 +2561,107 @@
           "boePerDay"
         ],
         "title": "FieldMonthlyForCompany"
+      },
+      "FieldStartup": {
+        "properties": {
+          "fieldId": {
+            "type": "integer",
+            "title": "Fieldid"
+          },
+          "fieldName": {
+            "type": "string",
+            "title": "Fieldname"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "ramping"
+            ],
+            "title": "Stage",
+            "description": "`approved`: approved for production, nothing produced in the last year. `ramping`: under\n12 months of production, held at its best recent month."
+          },
+          "approvedOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approvedon",
+            "description": "Start of the current 'Approved for production' status (approved fields)."
+          },
+          "firstProductionMonth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firstproductionmonth"
+          },
+          "monthsProducing": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthsproducing"
+          },
+          "latestBoePerDay": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latestboeperday"
+          },
+          "factpageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Factpageurl"
+          },
+          "owners": {
+            "items": {
+              "$ref": "#/components/schemas/StartupOwner"
+            },
+            "type": "array",
+            "title": "Owners",
+            "description": "Current owners by company group, largest share first."
+          }
+        },
+        "type": "object",
+        "required": [
+          "fieldId",
+          "fieldName",
+          "stage",
+          "approvedOn",
+          "firstProductionMonth",
+          "monthsProducing",
+          "latestBoePerDay",
+          "factpageUrl",
+          "owners"
+        ],
+        "title": "FieldStartup",
+        "description": "A field the decline model cannot see or fit yet: a blind spot of the quarterly nowcast."
       },
       "FieldSummary": {
         "properties": {
@@ -4594,6 +4752,29 @@
           "series"
         ],
         "title": "ShelfSummary"
+      },
+      "StartupOwner": {
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "title": "Companyid"
+          },
+          "companyName": {
+            "type": "string",
+            "title": "Companyname"
+          },
+          "sharePct": {
+            "type": "number",
+            "title": "Sharepct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "companyId",
+          "companyName",
+          "sharePct"
+        ],
+        "title": "StartupOwner"
       },
       "SummaryField": {
         "properties": {
