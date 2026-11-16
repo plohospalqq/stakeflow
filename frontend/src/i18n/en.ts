@@ -184,6 +184,8 @@ export const en = {
         'From 10 December 2018 (Eni Norge + Point Resources). The scope is re-checked if the BlueNord combination closes.',
       akerBp:
         'Includes its predecessor Det norske oljeselskap and ABP Norway AS (the former Lundin assets, from 30 June 2022).',
+      petoro:
+        "The Norwegian state's direct financial interest (SDFI), managed by Petoro since 2001.",
     },
   },
 
@@ -194,6 +196,15 @@ export const en = {
     unavailable: 'Sodir · data unavailable',
     next: '{month} expected {from} – {to}',
     line: 'Data from Sodir through {month}. The next month is expected {from} – {to}.',
+  },
+
+  demoNotice: {
+    label: 'About this demo',
+    title: 'Static demo',
+    dataThrough: 'data through {month}',
+    snapshot: 'snapshot {date}',
+    ciSample: 'offline CI sample (history from 2022)',
+    run: 'run the full stack',
   },
 
   footer: {
@@ -720,7 +731,7 @@ export const en = {
     owners: 'Who owns it',
     openDetail: 'Open field detail',
     timeline: 'The whole shelf, month by month',
-    timelineNote: 'Field circles stay at the latest month; the bars show the whole shelf.',
+    timelineNote: 'The field circles follow the month you pick; the bars show the whole shelf.',
     timelineLabel: 'Month on the shelf timeline',
     timelineValue: '{month}: {value} million barrels a day',
     play: 'Replay the last 24 months',
@@ -858,6 +869,10 @@ export const en = {
     footSample:
       'Notes and status changes stay in this browser tab. Field names and owners are real; the anomaly numbers are sample data.',
     vsExpected: 'vs expected',
+    noteBelow:
+      "Output was {pct} below what the field's recent trend suggested: {actual} {unit} against about {expected}.",
+    noteAbove:
+      "Output was {pct} above what the field's recent trend suggested: {actual} {unit} against about {expected}.",
     operator: 'Operator {name}',
     yourNote: 'Your note (this tab only): ',
     hits: 'Hits company production',
@@ -917,6 +932,8 @@ export const en = {
     barsAriaVs: ', {a} against {b}',
     barsAriaFirst: '; first: {label} at {value}',
     emptyChart: 'Empty chart',
+    lineAria: 'Line chart of {n} points in {unit}, from {from} to {to}',
+    truncated: 'Showing the first {n} rows: the query reached the row limit, so there may be more.',
     sql: 'Generated SQL',
     sqlSub: 'Read-only query on the marts schema',
     editQuery: 'Edit the query',
@@ -927,8 +944,64 @@ export const en = {
     copyBlocked: 'Copy is blocked in this browser; select the text instead.',
     rerunNote:
       'Edited queries cannot run from here yet. Copy the SQL and run it read-only in your own database (make psql).',
+    stepUnderstood: 'Understood question',
+    stepFound: {
+      one: 'Found {n} table',
+      other: 'Found {n} tables',
+    },
+    stepRan: 'Ran query',
+    stepRanDetail: '{ms} ms · {rows}',
+    resultRows: {
+      one: '{n} row',
+      other: '{n} rows',
+    },
+    stepCheck: 'Sanity check',
+    notYet: {
+      understood: 'Not one the preview can answer yet',
+      step: 'No query run',
+      detail: 'Nothing was looked up',
+      answer:
+        'This preview only answers a few example questions. Try one of the suggestions; free-form questions arrive when the backend can turn them into read-only SQL.',
+    },
     examplesNote:
-      'The example questions and their answers are in English for now; the live version will answer in the language you ask in.',
+      'Column names and chart labels come from the query itself, so they stay in English.',
+    examples: {
+      akerYear: {
+        question: 'Which Aker BP fields changed the most compared with a year ago?',
+        understood: 'Aker BP, net production by field, Jul–Aug 2026 vs Jul–Aug 2025',
+        check: 'Field rows add up to the company total',
+        answer:
+          'Johan Sverdrup fell the most (−36.7 kboe/d net to Aker BP) as the field comes off plateau, followed by Valhall (−8.0) and Alvheim (−5.9). Solveig grew the most (+6.5). Overall, Aker BP’s net production was 373.9 kboe/d in Jul–Aug 2026, down from 424.1 a year earlier (−12%).',
+      },
+      castbergOwners: {
+        question: 'Who owns the most of Johan Castberg?',
+        understood: 'Current owners of Johan Castberg',
+        check: 'Shares add up to 100%',
+        answer:
+          'Equinor (NCS only) owns the most of Johan Castberg with 46.3%, then Vår Energi with 30.0% and Petoro (the state’s direct interest) with 23.7%. Equinor is also the operator.',
+      },
+      gasTop: {
+        question: 'Top 10 gas fields in 2025',
+        understood: 'Fields ranked by 2025 gas output',
+        check: 'Gas in billion Sm³ of gas, not oil equivalent',
+        answer:
+          'Troll is in a league of its own: 41.0 billion Sm³ of gas in 2025, more than the next five fields together (34.3). Ormen Lange, Oseberg, Aasta Hansteen and Skarv follow.',
+      },
+      varOilShare: {
+        question: "How has Vår Energi's oil share changed?",
+        understood: 'Vår Energi oil share of net production, by year',
+        check: 'Oil + gas + NGL/condensate = 100% each year',
+        answer:
+          'Vår Energi has become more oil-weighted: oil was 59% of its net production in 2021 and about 65% in 2025 and 2026 so far (through August). The step up came in 2025, the year Johan Castberg started producing.',
+      },
+      decline: {
+        question: 'Which fields are declining fastest?',
+        understood: 'Largest drop, Aug 2026 vs Aug 2025, fields above 10 kboe/d a year ago',
+        check: 'One month vs one month: maintenance can move a single month',
+        answer:
+          'Gina Krog fell the most (−58% in August 2026 vs August 2025), then Kristin, Edvard Grieg, Ormen Lange and Tyrving. Johan Sverdrup is down a smaller 15%, but that is the largest drop in volume: −110 kboe/d.',
+      },
+    },
   },
 
   scenarios: {

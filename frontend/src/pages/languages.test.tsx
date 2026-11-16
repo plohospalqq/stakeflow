@@ -28,4 +28,12 @@ describe('Languages', () => {
     ).toBeInTheDocument();
     expect(window.localStorage.getItem('stakeflow-lang')).toBe('nb');
   });
+
+  it('writes anomaly notes in the language of the page, not in English', async () => {
+    act(() => useLangStore.getState().setLang('uk'));
+    renderWithProviders(<div />, { routes, route: '/anomalies' });
+    const notes = await screen.findAllByText(/^Видобуток був на \d+\s?% (нижчий|вищий), ніж/);
+    expect(notes.length).toBeGreaterThan(0);
+    expect(screen.queryByText(/^Output was/)).toBeNull();
+  });
 });

@@ -378,6 +378,10 @@ export interface AskAnswer {
   followUps: string[];
   /** False when the question did not match anything the data (or the preview) can answer. */
   matched: boolean;
+  /** How the result reads best: bars, a line over time, or the table alone. */
+  chartType: 'bar' | 'line' | 'none';
+  /** The 500-row cap was reached: there may be more rows than the ones shown. */
+  truncated: boolean;
 }
 
 /** An answer and where it came from: the AI, or a prepared example and why (UI only). */

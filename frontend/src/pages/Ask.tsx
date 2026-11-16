@@ -8,7 +8,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { useAskTables } from '@/api/hooks';
-import { GOOD_FIRST_QUESTIONS } from '@/api/mock/ask';
+import { exampleQuestions } from '@/api/mock/ask';
 import { DATA_SOURCE } from '@/api/mode';
 import type { AskAnswer } from '@/api/types';
 import { Icon } from '@/components/Icon';
@@ -29,11 +29,11 @@ interface Turn {
  * examples answer, each saying why.
  */
 export default function Ask() {
-  const { m } = useI18n();
+  const { m, lang } = useI18n();
   const tables = useAskTables();
-  const [turns, setTurns] = useState<Turn[]>(() => [
-    { id: 0, question: GOOD_FIRST_QUESTIONS[0] ?? 'Top 10 gas fields in 2025' },
-  ]);
+  const examples = exampleQuestions(lang);
+  // The page opens on the first example, in the language it opened in.
+  const [turns, setTurns] = useState<Turn[]>(() => [{ id: 0, question: examples[0] ?? '' }]);
   const [draft, setDraft] = useState('');
   const [announcement, setAnnouncement] = useState('');
   const lastTurn = useRef<HTMLDivElement>(null);
@@ -136,7 +136,7 @@ export default function Ask() {
             </button>
           </form>
           <p className="lbl m-0">{DATA_SOURCE === 'api' ? m.ask.foot : m.ask.footPreview}</p>
-          <p className="lbl m-0">{m.ask.examplesNote}</p>
+          {lang === 'en' ? null : <p className="lbl m-0">{m.ask.examplesNote}</p>}
         </div>
 
         <aside className="flex min-w-0 flex-[1_1_280px] flex-col gap-4" aria-label={m.ask.help}>
@@ -144,12 +144,11 @@ export default function Ask() {
             <h2 id="try-h" className="display m-0 text-h2 font-semibold">
               {m.ask.goodFirst}
             </h2>
-            {GOOD_FIRST_QUESTIONS.map((q) => (
+            {examples.map((q) => (
               <button
                 key={q}
                 type="button"
                 onClick={() => ask(q)}
-                lang="en"
                 className="min-h-[44px] rounded-2xl bg-surface2 px-3.5 py-2.5 text-left text-[14px] hover:bg-surface3"
               >
                 {q}

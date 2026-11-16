@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/Skeleton';
 import { useI18n } from '@/i18n/useI18n';
 import { formatNumber } from '@/lib/format';
 import { AskBars } from './AskBars';
+import { AskLine } from './AskLine';
 import { SqlBlock } from './SqlBlock';
 
 type View = 'chart' | 'table';
@@ -123,8 +124,32 @@ function ResultTabs({ answer }: { answer: AskAnswer }) {
         ) : null}
       </div>
       <div role="tabpanel" id={`${base}-${view}-panel`} aria-labelledby={`${base}-${view}-tab`}>
-        {view === 'chart' ? <AskBars answer={answer} /> : <ResultTable answer={answer} />}
+        {view === 'table' ? (
+          <ResultTable answer={answer} />
+        ) : answer.chartType === 'line' ? (
+          <AskLine answer={answer} />
+        ) : (
+          <AskBars answer={answer} />
+        )}
       </div>
+    </>
+  );
+}
+
+/** Chart and table when the answer has something to draw; otherwise the rows alone. */
+function Result({ answer }: { answer: AskAnswer }) {
+  const { m, t } = useI18n();
+  const drawable = answer.chartType !== 'none' && answer.chart.length > 0;
+  if (!drawable && answer.rows.length === 0) return null;
+  return (
+    <>
+      {drawable ? <ResultTabs answer={answer} /> : <ResultTable answer={answer} />}
+      {answer.truncated ? (
+        <p className="m-0 flex items-start gap-1.5 px-[18px] pb-3 text-[13px] text-muted">
+          <Icon name="info" size={14} className="mt-0.5 flex-none text-warn-ink" />
+          {t(m.ask.truncated, { n: formatNumber(answer.rows.length, 0) })}
+        </p>
+      ) : null}
     </>
   );
 }
@@ -189,11 +214,9 @@ export function AnswerCard({
                 {m.ask[PREVIEW_NOTE[answer.preview]]}
               </p>
             ) : null}
-            <p lang="en" className="m-0 text-[16px] leading-relaxed">
-              {answer.answer}
-            </p>
+            <p className="m-0 text-[16px] leading-relaxed">{answer.answer}</p>
           </div>
-          {answer.matched && answer.chart.length > 0 ? <ResultTabs answer={answer} /> : null}
+          {answer.matched ? <Result answer={answer} /> : null}
           {answer.sql ? <SqlBlock answer={answer} /> : null}
         </>
       )}
@@ -205,7 +228,6 @@ export function AnswerCard({
               <button
                 key={f}
                 type="button"
-                lang="en"
                 className="min-h-[40px] rounded-full bg-surface2 px-3.5 text-left text-[14px] hover:bg-surface3 max-nav:min-h-[44px]"
                 onClick={() => onAsk(f)}
               >

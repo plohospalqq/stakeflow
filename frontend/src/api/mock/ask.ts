@@ -6,6 +6,10 @@
  * numbers below are its actual output for Sodir data through Aug 2026. Anything else gets an
  * honest "not yet" reply. Every follow-up offered is a question the preview can answer.
  */
+import { DICTS } from '@/i18n/dicts';
+import { fill, pluralize } from '@/i18n/text';
+import { LANGS, type Lang } from '@/i18n/types';
+import { useLangStore } from '@/stores/language';
 import type { AskAnswer, AskPreviewReason, AskReply, AskTable } from '../types';
 
 export const ASK_TABLES: AskTable[] = [
@@ -33,35 +37,49 @@ export const ASK_TABLES: AskTable[] = [
   { name: 'marts.dim_company_group', description: 'Company groups and their display names' },
 ];
 
-export const GOOD_FIRST_QUESTIONS = [
-  'Which Aker BP fields changed the most compared with a year ago?',
-  'Who owns the most of Johan Castberg?',
-  'Top 10 gas fields in 2025',
-  "How has Vår Energi's oil share changed?",
-  'Which fields are declining fastest?',
-];
+/** The prepared examples, in the order they are offered. Their words live in the dictionaries. */
+export const EXAMPLE_IDS = [
+  'akerYear',
+  'castbergOwners',
+  'gasTop',
+  'varOilShare',
+  'decline',
+] as const;
+export type ExampleId = (typeof EXAMPLE_IDS)[number];
 
-type Canned = Omit<AskAnswer, 'question' | 'matched' | 'followUps'> & {
+/** The example questions in a language (the reader's by default). */
+export function exampleQuestions(lang: Lang = useLangStore.getState().lang): string[] {
+  return EXAMPLE_IDS.map((id) => DICTS[lang].ask.examples[id].question);
+}
+
+/** English, for tests and anything that needs a fixed wording. */
+export const GOOD_FIRST_QUESTIONS = exampleQuestions('en');
+
+/** The numbers of an example: SQL, rows and chart. Question, steps and answer are translated. */
+type Canned = Pick<
+  AskAnswer,
+  | 'sql'
+  | 'durationMs'
+  | 'columns'
+  | 'rows'
+  | 'chart'
+  | 'chartUnit'
+  | 'chartLegend'
+  | 'chartType'
+  | 'truncated'
+> & {
+  id: ExampleId;
+  /** English words that pick this example out of a free-text question. */
   keywords: string[];
+  /** The marts tables the SQL reads, as the "found tables" step lists them. */
+  tables: string[];
 };
 
 const CANNED: Canned[] = [
   {
+    id: 'akerYear',
     keywords: ['aker', 'year ago'],
-    steps: [
-      {
-        label: 'Understood question',
-        detail: 'Aker BP, net production by field, Jul–Aug 2026 vs Jul–Aug 2025',
-      },
-      {
-        label: 'Found 2 tables',
-        detail: 'fct_company_field_production_monthly, dim_field',
-      },
-      { label: 'Ran query', detail: '5 ms · 6 rows' },
-      { label: 'Sanity check', detail: 'Field rows add up to the company total' },
-    ],
-    answer:
-      'Johan Sverdrup fell the most (−36.7 kboe/d net to Aker BP) as the field comes off plateau, followed by Valhall (−8.0) and Alvheim (−5.9). Solveig grew the most (+6.5). Overall, Aker BP’s net production was 373.9 kboe/d in Jul–Aug 2026, down from 424.1 a year earlier (−12%).',
+    tables: ['fct_company_field_production_monthly', 'dim_field'],
     sql: `WITH by_field AS (
     SELECT f.name AS field,
            SUM(p.oe_sm3) FILTER (WHERE p.month >= DATE '2026-07-01') * 6.2898 / 62 / 1000
@@ -100,17 +118,13 @@ LIMIT 6;`,
     ],
     chartUnit: 'kboe/d',
     chartLegend: { current: 'Jul–Aug 2026', previous: 'Jul–Aug 2025' },
+    chartType: 'bar',
+    truncated: false,
   },
   {
+    id: 'castbergOwners',
     keywords: ['castberg', 'owns'],
-    steps: [
-      { label: 'Understood question', detail: 'Current owners of Johan Castberg' },
-      { label: 'Found 3 tables', detail: 'fct_field_ownership, dim_field, dim_company_group' },
-      { label: 'Ran query', detail: '1 ms · 3 rows' },
-      { label: 'Sanity check', detail: 'Shares add up to 100%' },
-    ],
-    answer:
-      'Equinor (NCS only) owns the most of Johan Castberg with 46.3%, then Vår Energi with 30.0% and Petoro (the state’s direct interest) with 23.7%. Equinor is also the operator.',
+    tables: ['fct_field_ownership', 'dim_field', 'dim_company_group'],
     sql: `SELECT g.display_name AS owner, SUM(o.share_pct) AS share_pct
 FROM marts.fct_field_ownership o
 JOIN marts.dim_field f ON f.field_id = o.field_id
@@ -132,17 +146,13 @@ ORDER BY share_pct DESC;`,
     ],
     chartUnit: '%',
     chartLegend: { current: 'Share today', previous: null },
+    chartType: 'bar',
+    truncated: false,
   },
   {
+    id: 'gasTop',
     keywords: ['gas', 'top'],
-    steps: [
-      { label: 'Understood question', detail: 'Fields ranked by 2025 gas output' },
-      { label: 'Found 2 tables', detail: 'fct_field_production_monthly, dim_field' },
-      { label: 'Ran query', detail: '1 ms · 10 rows' },
-      { label: 'Sanity check', detail: 'Gas in billion Sm³ of gas, not oil equivalent' },
-    ],
-    answer:
-      'Troll is in a league of its own: 41.0 billion Sm³ of gas in 2025, more than the next five fields together (34.3). Ormen Lange, Oseberg, Aasta Hansteen and Skarv follow.',
+    tables: ['fct_field_production_monthly', 'dim_field'],
     sql: `SELECT f.name AS field, SUM(p.gas_sm3) / 1e9 AS gas_bn_sm3
 FROM marts.fct_field_production_monthly p
 JOIN marts.dim_field f ON f.field_id = p.field_id
@@ -178,17 +188,13 @@ LIMIT 10;`,
     ],
     chartUnit: 'bn Sm³',
     chartLegend: { current: '2025', previous: null },
+    chartType: 'bar',
+    truncated: false,
   },
   {
+    id: 'varOilShare',
     keywords: ['vår', 'oil share'],
-    steps: [
-      { label: 'Understood question', detail: 'Vår Energi oil share of net production, by year' },
-      { label: 'Found 1 table', detail: 'fct_group_production_monthly' },
-      { label: 'Ran query', detail: '1 ms · 6 rows' },
-      { label: 'Sanity check', detail: 'Oil + gas + NGL/condensate = 100% each year' },
-    ],
-    answer:
-      'Vår Energi has become more oil-weighted: oil was 59% of its net production in 2021 and about 65% in 2025 and 2026 so far (through August). The step up came in 2025, the year Johan Castberg started producing.',
+    tables: ['fct_group_production_monthly'],
     sql: `SELECT EXTRACT(year FROM month) AS year,
        SUM(oil_sm3) / SUM(oe_sm3) * 100 AS oil_share_pct
 FROM marts.fct_group_production_monthly
@@ -215,23 +221,13 @@ ORDER BY 1;`,
     ],
     chartUnit: '%',
     chartLegend: { current: 'Oil share', previous: null },
+    chartType: 'line',
+    truncated: false,
   },
   {
+    id: 'decline',
     keywords: ['declin', 'fastest'],
-    steps: [
-      {
-        label: 'Understood question',
-        detail: 'Largest drop, Aug 2026 vs Aug 2025, fields above 10 kboe/d a year ago',
-      },
-      { label: 'Found 2 tables', detail: 'fct_field_production_monthly, dim_field' },
-      { label: 'Ran query', detail: '6 ms · 5 rows' },
-      {
-        label: 'Sanity check',
-        detail: 'One month vs one month: maintenance can move a single month',
-      },
-    ],
-    answer:
-      'Gina Krog fell the most (−58% in August 2026 vs August 2025), then Kristin, Edvard Grieg, Ormen Lange and Tyrving. Johan Sverdrup is down a smaller 15%, but that is the largest drop in volume: −110 kboe/d.',
+    tables: ['fct_field_production_monthly', 'dim_field'],
     sql: `WITH latest AS (SELECT MAX(month) AS m FROM marts.fct_field_production_monthly)
 SELECT f.name AS field,
        (cur.boe_per_day / ago.boe_per_day - 1) * 100 AS change_pct
@@ -262,40 +258,79 @@ LIMIT 5;`,
     ],
     chartUnit: '% decline',
     chartLegend: { current: 'Decline vs a year ago', previous: null },
+    chartType: 'bar',
+    truncated: false,
   },
 ];
 
 function normalise(text: string): string {
-  return text.toLocaleLowerCase('nb-NO').replace(/[’']/g, '');
+  return text.toLocaleLowerCase('nb-NO').replace(/[’']/g, '').trim();
 }
 
+/** An example question in any language, word for word, or the English keywords in free text. */
 function findCanned(question: string): Canned | undefined {
   const q = normalise(question);
-  return CANNED.find((c) => c.keywords.every((k) => q.includes(normalise(k))));
+  const asked = (c: Canned) =>
+    LANGS.some((lang) => normalise(DICTS[lang].ask.examples[c.id].question) === q);
+  return (
+    CANNED.find(asked) ?? CANNED.find((c) => c.keywords.every((k) => q.includes(normalise(k))))
+  );
 }
 
 /** Suggestions must never lead to a dead end, so they come only from answerable questions. */
-function followUpsFor(current: Canned | undefined): string[] {
-  return GOOD_FIRST_QUESTIONS.filter((q) => findCanned(q) !== current).slice(0, 3);
+function followUpsFor(current: Canned | undefined, lang: Lang): string[] {
+  return CANNED.filter((c) => c !== current)
+    .slice(0, 3)
+    .map((c) => DICTS[lang].ask.examples[c.id].question);
 }
 
-/** A prepared answer; `preview` says why one is shown instead of the model's. */
-export function answerQuestion(question: string, preview: AskPreviewReason): AskReply {
+/**
+ * A prepared answer in the reader's language; `preview` says why one is shown instead of the
+ * model's. The numbers are the same in every language: only the words around them change.
+ */
+export function answerQuestion(
+  question: string,
+  preview: AskPreviewReason,
+  lang: Lang = useLangStore.getState().lang,
+): AskReply {
+  const words = DICTS[lang].ask;
   const match = findCanned(question);
   if (match) {
-    const { keywords: _keywords, ...answer } = match;
-    return { ...answer, question, matched: true, followUps: followUpsFor(match), preview };
+    const { id, keywords: _keywords, tables, ...numbers } = match;
+    const text = words.examples[id];
+    return {
+      ...numbers,
+      question,
+      steps: [
+        { label: words.stepUnderstood, detail: text.understood },
+        {
+          label: pluralize(lang, words.stepFound, tables.length),
+          detail: tables.join(', '),
+        },
+        {
+          label: words.stepRan,
+          detail: fill(words.stepRanDetail, {
+            ms: numbers.durationMs,
+            rows: pluralize(lang, words.resultRows, numbers.rows.length),
+          }),
+        },
+        { label: words.stepCheck, detail: text.check },
+      ],
+      answer: text.answer,
+      matched: true,
+      followUps: followUpsFor(match, lang),
+      preview,
+    };
   }
   return {
     question,
     matched: false,
     preview,
     steps: [
-      { label: 'Understood question', detail: 'Not one the preview can answer yet' },
-      { label: 'No query run', detail: 'Nothing was looked up' },
+      { label: words.stepUnderstood, detail: words.notYet.understood },
+      { label: words.notYet.step, detail: words.notYet.detail },
     ],
-    answer:
-      'This preview only answers a few example questions. Try one of the suggestions; free-form questions arrive when the backend can turn them into read-only SQL.',
+    answer: words.notYet.answer,
     sql: '',
     durationMs: 0,
     columns: [],
@@ -303,6 +338,8 @@ export function answerQuestion(question: string, preview: AskPreviewReason): Ask
     chart: [],
     chartUnit: '',
     chartLegend: { current: '', previous: null },
-    followUps: followUpsFor(undefined),
+    chartType: 'none',
+    truncated: false,
+    followUps: followUpsFor(undefined, lang),
   };
 }

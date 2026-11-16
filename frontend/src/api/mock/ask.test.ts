@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { ASK_TABLES, GOOD_FIRST_QUESTIONS, answerQuestion } from './ask';
+import { LANGS } from '@/i18n/types';
+import { ASK_TABLES, GOOD_FIRST_QUESTIONS, answerQuestion, exampleQuestions } from './ask';
 
 const KNOWN_TABLES = new Set(ASK_TABLES.map((t) => t.name));
 
@@ -16,6 +17,30 @@ describe('Ask preview answers', () => {
         expect(answerQuestion(followUp, 'offline').matched, `${question} → ${followUp}`).toBe(true);
       }
     }
+  });
+
+  it('answers every example in the language it was asked in, with the same numbers', () => {
+    const english = GOOD_FIRST_QUESTIONS.map((q) => answerQuestion(q, 'offline', 'en'));
+    for (const lang of LANGS) {
+      exampleQuestions(lang).forEach((question, i) => {
+        const reply = answerQuestion(question, 'offline', lang);
+        expect(reply.matched, question).toBe(true);
+        expect(reply.rows).toEqual(english[i]?.rows);
+        expect(reply.sql).toBe(english[i]?.sql);
+        for (const followUp of reply.followUps) {
+          expect(answerQuestion(followUp, 'offline', lang).matched, followUp).toBe(true);
+        }
+      });
+    }
+    const uk = answerQuestion(exampleQuestions('uk')[2] ?? '', 'offline', 'uk');
+    expect(uk.answer).toMatch(/^Troll поза конкуренцією/);
+    expect(uk.steps.map((s) => s.label)).toEqual([
+      'Зрозумів запитання',
+      'Знайдено 2 таблиці',
+      'Виконав запит',
+      'Перевірка',
+    ]);
+    expect(uk.steps[2]?.detail).toBe('1 мс · 10 рядків');
   });
 
   it('says why a prepared example answered', () => {

@@ -469,6 +469,7 @@ describe('mapAskAnswer', () => {
     });
     expect(a.rows[1]).toEqual(['Tyrving', null]);
     expect(a.preview).toBeNull();
+    expect([a.chartType, a.truncated]).toEqual(['bar', false]);
   });
 });
 

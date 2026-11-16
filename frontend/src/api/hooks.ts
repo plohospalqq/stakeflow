@@ -9,6 +9,7 @@ import { isNotFound, isUnavailable } from './http';
 import { IS_STATIC_DEMO } from './mode';
 import { staticSnapshotInfo } from './static';
 import type { FieldStatus, MonthRange } from './types';
+import { SAMPLE_PRESETS } from './mock/scenario';
 import type { ParseContext, ScenarioParams, ScenarioResult } from './types.scenario';
 
 export const queryKeys = {
@@ -37,6 +38,7 @@ export const queryKeys = {
   askTables: ['ask', 'tables'] as const,
   snapshotInfo: ['snapshot'] as const,
   summary: ['summary'] as const,
+  fieldTimeline: ['fields', 'timeline'] as const,
   sharePrices: (companyId: string) => ['share-prices', companyId] as const,
   scenarioPresets: ['scenario', 'presets'] as const,
   scenario: (companyId: string, params: ScenarioParams) => ['scenario', companyId, params] as const,
@@ -247,6 +249,10 @@ export function useSummary() {
   return useQuery({ queryKey: queryKeys.summary, queryFn: () => core.summary() });
 }
 
+export function useFieldTimeline() {
+  return useQuery({ queryKey: queryKeys.fieldTimeline, queryFn: () => core.fieldTimeline() });
+}
+
 export function useSharePrices(companyId: string) {
   return useQuery({
     queryKey: queryKeys.sharePrices(companyId),
@@ -259,6 +265,9 @@ export function useScenarioPresets() {
   return useQuery({
     queryKey: queryKeys.scenarioPresets,
     queryFn: () => extras.scenarioPresets(),
+    // The ready-made scenarios are part of the contract (same ids and numbers on the server),
+    // so the buttons are there at once instead of popping in after the request.
+    placeholderData: SAMPLE_PRESETS,
     staleTime: Infinity,
     retry: retryUnlessNotFound,
   });

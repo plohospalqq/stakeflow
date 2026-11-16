@@ -310,6 +310,8 @@ export function mapAskAnswer(a: Schemas['AskAnswer']): AskReply {
     chartLegend: { current: a.chartLegend.current, previous: a.chartLegend.previous },
     followUps: [...a.followUps],
     matched: a.matched,
+    chartType: a.chartType,
+    truncated: a.truncated,
     preview: null,
   };
 }

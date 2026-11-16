@@ -182,6 +182,7 @@ export const nb: Dict = {
         'Fra 10. desember 2018 (Eni Norge + Point Resources). Omfanget kontrolleres på nytt hvis sammenslåingen med BlueNord blir gjennomført.',
       akerBp:
         'Inkluderer forgjengeren Det norske oljeselskap og ABP Norway AS (de tidligere Lundin-eiendelene, fra 30. juni 2022).',
+      petoro: 'Statens direkte økonomiske engasjement (SDØE), forvaltet av Petoro siden 2001.',
     },
   },
 
@@ -192,6 +193,15 @@ export const nb: Dict = {
     unavailable: 'Sodir · data utilgjengelig',
     next: '{month} ventes {from} – {to}',
     line: 'Data fra Sodir til og med {month}. Neste måned ventes {from} – {to}.',
+  },
+
+  demoNotice: {
+    label: 'Om denne demoen',
+    title: 'Statisk demo',
+    dataThrough: 'data til og med {month}',
+    snapshot: 'øyeblikksbilde {date}',
+    ciSample: 'frakoblet CI-utvalg (historikk fra 2022)',
+    run: 'kjør hele stacken',
   },
 
   footer: {
@@ -722,7 +732,7 @@ export const nb: Dict = {
     owners: 'Hvem eier det',
     openDetail: 'Åpne feltdetaljer',
     timeline: 'Hele sokkelen, måned for måned',
-    timelineNote: 'Feltsirklene viser siste måned; søylene viser hele sokkelen.',
+    timelineNote: 'Feltsirklene følger måneden du velger; søylene viser hele sokkelen.',
     timelineLabel: 'Måned på tidslinjen for sokkelen',
     timelineValue: '{month}: {value} millioner fat om dagen',
     play: 'Spill av de siste 24 månedene',
@@ -864,6 +874,10 @@ export const nb: Dict = {
     footSample:
       'Notater og statusendringer blir i denne nettleserfanen. Feltnavn og eiere er ekte; anomalitallene er eksempeldata.',
     vsExpected: 'mot forventet',
+    noteBelow:
+      'Produksjonen var {pct} under det feltets nylige trend tilsa: {actual} {unit} mot omtrent {expected}.',
+    noteAbove:
+      'Produksjonen var {pct} over det feltets nylige trend tilsa: {actual} {unit} mot omtrent {expected}.',
     operator: 'Operatør {name}',
     yourNote: 'Ditt notat (bare denne fanen): ',
     hits: 'Påvirker selskapsproduksjon',
@@ -928,6 +942,8 @@ export const nb: Dict = {
     barsAriaVs: ', {a} mot {b}',
     barsAriaFirst: '; først: {label} med {value}',
     emptyChart: 'Tomt diagram',
+    lineAria: 'Linjediagram med {n} punkter i {unit}, fra {from} til {to}',
+    truncated: 'Viser de første {n} radene: spørringen nådde radgrensen, så det kan finnes flere.',
     sql: 'Generert SQL',
     sqlSub: 'Skrivebeskyttet spørring mot marts-skjemaet',
     editQuery: 'Rediger spørringen',
@@ -938,8 +954,65 @@ export const nb: Dict = {
     copyBlocked: 'Kopiering er blokkert i denne nettleseren; marker teksten i stedet.',
     rerunNote:
       'Redigerte spørringer kan ikke kjøres herfra ennå. Kopier SQL-en og kjør den skrivebeskyttet i din egen database (make psql).',
+    stepUnderstood: 'Forsto spørsmålet',
+    stepFound: {
+      one: 'Fant {n} tabell',
+      other: 'Fant {n} tabeller',
+    },
+    stepRan: 'Kjørte spørring',
+    stepRanDetail: '{ms} ms · {rows}',
+    resultRows: {
+      one: '{n} rad',
+      other: '{n} rader',
+    },
+    stepCheck: 'Kontroll',
+    notYet: {
+      understood: 'Ikke et spørsmål forhåndsvisningen kan svare på ennå',
+      step: 'Ingen spørring kjørt',
+      detail: 'Ingenting ble slått opp',
+      answer:
+        'Forhåndsvisningen svarer bare på noen få eksempelspørsmål. Prøv et av forslagene; frie spørsmål kommer når serveren kan gjøre dem om til skrivebeskyttet SQL.',
+    },
     examplesNote:
-      'Eksempelspørsmålene og svarene er på engelsk foreløpig; den ferdige versjonen svarer på språket du spør på.',
+      'Kolonnenavn og diagramtekster kommer fra selve spørringen og er derfor på engelsk.',
+    examples: {
+      akerYear: {
+        question: 'Hvilke Aker BP-felt har endret seg mest sammenlignet med for et år siden?',
+        understood: 'Aker BP, nettoproduksjon per felt, juli–august 2026 mot juli–august 2025',
+        check: 'Feltradene summerer seg til selskapets total',
+        answer:
+          'Johan Sverdrup falt mest (−36,7 kboe/d netto til Aker BP) fordi feltet går av platå, fulgt av Valhall (−8,0) og Alvheim (−5,9). Solveig økte mest (+6,5). Samlet var Aker BPs nettoproduksjon 373,9 kboe/d i juli–august 2026, ned fra 424,1 året før (−12 %).',
+      },
+      castbergOwners: {
+        question: 'Hvem eier mest av Johan Castberg?',
+        understood: 'Dagens eiere av Johan Castberg',
+        check: 'Andelene summerer seg til 100 %',
+        answer:
+          'Equinor (kun norsk sokkel) eier mest av Johan Castberg med 46,3 %, deretter Vår Energi med 30,0 % og Petoro (statens direkte eierandel) med 23,7 %. Equinor er også operatør.',
+      },
+      gasTop: {
+        question: 'Topp 10 gassfelt i 2025',
+        understood: 'Felt rangert etter gassproduksjon i 2025',
+        check: 'Gass i milliarder Sm³ gass, ikke oljeekvivalenter',
+        answer:
+          'Troll er i en klasse for seg: 41,0 milliarder Sm³ gass i 2025, mer enn de fem neste feltene til sammen (34,3). Ormen Lange, Oseberg, Aasta Hansteen og Skarv følger.',
+      },
+      varOilShare: {
+        question: 'Hvordan har oljeandelen til Vår Energi endret seg?',
+        understood: 'Vår Energis oljeandel av nettoproduksjonen, per år',
+        check: 'Olje + gass + NGL/kondensat = 100 % hvert år',
+        answer:
+          'Vår Energi har blitt mer oljetung: olje var 59 % av nettoproduksjonen i 2021 og rundt 65 % i 2025 og hittil i 2026 (til og med august). Hoppet kom i 2025, året Johan Castberg startet produksjonen.',
+      },
+      decline: {
+        question: 'Hvilke felt faller raskest?',
+        understood:
+          'Største fall, august 2026 mot august 2025, felt over 10 kboe/d for et år siden',
+        check: 'Én måned mot én måned: vedlikehold kan flytte en enkelt måned',
+        answer:
+          'Gina Krog falt mest (−58 % i august 2026 mot august 2025), deretter Kristin, Edvard Grieg, Ormen Lange og Tyrving. Johan Sverdrup er ned mindre, 15 %, men det er det største fallet i volum: −110 kboe/d.',
+      },
+    },
   },
 
   scenarios: {

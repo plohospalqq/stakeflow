@@ -54,6 +54,13 @@ describe('Scenario explorer', () => {
     ).toBeInTheDocument();
   });
 
+  it('offers the ready-made scenarios before the server has answered', async () => {
+    vi.spyOn(extras, 'scenarioPresets').mockReturnValue(new Promise(() => undefined));
+    renderWithProviders(<div />, { routes, route: '/scenarios' });
+    const presets = await screen.findByRole('group', { name: 'Ready-made scenarios' });
+    expect(within(presets).getAllByRole('button')).toHaveLength(6);
+  });
+
   it('applies a preset from the link and moves the sliders', async () => {
     renderWithProviders(<div />, { routes, route: '/scenarios?preset=gas-spike&co=equinor' });
     await waitFor(() =>

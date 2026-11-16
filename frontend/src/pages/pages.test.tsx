@@ -1,8 +1,12 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { extras } from '@/api';
+import { answerQuestion } from '@/api/mock/ask';
 import { routes } from '@/routes';
 import { lastLocation, renderWithProviders } from '@/test/render';
+
+afterEach(() => vi.restoreAllMocks());
 
 describe('Company detail', () => {
   it('shows real reconciliation apart from the sample nowcast', async () => {
@@ -126,6 +130,15 @@ describe('Anomalies', () => {
     expect(settled).toHaveLength(3);
     settled.forEach((b) => expect(b).toBeDisabled());
   });
+
+  it('writes the note from the numbers, in the unit on screen', async () => {
+    renderWithProviders(<div />, { routes, route: '/anomalies' });
+    const feed = await screen.findByRole('region', { name: 'Anomaly feed' });
+    const notes = await within(feed).findAllByText(
+      /^Output was \d+% (below|above) what the field's recent trend suggested: [\d.,]+ k barrels\/day against about [\d.,]+\.$/,
+    );
+    expect(notes.length).toBeGreaterThan(0);
+  });
 });
 
 describe('Ask', () => {
@@ -154,5 +167,28 @@ describe('Ask', () => {
     const answer = await screen.findByRole('article', { name: /brent/i });
     expect(within(answer).getByText(/only answers a few example questions/i)).toBeInTheDocument();
     expect(within(answer).queryByRole('tablist')).toBeNull();
+  });
+
+  it('draws a result over time as a line', async () => {
+    renderWithProviders(<div />, { routes, route: '/ask' });
+    await userEvent.type(
+      await screen.findByLabelText('Your question'),
+      "How has Vår Energi's oil share changed?{Enter}",
+    );
+    const answer = await screen.findByRole('article', { name: /oil share/i });
+    expect(
+      await within(answer).findByRole('img', { name: /^Line chart of \d+ points in %, from 2021/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the rows alone when there is nothing to draw, and says when they were cut off', async () => {
+    const reply = answerQuestion('Top 10 gas fields in 2025', 'aiOff');
+    vi.spyOn(extras, 'ask').mockResolvedValue({ ...reply, chartType: 'none', truncated: true });
+    renderWithProviders(<div />, { routes, route: '/ask' });
+    await userEvent.type(await screen.findByLabelText('Your question'), 'Top 10 gas fields{Enter}');
+    const answer = await screen.findByRole('article', { name: /top 10 gas fields/i });
+    expect(await within(answer).findByRole('table')).toBeInTheDocument();
+    expect(within(answer).queryByRole('tablist')).toBeNull();
+    expect(within(answer).getByText(/showing the first 10 rows/i)).toBeInTheDocument();
   });
 });

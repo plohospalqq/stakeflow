@@ -15,6 +15,7 @@ export function CompanyFacts({ company }: { company: CompanyDetail | undefined }
     equinor: m.companyMeta.notes.equinor,
     'var-energi': m.companyMeta.notes.varEnergi,
     'aker-bp': m.companyMeta.notes.akerBp,
+    petoro: m.companyMeta.notes.petoro,
   };
   const note = company ? notes[company.id] : undefined;
   return (

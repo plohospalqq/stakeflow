@@ -76,9 +76,14 @@ export function AnomalyItem({
             <span className="lbl">{t(m.anomalies.operator, { name: a.operatorName })}</span>
           ) : null}
         </div>
-        {/* Notes come from the data feed; they are in English until it serves translations. */}
-        <p lang="en" className="m-0 text-[14px] text-muted">
-          {a.note}
+        {/* Written here from the feed's numbers, so it follows the language and the unit. */}
+        <p className="m-0 text-[14px] text-muted">
+          {t(below ? m.anomalies.noteBelow : m.anomalies.noteAbove, {
+            pct: formatPct(Math.abs(a.pctVsExpected), 0),
+            actual: units.format(inUnit(a.actual, a.month), digits),
+            expected: units.format(inUnit(a.expected, a.month), digits),
+            unit: units.label,
+          })}
         </p>
         {notes.length > 0 ? (
           <ul className="m-0 flex list-none flex-col gap-1 p-0">
