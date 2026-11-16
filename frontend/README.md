@@ -58,9 +58,11 @@ No i18n library: `src/i18n/` is a small typed dictionary module.
   (localStorage), then the browser; `<html lang>` follows. Field and company names stay as they
   are, except the scope label, which is translated and never shortened: "Equinor (NCS only)",
   "Equinor (лише норвезький шельф)", "Equinor (kun norsk sokkel)".
-- Free text that comes from data (anomaly notes, the Ask preview's example answers, the scope
-  notes of non-focus companies) is English and marked `lang="en"` until the backend serves
-  translations.
+- Sentences are written in the app, not shipped by the API, wherever the numbers are enough:
+  an anomaly's note is composed from its percentages and volumes, so it follows the language
+  and the unit, and the Ask preview's examples (question, steps, answer) come from the
+  dictionaries. What still arrives as English text is marked `lang="en"`: the scenario model's
+  caveats and method, Ask's table descriptions and the column names of a query result.
 
 ## Simple words and Expert
 
@@ -174,10 +176,12 @@ src/
   oil share; localized sea names; `lib/mapScale.ts` keeps map and legend in step. Basemap
   place and water names follow the app language (`lib/mapLabels.ts` points every name label at
   the tiles' `name:en`, `name:uk` or `name:no`, then any Latin name; the stock styles print
-  the local script under the Latin name, so Russian towns came out in Cyrillic). The
+  the local script under the Latin name, so Russian towns came out in Cyrillic); the basemap's
+  own water names are hidden, because the app labels the three seas itself. The
   "Fields by production" list is the keyboard and screen-reader way in; the field card closes
-  on Escape and returns focus; on phones it becomes a bottom sheet. The timeline scrubs the
-  shelf total; the field circles stay at the latest month, and the panel says so.
+  on Escape and returns focus; on phones it becomes a bottom sheet. The timeline scrubs two
+  years of the shelf and the field circles follow the picked month (`GET /fields/timeline`,
+  `pages/map/points.ts`): fields appear when they start and shrink as they decline.
 - **Shareable state in the URL**: unit (`?u=`), language (`?lang=`), map field (`?field=`),
   track-record company (`?co=`), scenario company and preset (`?co=`, `?preset=`).
 
@@ -256,9 +260,9 @@ On a phone:
   daily TTF, so the revenue estimate runs "at latest prices", not forward prices.
 - Anomaly status and notes are not stored: the detector flags every anomaly as new.
 - The static demo has no share prices and no scenario model (Euronext terms), and no Ask server.
-- Anomaly notes, the Ask examples and non-focus companies' scope notes are English in every
-  language (marked `lang="en"`).
-- The map circles always show the latest month; the timeline replays the shelf total only.
+- The scenario model's caveats and method text, Ask's table descriptions and result column
+  names are English in every language (marked `lang="en"`).
+- The map's field list stays at the latest month while the circles follow the timeline.
 - The basemap needs network access to `tiles.openfreemap.org`; without it the field list, the
   field card and the timeline still work.
 
