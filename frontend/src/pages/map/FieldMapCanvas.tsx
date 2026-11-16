@@ -14,6 +14,7 @@ import type { FieldOutlines } from '@/api/types';
 import { useChartTheme, type ChartTheme } from '@/hooks/useChartTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useI18n } from '@/i18n/useI18n';
+import { localiseBasemapLabels } from '@/lib/mapLabels';
 import {
   MAP_FONT,
   MAP_STYLES,
@@ -157,7 +158,7 @@ export function FieldMapCanvas({
   padding,
 }: FieldMapCanvasProps) {
   const t = useChartTheme();
-  const { m } = useI18n();
+  const { m, lang } = useI18n();
   const map = useRef<MapRef>(null);
   const [hovering, setHovering] = useState(false);
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
@@ -172,6 +173,11 @@ export function FieldMapCanvas({
     else map.current.flyTo({ ...options, duration: 900 });
     // padding is read when flying, not a reason to fly again.
   }, [flyTo, reduceMotion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A language switch does not reload the style, so no style event re-labels the basemap.
+  useEffect(() => {
+    if (map.current) localiseBasemapLabels(map.current.getMap(), lang);
+  }, [lang]);
 
   const pointData = useMemo(
     () => ({
@@ -331,6 +337,7 @@ export function FieldMapCanvas({
       onStyleData={(e) => {
         fillMissingSprites(e.target);
         tuneBasemap(e.target, t.theme);
+        localiseBasemapLabels(e.target, lang);
       }}
     >
       <NavigationControl position="bottom-right" showCompass={false} />
