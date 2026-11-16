@@ -52,12 +52,18 @@ first figure each company published and against the simple guess "same as last q
 
 | Company | Model error | Simple guess | Comment |
 |---|---:|---:|---|
-| Aker BP | **2.6%** | 3.5% | model better |
-| Equinor (E&P Norway) | **3.6%** | 4.7% | model better |
-| Vår Energi | 9.1% | 8.1% | worse: new fields (Balder X, Johan Castberg) are invisible to a decline model until they produce |
+| Aker BP | **2.8%** | 3.5% | model better |
+| Equinor (E&P Norway) | **3.0%** | 4.7% | model better |
+| Vår Energi | **7.3%** | 8.1% | model better, but still the largest misses: a field that has not started (the Balder redevelopment, Q3 2025: −21%) is invisible to a decline model |
 
-The 80% ranges hold the actual figure 62% of the time, so they are too narrow, and the app says
-so. Live predictions are frozen at each quarter end and committed to `predictions/`
+The 80% range held the published figure in 37 of the 45 quarters (82%). As simulated it was too
+narrow (62%: the model treats field errors as independent, and they are not), so each range is
+now widened by a factor learned only from earlier quarters
+([how](docs/phase-2-forecasting.md#quarterly-nowcast-nowcastpy)). Fields in their first year
+are held at their best recent month instead of the average of their ramp-up, which took Vår
+Energi's error from 9.1% to 7.3%. What the model still cannot see is listed next to every
+estimate: the company page names the fields approved but not producing yet (Aker BP: Fenris
+and the Yggdrasil fields Hugin, Munin and Fulla). Live predictions are frozen at each quarter end and committed to `predictions/`
 by a GitHub Action ([freeze-predictions.yml](.github/workflows/freeze-predictions.yml)); the first one (Q4 2026) is scored when the January trading updates appear.
 
 ## What you can do in the app
@@ -323,8 +329,8 @@ predictions/ quarter-end predictions committed by the freeze workflow (never edi
 Done: Phase 1 (pipeline, warehouse, API, app) and Phase 2 (forecasts, nowcasts, prediction log,
 prices, anomalies, scenario model, Ask, three languages, live demo). Next:
 
-- Calibrate the forecast ranges (80% nominal, about 62% actual) and detect fields that are about
-  to start producing.
+- Give the start-up watchlist expected dates and volumes (Sodir's field tables have none), so
+  a field about to start can be in the estimate instead of only next to it.
 - Score the first live prediction (Q4 2026) against the January trading updates.
 - Run the Ask evaluation set against Claude once an API key is configured (`make eval`).
 
