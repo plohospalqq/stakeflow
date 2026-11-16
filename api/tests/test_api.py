@@ -69,6 +69,29 @@ def test_geojson_has_geometry_and_properties(client):
     assert {"id", "name", "status", "boePerDay"} <= feature["properties"].keys()
 
 
+def test_timeline_matches_the_field_list_and_the_shelf_series(client):
+    timeline = client.get("/fields/timeline").json()
+    summary = client.get("/summary").json()
+    months = timeline["months"]
+    assert months == [p["month"] for p in summary["series"]]
+    assert all(
+        len(f["boePerDay"]) == len(months) and len(f["oilShare"]) == len(months)
+        for f in timeline["fields"]
+    )
+    # Month by month the fields add up to the shelf total the timeline bars show. Not to the
+    # last barrel: a shut-in field's negative net month (fuel gas) is in the total, not on the map
+    for i, point in enumerate(summary["series"]):
+        total = sum(f["boePerDay"][i] for f in timeline["fields"])
+        assert total == pytest.approx(point["boePerDay"], rel=1e-3)
+    # The last month is what the field list calls "latest"
+    latest = {f["id"]: f["latest"] for f in client.get("/fields", params={"limit": 500}).json()}
+    biggest = max(timeline["fields"], key=lambda f: f["boePerDay"][-1])
+    assert biggest["boePerDay"][-1] == pytest.approx(
+        latest[biggest["fieldId"]]["boePerDay"], rel=1e-9
+    )
+    assert all(0 <= share <= 1 for f in timeline["fields"] for share in f["oilShare"])
+
+
 def test_search_is_literal_not_a_like_pattern(client):
     # "%" and "_" are LIKE wildcards; a name search must treat them as plain characters
     assert client.get("/companies", params={"q": "%", "producing": "false"}).json() == []

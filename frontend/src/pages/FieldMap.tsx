@@ -6,6 +6,7 @@ import {
   useFieldProduction,
   useFields,
   useFieldsOwnedBy,
+  useFieldTimeline,
   useSummary,
 } from '@/api/hooks';
 import { USE_MOCKS } from '@/api/mode';
@@ -23,13 +24,9 @@ import { FOCUS_ORDER } from '@/lib/companies';
 import { latestView } from '@/lib/latest';
 import { productKind, productKindColor } from '@/lib/mix';
 import { FieldList, type FieldListRow } from './map/FieldList';
-import {
-  FieldMapCanvas,
-  type FlyTarget,
-  type MapPadding,
-  type MapPoint,
-} from './map/FieldMapCanvas';
+import { FieldMapCanvas, type FlyTarget, type MapPadding } from './map/FieldMapCanvas';
 import { MapLegend } from './map/MapLegend';
+import { mapPoints } from './map/points';
 import { ShelfTimeline } from './map/ShelfTimeline';
 
 const NONE = 'none';
@@ -117,6 +114,9 @@ export default function FieldMap() {
   const fields = useFields();
   const outlines = useFieldOutlines();
   const summary = useSummary();
+  const timeline = useFieldTimeline();
+  // The month picked on the timeline (an index into the shelf series); null = the latest.
+  const [monthIndex, setMonthIndex] = useState<number | null>(null);
   const [owner, setOwner] = useState<string>(NONE);
   const owned = useFieldsOwnedBy(owner === NONE ? null : owner);
   const [selectedId, setSelectedId] = useSelectedField();
@@ -139,23 +139,11 @@ export default function FieldMap() {
     [owner, owned.data],
   );
 
-  const points = useMemo<MapPoint[]>(
-    () =>
-      (fields.data ?? []).flatMap((f) =>
-        f.lon !== null && f.lat !== null && f.latest && f.latest.boePerDay > 0
-          ? [
-              {
-                id: f.id,
-                name: f.name,
-                lon: f.lon,
-                lat: f.lat,
-                kboed: f.latest.boePerDay / 1000,
-                oilShare: f.latest.mix.oil,
-              },
-            ]
-          : [],
-      ),
-    [fields.data],
+  const pickedMonth =
+    monthIndex === null ? null : (summary.data?.series[monthIndex]?.month ?? null);
+  const points = useMemo(
+    () => mapPoints(fields.data ?? [], timeline.data, pickedMonth),
+    [fields.data, timeline.data, pickedMonth],
   );
 
   const listRows = useMemo<FieldListRow[]>(() => {
@@ -348,7 +336,12 @@ export default function FieldMap() {
         </div>
 
         <div className="absolute inset-x-4 bottom-8 flex justify-center">
-          <ShelfTimeline series={summary.data?.series} className="enter w-[min(980px,100%)]" />
+          <ShelfTimeline
+            index={monthIndex}
+            onIndexChange={setMonthIndex}
+            series={summary.data?.series}
+            className="enter w-[min(980px,100%)]"
+          />
         </div>
       </main>
     );
@@ -373,7 +366,11 @@ export default function FieldMap() {
       </div>
       <div className="flex flex-col gap-3">{controls}</div>
       <div className="relative h-[min(62vh,520px)] overflow-hidden rounded-[24px]">{canvas}</div>
-      <ShelfTimeline series={summary.data?.series} />
+      <ShelfTimeline
+        index={monthIndex}
+        onIndexChange={setMonthIndex}
+        series={summary.data?.series}
+      />
       <div className="card flex flex-col gap-3 p-4">
         <MapLegend />
         <span className="lbl text-[11.5px]">{sourceNote}</span>

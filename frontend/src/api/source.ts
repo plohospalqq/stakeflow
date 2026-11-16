@@ -34,6 +34,7 @@ import type {
   ScenarioResult,
   SharePriceSeries,
 } from './types.scenario';
+import type { FieldTimeline } from './timeline';
 import type { ShelfSummary } from './types.summary';
 
 export interface CoreApi {
@@ -77,4 +78,6 @@ export interface ExtrasApi {
  */
 export interface ShelfSummaryApi {
   summary(): Promise<ShelfSummary>;
+  /** GET /fields/timeline: every field over the last 24 months (the map's timeline). */
+  fieldTimeline(): Promise<FieldTimeline>;
 }

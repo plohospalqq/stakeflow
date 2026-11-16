@@ -103,6 +103,7 @@ def export_all(client: httpx.Client, out: Path, source: str) -> Exporter:
     producing = ex.full_list("/companies", "companies/all.json")
     fields = ex.full_list("/fields", "fields/all.json")
     ex.export("/fields/geojson", "fields/geojson.json")
+    ex.export("/fields/timeline", "fields/timeline.json")
 
     # Every group a page can link to: the company lists, plus every current owner of a field
     group_ids = {c["id"] for c in focus + producing}

@@ -10,35 +10,37 @@ const STEP_MS = 380;
 
 /**
  * Two years of the whole shelf, month by month. A real range input sits over the bars, so
- * click, drag and arrow keys all scrub; Play steps through the months. The field circles
- * stay at the latest month, and the panel says so.
+ * click, drag and arrow keys all scrub; Play steps through the months. The page owns the
+ * picked month, because the field circles on the map follow it.
  */
 export function ShelfTimeline({
   series,
+  index,
+  onIndexChange,
   className,
 }: {
   series: ShelfSummary['series'] | undefined;
+  /** The picked month as an index into `series`; null = the latest month. */
+  index: number | null;
+  onIndexChange: (index: number) => void;
   className?: string;
 }) {
   const { m, t } = useI18n();
   const id = useId();
   const [ref, reveal] = useReveal<HTMLDivElement>();
   const last = (series?.length ?? 1) - 1;
-  const [index, setIndex] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const current = index ?? last;
 
   useEffect(() => {
     if (!playing) return;
-    const timer = window.setInterval(() => {
-      setIndex((i) => {
-        const next = (i ?? last) >= last ? 0 : (i ?? last) + 1;
-        if (next === last) setPlaying(false);
-        return next;
-      });
+    const timer = window.setTimeout(() => {
+      const next = current >= last ? 0 : current + 1;
+      if (next === last) setPlaying(false);
+      onIndexChange(next);
     }, STEP_MS);
-    return () => window.clearInterval(timer);
-  }, [playing, last]);
+    return () => window.clearTimeout(timer);
+  }, [playing, current, last, onIndexChange]);
 
   if (!series || series.length === 0) {
     return (
@@ -70,7 +72,7 @@ export function ShelfTimeline({
         aria-label={playing ? m.map.pause : m.map.play}
         aria-pressed={playing}
         onClick={() => {
-          if (!playing && current === last) setIndex(0);
+          if (!playing && current === last) onIndexChange(0);
           setPlaying((p) => !p);
         }}
       >
@@ -100,7 +102,7 @@ export function ShelfTimeline({
             value={current}
             onChange={(e) => {
               setPlaying(false);
-              setIndex(Number(e.target.value));
+              onIndexChange(Number(e.target.value));
             }}
             aria-label={m.map.timelineLabel}
             aria-valuetext={

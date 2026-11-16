@@ -548,6 +548,28 @@
         }
       }
     },
+    "/fields/timeline": {
+      "get": {
+        "tags": [
+          "fields"
+        ],
+        "summary": "Fields Timeline",
+        "description": "Every field's production over the last 24 months, for the map's timeline.\n\nColumn-wise (one list of months, one list of values per field) because the map reads it\nmonth by month: about 100 fields x 24 months in a few kilobytes.",
+        "operationId": "fields_timeline_fields_timeline_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldTimeline"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/fields/geojson": {
       "get": {
         "tags": [
@@ -2575,6 +2597,63 @@
           "latest"
         ],
         "title": "FieldSummary"
+      },
+      "FieldTimeline": {
+        "properties": {
+          "months": {
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "type": "array",
+            "title": "Months",
+            "description": "The last 24 months of data, oldest first."
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldTimelineSeries"
+            },
+            "type": "array",
+            "title": "Fields"
+          }
+        },
+        "type": "object",
+        "required": [
+          "months",
+          "fields"
+        ],
+        "title": "FieldTimeline"
+      },
+      "FieldTimelineSeries": {
+        "properties": {
+          "fieldId": {
+            "type": "integer",
+            "title": "Fieldid"
+          },
+          "boePerDay": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Boeperday",
+            "description": "One value per month of the timeline; 0 where the field did not produce."
+          },
+          "oilShare": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Oilshare",
+            "description": "Oil as a share of oil equivalents that month, 0-1 (0 where nothing was produced)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "fieldId",
+          "boePerDay",
+          "oilShare"
+        ],
+        "title": "FieldTimelineSeries"
       },
       "FitWindow": {
         "properties": {

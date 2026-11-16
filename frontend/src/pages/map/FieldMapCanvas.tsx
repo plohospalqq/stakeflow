@@ -69,7 +69,8 @@ const INTERACTIVE = ['field-core', 'field-fill'];
 /** Where the three seas' names sit, roughly in the middle of each. */
 const SEA_POINTS = [
   { key: 'north', lon: 3.2, lat: 57.4 },
-  { key: 'norwegian', lon: 4.2, lat: 66.6 },
+  // West enough that a one-word name (NORSKEHAVET cannot wrap) clears Aasta Hansteen's label.
+  { key: 'norwegian', lon: 2.6, lat: 66.6 },
   { key: 'barents', lon: 25.5, lat: 73.4 },
 ] as const;
 

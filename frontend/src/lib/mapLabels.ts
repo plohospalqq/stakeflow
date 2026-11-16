@@ -34,6 +34,14 @@ export function usesName(textField: unknown): boolean {
   return parts.some(usesName);
 }
 
+/**
+ * Water names come from the app: it labels the three seas of the shelf itself, translated and
+ * in its own style. The light basemap prints its own name right under ours ("NORTH SEA" over
+ * "North Sea"), so its water labels are switched off, as the dark style already leaves them out
+ * at these zooms.
+ */
+const WATER_NAMES = 'water_name';
+
 /** The part of a MapLibre map the labels need; small enough to fake in a test. */
 export interface LabelMap {
   getLayersOrder(): string[];
@@ -43,16 +51,19 @@ export interface LabelMap {
 }
 
 /**
- * Points every basemap name label at the app language. Road numbers ('ref') stay as they are,
- * and so do our own GeoJSON layers (no source layer), whose names come from the dictionaries.
- * Safe to call on every style event: MapLibre ignores a value that did not change.
+ * Points every basemap name label at the app language and hides the basemap's water names.
+ * Road numbers ('ref') stay as they are, and so do our own GeoJSON layers (no source layer),
+ * whose names come from the dictionaries. Safe to call on every style event: MapLibre ignores
+ * a value that did not change.
  */
 export function localiseBasemapLabels(map: LabelMap, lang: Lang): void {
   const name = basemapNameExpression(lang);
   for (const id of map.getLayersOrder()) {
     const layer = map.getLayer(id);
     if (layer?.type !== 'symbol' || !layer.sourceLayer) continue;
-    if (usesName(map.getLayoutProperty(id, 'text-field'))) {
+    if (layer.sourceLayer === WATER_NAMES) {
+      map.setLayoutProperty(id, 'visibility', 'none');
+    } else if (usesName(map.getLayoutProperty(id, 'text-field'))) {
       map.setLayoutProperty(id, 'text-field', name);
     }
   }

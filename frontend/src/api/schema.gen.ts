@@ -163,6 +163,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/fields/timeline': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Fields Timeline
+     * @description Every field's production over the last 24 months, for the map's timeline.
+     *
+     *     Column-wise (one list of months, one list of values per field) because the map reads it
+     *     month by month: about 100 fields x 24 months in a few kilobytes.
+     */
+    get: operations['fields_timeline_fields_timeline_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/fields/geojson': {
     parameters: {
       query?: never;
@@ -861,6 +884,31 @@ export interface components {
       /** Lat */
       lat: number | null;
       latest: components['schemas']['LatestSummary'] | null;
+    };
+    /** FieldTimeline */
+    FieldTimeline: {
+      /**
+       * Months
+       * @description The last 24 months of data, oldest first.
+       */
+      months: string[];
+      /** Fields */
+      fields: components['schemas']['FieldTimelineSeries'][];
+    };
+    /** FieldTimelineSeries */
+    FieldTimelineSeries: {
+      /** Fieldid */
+      fieldId: number;
+      /**
+       * Boeperday
+       * @description One value per month of the timeline; 0 where the field did not produce.
+       */
+      boePerDay: number[];
+      /**
+       * Oilshare
+       * @description Oil as a share of oil equivalents that month, 0-1 (0 where nothing was produced).
+       */
+      oilShare: number[];
     };
     /** FitWindow */
     FitWindow: {
@@ -1965,6 +2013,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  fields_timeline_fields_timeline_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FieldTimeline'];
         };
       };
     };

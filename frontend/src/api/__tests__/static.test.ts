@@ -290,5 +290,6 @@ describe('staticExtras', () => {
 describe('summary route', () => {
   it('maps /summary to the exported landing-page file', () => {
     expect(staticRoute('/summary')).toEqual({ file: 'meta/summary.json' });
+    expect(staticRoute('/fields/timeline')).toEqual({ file: 'fields/timeline.json' });
   });
 });

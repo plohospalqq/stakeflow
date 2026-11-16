@@ -12,6 +12,8 @@ from stakeflow_api.schemas import (
     FeatureCollection,
     FieldDetail,
     FieldSummary,
+    FieldTimeline,
+    FieldTimelineSeries,
     MonthlyPoint,
     OperatorRef,
     Owner,
@@ -84,6 +86,49 @@ def list_fields(
         {"status": status, "q": q, "owner": owner, "limit": limit},
     )
     return [_to_summary(r) for r in rows]
+
+
+TIMELINE_MONTHS = 24
+
+
+# Declared before /{field_id} so "timeline" is not parsed as an id
+@router.get("/timeline", response_model=FieldTimeline, response_model_by_alias=True)
+def fields_timeline(conn: Conn) -> FieldTimeline:
+    """Every field's production over the last 24 months, for the map's timeline.
+
+    Column-wise (one list of months, one list of values per field) because the map reads it
+    month by month: about 100 fields x 24 months in a few kilobytes.
+    """
+    rows = fetch_all(
+        conn,
+        """
+        with latest as (select max(month) as month from marts.fct_field_production_monthly)
+        select p.field_id, p.month, p.boe_per_day,
+               -- Net gas can be negative (injection), which would push the share past 1
+               case when p.oe_sm3 > 0 then least(1, greatest(0, p.oil_sm3 / p.oe_sm3)) else 0 end
+                   as oil_share
+        from marts.fct_field_production_monthly as p, latest
+        where p.month > (latest.month - make_interval(months => %(months)s))::date
+          and p.boe_per_day > 0
+        order by p.field_id, p.month
+        """,
+        {"months": TIMELINE_MONTHS},
+    )
+    months = sorted({r["month"] for r in rows})
+    index = {month: i for i, month in enumerate(months)}
+    series: dict[int, FieldTimelineSeries] = {}
+    for r in rows:
+        field = series.setdefault(
+            r["field_id"],
+            FieldTimelineSeries(
+                field_id=r["field_id"],
+                boe_per_day=[0.0] * len(months),
+                oil_share=[0.0] * len(months),
+            ),
+        )
+        field.boe_per_day[index[r["month"]]] = float(r["boe_per_day"])
+        field.oil_share[index[r["month"]]] = float(r["oil_share"])
+    return FieldTimeline(months=months, fields=list(series.values()))
 
 
 # Declared before /{field_id} so "geojson" is not parsed as an id

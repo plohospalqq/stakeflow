@@ -103,6 +103,20 @@ class FieldSummary(ApiModel):
     latest: LatestSummary | None
 
 
+class FieldTimelineSeries(ApiModel):
+    field_id: int
+    boe_per_day: list[float]
+    """One value per month of the timeline; 0 where the field did not produce."""
+    oil_share: list[float]
+    """Oil as a share of oil equivalents that month, 0-1 (0 where nothing was produced)."""
+
+
+class FieldTimeline(ApiModel):
+    months: list[date]
+    """The last 24 months of data, oldest first."""
+    fields: list[FieldTimelineSeries]
+
+
 class Owner(ApiModel):
     company_id: int
     company_name: str

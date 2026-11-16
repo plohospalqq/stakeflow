@@ -34,8 +34,10 @@ export async function mockSummary(): Promise<ShelfSummary> {
   const byMonth = new Map(months.map((m) => [m, 0]));
   let gasSm3 = 0;
   for (const f of fields) {
+    // From whichever starts earlier: the 24-month series or the calendar year of gas.
+    const gasYearStart = `${gasYear}-01-01`;
     const history = await mockCore.fieldProduction(f.id, {
-      start: `${gasYear}-01-01`,
+      start: first < gasYearStart ? first : gasYearStart,
       end: latest,
     });
     for (const p of history) {

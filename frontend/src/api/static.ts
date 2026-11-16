@@ -8,6 +8,7 @@
  */
 import type { components } from './schema.gen';
 import { mapSummary } from './summary';
+import { mapFieldTimeline, type FieldTimeline } from './timeline';
 import type { ShelfSummary } from './types.summary';
 import { addMonths, monthStart } from '@/lib/dates';
 import { createExtras } from './extras';
@@ -97,6 +98,7 @@ export function staticRoute(path: string, query: Query = {}): StaticRoute | null
       };
     }
     if (id === 'geojson' && !sub) return { file: 'fields/geojson.json' };
+    if (id === 'timeline' && !sub) return { file: 'fields/timeline.json' };
     if (!FIELD_ID.test(id)) return null;
     if (!sub) return { file: `fields/${id}/detail.json` };
     if (sub === 'production') return { file: `fields/${id}/production.json`, series: 'field' };
@@ -196,6 +198,13 @@ const postStatic: JsonPoster = (path) => Promise.reject(new ApiError(404, path))
  * STATIC_REAL_EXTRAS); index.ts takes the rest from the mock layer.
  */
 export const staticExtras: ExtrasApi = createExtras(getStatic, postStatic);
+
+/** The map timeline's per-field months from the snapshot (same mapper as the live API). */
+export async function staticFieldTimeline(): Promise<FieldTimeline> {
+  return mapFieldTimeline(
+    await getStatic<components['schemas']['FieldTimeline']>('/fields/timeline'),
+  );
+}
 
 /** The landing page's shelf summary from the snapshot (same mapper as the live API). */
 export async function staticSummary(): Promise<ShelfSummary> {

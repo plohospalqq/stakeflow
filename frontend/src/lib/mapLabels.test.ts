@@ -16,6 +16,7 @@ interface FakeLayer {
   type: string;
   sourceLayer?: string;
   textField?: unknown;
+  visibility?: unknown;
 }
 
 /** The four methods the labels need, over a plain list of layers. */
@@ -29,7 +30,9 @@ function fakeMap(layers: FakeLayer[]): LabelMap & { writes: string[] } {
     getLayoutProperty: (id, name) => (name === 'text-field' ? find(id)?.textField : undefined),
     setLayoutProperty: (id, name, value) => {
       const layer = find(id);
-      if (!layer || name !== 'text-field') return;
+      if (!layer) return;
+      if (name === 'visibility') layer.visibility = value;
+      if (name !== 'text-field') return;
       layer.textField = value;
       writes.push(id);
     },
@@ -98,7 +101,7 @@ describe('localiseBasemapLabels', () => {
   it('rewrites the basemap name labels and nothing else', () => {
     const map = fakeMap(layers());
     localiseBasemapLabels(map, 'nb');
-    expect(map.writes).toEqual(['water_name', 'place_city']);
+    expect(map.writes).toEqual(['place_city']);
     expect(map.getLayoutProperty('place_city', 'text-field')).toEqual(basemapNameExpression('nb'));
     expect(map.getLayoutProperty('highway_name_motorway', 'text-field')).toEqual(ROAD_REF);
     expect(map.getLayoutProperty('sea-labels', 'text-field')).toEqual(['get', 'name']);
@@ -108,6 +111,14 @@ describe('localiseBasemapLabels', () => {
     const map = fakeMap(layers());
     localiseBasemapLabels(map, 'en');
     localiseBasemapLabels(map, 'uk');
-    expect(map.getLayoutProperty('water_name', 'text-field')).toEqual(basemapNameExpression('uk'));
+    expect(map.getLayoutProperty('place_city', 'text-field')).toEqual(basemapNameExpression('uk'));
+  });
+
+  it("hides the basemap's water names: the app labels the seas itself", () => {
+    const list = layers();
+    localiseBasemapLabels(fakeMap(list), 'en');
+    expect(list.find((l) => l.id === 'water_name')?.visibility).toBe('none');
+    expect(list.find((l) => l.id === 'place_city')?.visibility).toBeUndefined();
+    expect(list.find((l) => l.id === 'sea-labels')?.visibility).toBeUndefined();
   });
 });
