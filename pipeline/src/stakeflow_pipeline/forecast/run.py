@@ -3,6 +3,10 @@
     stakeflow-forecast                              # live quarter + backfill backtests
     stakeflow-forecast --quarter 2026Q4 --no-backfill   # what the quarter-end workflow runs
 
+Every run first replays the quarters since 2020 to learn how wide the range must be
+(calibration.py), about four minutes on the full Sodir history; `--calibrate-from 2025Q1`
+shortens that where the numbers do not matter (CI).
+
 Reads the marts (and raw.ingestion_runs for snapshot ids), writes the `ml` schema in one
 transaction. Run dbt's `tag:ml` models afterwards to refresh what the API serves.
 """
@@ -12,14 +16,14 @@ import sys
 import uuid
 from collections import Counter
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import numpy as np
 import psycopg
 
-from stakeflow_pipeline.forecast import field_model, nowcast, store
+from stakeflow_pipeline.forecast import calibration, field_model, nowcast, store
 from stakeflow_pipeline.forecast.field_model import FieldBacktest, FieldForecast, FieldSeries
 from stakeflow_pipeline.forecast.hashing import sha256_hex
 from stakeflow_pipeline.forecast.periods import (
@@ -33,6 +37,9 @@ from stakeflow_pipeline.forecast.store import Inputs
 from stakeflow_pipeline.settings import database_conninfo
 
 BACKFILL_FROM = Quarter(date(2023, 1, 1))
+# Quarters replayed to learn how wide the range has to be (calibration.py): three years before
+# the first published backtest, so that one already has 36 scored predictions behind it.
+CALIBRATION_FROM = Quarter(date(2020, 1, 1))
 # Longest field-level publication lag measured so far (docs/nowcast-feasibility.md). Backtests
 # only see months that would surely have been out by the quarter end.
 PUBLICATION_LAG_DAYS = 69
@@ -48,6 +55,8 @@ class RunReport:
     data_through: date
     statuses: Counter[str]
     backtest: dict[str, float | int | None]
+    range_factor: float = 1.0
+    range_scores: int = 0
     live: list[Prediction] = field(default_factory=list)
     backtests: list[Prediction] = field(default_factory=list)
 
@@ -90,17 +99,25 @@ def summarize_backtests(backtests: Iterable[FieldBacktest]) -> dict[str, float |
     }
 
 
-def predict_quarter(
+@dataclass(frozen=True)
+class RawQuarter:
+    """One quarter's nowcasts as simulated, before the range is calibrated."""
+
+    quarter: Quarter
+    data_through: date
+    results: dict[str, nowcast.QuarterNowcast]
+    series: dict[int, FieldSeries]
+    shares: dict[str, dict[tuple[int, date], float]]
+
+
+def simulate_quarter(
     inputs: Inputs,
     quarter: Quarter,
     data_through: date,
-    *,
-    kind: Kind,
     as_of: date,
-    predicted_at: datetime,
     forecasts: dict[int, FieldForecast] | None = None,
-) -> list[Prediction]:
-    """One prediction per focus group. Fits the fields itself unless `forecasts` covers them."""
+) -> RawQuarter:
+    """One nowcast per focus group. Fits the fields itself unless `forecasts` covers them."""
     series = field_series(inputs, data_through)
     horizon = nowcast.months_needed(quarter, data_through)
     shares = {
@@ -114,22 +131,92 @@ def predict_quarter(
             for fid in sorted(needed)
             if fid in series and horizon > 0
         }
-    predictions = []
-    for group in inputs.focus_groups:
-        observed = inputs.group_volumes.get(group, {})
-        result = nowcast.nowcast_quarter(
+    results = {
+        group: nowcast.nowcast_quarter(
             group,
             quarter,
             data_through,
-            observed,
+            inputs.group_volumes.get(group, {}),
             forecasts,
             shares[group],
             draws=field_model.DRAWS,
         )
-        manifest = input_manifest(kind, group, quarter, data_through, inputs, series, shares[group])
+        for group in inputs.focus_groups
+    }
+    return RawQuarter(quarter, data_through, results, series, shares)
+
+
+def backtest_data_through(inputs: Inputs, quarter: Quarter) -> date:
+    """The newest month a freeze at the end of `quarter` would surely have had."""
+    return min(latest_month_available(quarter.end, PUBLICATION_LAG_DAYS), inputs.latest_month)
+
+
+def attributed_kboe_d(inputs: Inputs, group_id: str, quarter: Quarter) -> float:
+    """What Sodir's data says the group produced in the quarter (same unit as a nowcast)."""
+    volumes = inputs.group_volumes.get(group_id, {})
+    total = sum(volumes.get(month, 0.0) for month in quarter.months)
+    return total * nowcast.BBL_PER_SM3 / quarter.days / 1000
+
+
+class RangeCalibrator:
+    """How much wider the simulated range must be, learned from quarters already known.
+
+    Past quarters are replayed as backtests (once per run, then reused for every prediction and
+    for the backtests that get stored), and each is scored in half-widths of its own range. A
+    prediction only learns from quarters whose three months were in the data it was frozen
+    with, so a backtest never sees its own future.
+    """
+
+    def __init__(self, inputs: Inputs, first: Quarter = CALIBRATION_FROM) -> None:
+        self._inputs = inputs
+        self._first = first
+        self._replays: dict[Quarter, RawQuarter] = {}
+
+    def backtest(self, quarter: Quarter) -> RawQuarter:
+        if quarter not in self._replays:
+            self._replays[quarter] = simulate_quarter(
+                self._inputs,
+                quarter,
+                backtest_data_through(self._inputs, quarter),
+                as_of=quarter.end,
+            )
+        return self._replays[quarter]
+
+    def scores(self, data_through: date) -> list[float]:
+        """Scores of every quarter from `first` whose actual was known with `data_through`."""
+        scores: list[float] = []
+        quarter = self._first
+        while quarter.months[-1] <= data_through:
+            for group, result in self.backtest(quarter).results.items():
+                actual = attributed_kboe_d(self._inputs, group, quarter)
+                value = calibration.score(actual, result.lo, result.value_kboe_d, result.hi)
+                if value is not None:
+                    scores.append(value)
+            quarter = quarter.next()
+        return scores
+
+
+def predict_quarter(
+    inputs: Inputs,
+    raw: RawQuarter,
+    scores: list[float],
+    *,
+    kind: Kind,
+    as_of: date,
+    predicted_at: datetime,
+) -> list[Prediction]:
+    """The simulated nowcasts with their range widened by what `scores` call for."""
+    widen_by = calibration.factor(scores)
+    predictions = []
+    for group, result in raw.results.items():
+        lo, hi = calibration.widen(result.lo, result.value_kboe_d, result.hi, widen_by)
+        manifest = input_manifest(
+            kind, group, raw.quarter, raw.data_through, inputs, raw.series, raw.shares[group]
+        )
+        manifest["range_calibration"] = {"factor": round(widen_by, 4), "scores": len(scores)}
         predictions.append(
             Prediction.from_nowcast(
-                result,
+                replace(result, lo=round(lo, 1), hi=round(hi, 1)),
                 kind=kind,
                 model_version=nowcast.MODEL_VERSION,
                 predicted_at=predicted_at,
@@ -237,6 +324,7 @@ def run_forecasts(
     conn: psycopg.Connection,
     live_quarter: Quarter | None = None,
     backfill_from: Quarter | None = BACKFILL_FROM,
+    calibrate_from: Quarter = CALIBRATION_FROM,
 ) -> RunReport:
     """Live predictions are always stamped with the real clock: no way to backdate one."""
     started = datetime.now(UTC).replace(microsecond=0)
@@ -263,14 +351,15 @@ def run_forecasts(
     backtests = {fid: bt for fid, s in series.items() if (bt := field_model.backtest(s))}
     summary = summarize_backtests(backtests.values())
 
+    calibrator = RangeCalibrator(inputs, first=calibrate_from)
+    live_scores = calibrator.scores(inputs.latest_month)
     live = predict_quarter(
         inputs,
-        quarter,
-        inputs.latest_month,
+        simulate_quarter(inputs, quarter, inputs.latest_month, as_of=today, forecasts=forecasts),
+        live_scores,
         kind="live",
         as_of=today,
         predicted_at=started,
-        forecasts=forecasts,
     )
     live = [p for p in live if p.input_hash not in known_hashes]
 
@@ -279,11 +368,14 @@ def run_forecasts(
         for q in backtest_quarters(today, backfill_from):
             if all((g, q.start) in done for g in inputs.focus_groups):
                 continue
-            data_through = min(
-                latest_month_available(q.end, PUBLICATION_LAG_DAYS), inputs.latest_month
-            )
+            raw = calibrator.backtest(q)
             batch = predict_quarter(
-                inputs, q, data_through, kind="backtest", as_of=q.end, predicted_at=started
+                inputs,
+                raw,
+                calibrator.scores(raw.data_through),
+                kind="backtest",
+                as_of=q.end,
+                predicted_at=started,
             )
             replayed += [p for p in batch if (p.group_id, q.start) not in done]
 
@@ -300,7 +392,12 @@ def run_forecasts(
                     "finished_at": finished,
                     "data_through": inputs.latest_month,
                     "ingestion_run_ids": inputs.ingestion_run_ids,
-                    "params": run_params(),
+                    "params": run_params()
+                    | {
+                        "range_calibrated_from": calibrate_from.label,
+                        "range_factor": round(calibration.factor(live_scores), 4),
+                        "range_scores": len(live_scores),
+                    },
                     "fields_total": len(forecasts),
                     "fields_arps": sum(
                         f.status is field_model.Status.ARPS for f in forecasts.values()
@@ -326,6 +423,8 @@ def run_forecasts(
         data_through=inputs.latest_month,
         statuses=Counter(str(f.status) for f in forecasts.values()),
         backtest=summary,
+        range_factor=calibration.factor(live_scores),
+        range_scores=len(live_scores),
         live=live,
         backtests=replayed,
     )
@@ -341,6 +440,7 @@ def run_params() -> dict[str, Any]:
         "backtest_months": field_model.BACKTEST_MONTHS,
         "publication_lag_days": PUBLICATION_LAG_DAYS,
         "seed": field_model.SEED,
+        "range_level": calibration.LEVEL,
     }
 
 
@@ -356,6 +456,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--no-backfill", action="store_true", help="skip replaying past quarters (backtests)"
     )
+    parser.add_argument(
+        "--calibrate-from",
+        type=Quarter.parse,
+        default=CALIBRATION_FROM,
+        help="first quarter replayed to calibrate the range; each one takes a few seconds"
+        f" (default {CALIBRATION_FROM.label})",
+    )
     args = parser.parse_args(sys.argv[1:] if argv is None else argv)
 
     with psycopg.connect(database_conninfo()) as conn:
@@ -363,12 +470,17 @@ def main(argv: list[str] | None = None) -> int:
             conn,
             live_quarter=args.quarter,
             backfill_from=None if args.no_backfill else args.backfill_from,
+            calibrate_from=args.calibrate_from,
         )
 
     print(f"run {report.run_id}  data through {report.data_through:%Y-%m}")
     print("fields: " + ", ".join(f"{k} {v}" for k, v in sorted(report.statuses.items())))
     for key, value in report.backtest.items():
         print(f"  {key:<24} {value:.2f}" if isinstance(value, float) else f"  {key:<24} {value}")
+    print(
+        f"range: x{report.range_factor:.2f} wider than simulated"
+        f" (80th percentile of {report.range_scores} scored quarters)"
+    )
     for p in report.live + report.backtests:
         print(
             f"{p.kind:<8} {p.group_id:<11} {p.quarter_start}  {p.value_kboe_d:7.1f}"

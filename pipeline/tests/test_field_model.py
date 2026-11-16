@@ -57,6 +57,18 @@ def test_flat_fields_are_held_at_their_recent_level():
     assert p50 / days == pytest.approx(500.0, rel=0.01)
 
 
+def test_a_field_in_its_first_year_is_held_at_its_best_recent_month():
+    # Eight months into a ramp-up: the average of the climb is below where the field stands
+    ramp = np.array([50.0, 120.0, 200.0, 260.0, 300.0, 340.0, 380.0, 400.0])
+    forecast = field_model.forecast(series_from_rates(ramp), horizon=3)
+    assert forecast.status is Status.TOO_SHORT
+    _, p50, _ = forecast.quantiles()
+    days = np.array([days_in_month(m) for m in forecast.months])
+    # At its best recent month, not back down the ramp and not at the average of the climb
+    assert p50 / days == pytest.approx(400.0, rel=0.08)
+    assert (p50 / days).mean() > ramp[-3:].mean()
+
+
 def test_shut_down_fields_forecast_zero():
     forecast = field_model.forecast(series_from_rates(np.r_[np.full(40, 500.0), np.zeros(3)]))
     assert forecast.status is Status.SHUT_DOWN

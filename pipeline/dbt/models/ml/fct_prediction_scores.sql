@@ -19,9 +19,11 @@ predictions as (
         p.*,
         (p.quarter_start + interval '3 months' - interval '1 day')::date as quarter_end,
         (p.quarter_start - interval '3 months')::date as previous_quarter_start,
-        -- Revisions are new rows; the newest one per quarter, kind and model is the one scored
+        -- Revisions are new rows, and so are the replays of a new model version; the newest
+        -- one per quarter and kind is the one scored. Older rows (and older models) stay in
+        -- the log, but two versions of one backtest must never both count.
         row_number() over (
-            partition by p.group_id, p.quarter_start, p.kind, p.model_version
+            partition by p.group_id, p.quarter_start, p.kind
             order by p.predicted_at desc, p.id
         ) = 1 as is_latest
     from {{ source('ml', 'predictions') }} as p

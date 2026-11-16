@@ -11,7 +11,7 @@ extrapolated from a ramp-up or a plateau:
     plateau     still within 10% of its recent peak                      flat, recent level
     ramp_up     not yet declining and the last 6 months beat the 6       flat, recent level
                 before by more than 10%
-    too_short   under 12 months of production                            flat, recent level
+    too_short   under 12 months of production                            flat, best recent month
     shut_down   nothing produced in the last 3 months                    zero
 
 Three refinements, each kept because it beat the naive baseline or improved calibration in
@@ -42,7 +42,7 @@ from stakeflow_pipeline.forecast.arps import ArpsParams, FloatArray
 from stakeflow_pipeline.forecast.periods import add_months, days_in_month
 
 # Bump on any change that can move a number: predictions record the version they came from
-MODEL_VERSION = "arps-1.0.0"
+MODEL_VERSION = "arps-1.1.0"
 
 HORIZON_MONTHS = 36
 DRAWS = 200
@@ -84,7 +84,7 @@ METHOD = {
     Status.ARPS: "Arps hyperbolic decline",
     Status.PLATEAU: "Flat at the last 3 months (on plateau, no decline to fit yet)",
     Status.RAMP_UP: "Flat at the last 3 months (still ramping up)",
-    Status.TOO_SHORT: "Flat at the last 3 months (under 12 months of history)",
+    Status.TOO_SHORT: "Flat at the best of the last 3 months (under 12 months of history)",
     Status.SHUT_DOWN: "No forecast (nothing produced in the last 3 months)",
 }
 
@@ -269,8 +269,8 @@ def forecast(
         return FieldForecast(series.field_id, status, months, np.zeros((draws, horizon)))
 
     if status is not Status.ARPS or start is None:
-        level = rates[-NAIVE_MONTHS:].mean()
-        noise = _log_noise_around_level(rates[-MIN_HISTORY_MONTHS:])
+        level = _recent_level(rates, status)
+        noise = _held_noise(rates[-MIN_HISTORY_MONTHS:], status)
         recent = rates[-DRIFT_MONTHS:]
         drift = _random_walk(_drift_sigma(np.log(recent[recent > 0])), horizon, draws, rng)
         sim = level * np.exp(_block_resample(noise, horizon, draws, rng) + drift)
@@ -347,6 +347,19 @@ def _bootstrap_arps(
     return np.exp(sim + drift)
 
 
+def _recent_level(rates: FloatArray, status: Status) -> float:
+    """The level a field without a decline curve is held at.
+
+    The mean of the last 3 months, except in the first year of production: a field that young is
+    still ramping up, and the average of a climb is below where it stands. On the 78 NCS fields
+    that started since 2000, forecasting the quarter ahead at months 1-11 of their life, the
+    mean was 21% too low (volume-weighted error 31%); the best of the last 3 months is 6% too
+    low (27%). A typical ramp-up profile learned from the other start-ups did no better.
+    """
+    recent = rates[-NAIVE_MONTHS:]
+    return float(recent.max() if status is Status.TOO_SHORT else recent.mean())
+
+
 def _drift_sigma(log_values: FloatArray) -> float:
     """Monthly step of a random-walk level drift, from the series' own 12-month level changes.
 
@@ -376,13 +389,20 @@ def _anchor(log_residuals: FloatArray) -> float:
     return float(np.median(log_residuals[-ANCHOR_MONTHS:]))
 
 
-def _log_noise_around_level(rates: FloatArray) -> FloatArray:
-    """Log deviations from the median: a single outage month must not shift the centre."""
+def _held_noise(rates: FloatArray, status: Status) -> FloatArray:
+    """Month-to-month log noise of a field that is held at a level instead of fitted.
+
+    Deviations from the median: a single outage month must not shift the centre. Except in the
+    first year: the whole history is a climb, so deviations from its median are the ramp-up
+    itself, and replaying them as noise sent the forecast back down the ramp. There the noise
+    is measured around a 3-month rolling median, which follows the climb.
+    """
     positive = rates[rates > 0]
     if positive.size < 2:
         return np.zeros(1)
     logs = np.log(positive)
-    return logs - np.median(logs)
+    centre = rolling_median(logs, 3) if status is Status.TOO_SHORT else np.median(logs)
+    return logs - centre
 
 
 def _block_resample(

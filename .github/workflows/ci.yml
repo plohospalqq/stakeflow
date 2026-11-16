@@ -86,7 +86,7 @@ jobs:
         run: uv run stakeflow-ml
       - name: Forecast run (Arps per field, live quarter, backtests from 2026Q2)
         working-directory: pipeline
-        run: uv run stakeflow-forecast --backfill-from 2026Q2
+        run: uv run stakeflow-forecast --backfill-from 2026Q2 --calibrate-from 2025Q1
       - name: dbt build of the ML marts (forecasts, anomalies, scenarios; models + tests)
         working-directory: pipeline
         run: uv run dbt build --project-dir dbt --profiles-dir dbt --select tag:ml

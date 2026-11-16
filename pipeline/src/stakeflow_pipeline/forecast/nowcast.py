@@ -17,9 +17,10 @@ Range: each field contributes its simulated paths, and the quarter total is summ
 independent. They are not fully: a gas-processing outage at Kårstø or Kollsnes, or a start-up
 the decline model cannot see, moves many fields or a whole company at once. Measured on 42
 quarterly backtests against Sodir-attributed actuals (2023Q1-2026Q2): independent sums give a
-range ~13% wide that held the actual 64% of the time; perfectly correlated sums (sorted draws)
-a ~40% range that held it 98% of the time. The truth is in between; we publish the independent
-range and its measured hit rate rather than tune a correlation on 42 points.
+range ~13% wide that held the actual 67% of the time; perfectly correlated sums (sorted draws)
+a ~47% range that held it 98% of the time. The truth is in between. Rather than tune a
+correlation on 42 points, the published range is this one widened by what past quarters showed
+(calibration.py, applied in run.py); `nowcast_quarter` returns the range as simulated.
 """
 
 from collections.abc import Iterable, Mapping
@@ -31,7 +32,7 @@ import numpy as np
 from stakeflow_pipeline.forecast.field_model import INTERVAL, FieldForecast
 from stakeflow_pipeline.forecast.periods import Quarter, add_months, days_in_month
 
-MODEL_VERSION = "nowcast-1.0.0"
+MODEL_VERSION = "nowcast-1.1.0"
 BBL_PER_SM3 = 6.2898
 OPEN_END = date(9999, 12, 31)
 
